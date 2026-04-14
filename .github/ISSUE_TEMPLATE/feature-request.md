@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: "[이름 | 생성일] task"
+about: Todo template
 title: ''
 labels: ''
 assignees: ''
