@@ -37,9 +37,9 @@ public class ArticleController {
   })
   public ResponseEntity<ArticleDto> getArticle(
       @Parameter(description = "뉴스 기사 ID") @PathVariable UUID articleId,
-      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestId
+      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {
-    ArticleDto response = articleService.getArticle(articleId, requestId);
+    ArticleDto response = articleService.getArticle(articleId, requestUserId);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
