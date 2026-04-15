@@ -1,0 +1,48 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+#        default_batch_fetch_size: 100 # 배치 사이즈로 N+1 해결 시 활성화
+
+logging:
+  level:
+    root: info
+    com.codeit.monew: info
+    org.hibernate.SQL: info
+    org.hibernate.type.descriptor.sql: warn
+
+# 운영 환경에서는 P6Spy 끄기
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false
+
+# 최종 배포시에는 swagger문서화 false로 바꾸기
+springdoc:
+  swagger-ui:
+    enabled: true # false로 바꾸기!!
+  api-docs:
+    enabled: true # false로 바꾸기!!
+
+# Actuator 설정, AWS 롤링 정책 health check 확인 용도
+management:
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: false

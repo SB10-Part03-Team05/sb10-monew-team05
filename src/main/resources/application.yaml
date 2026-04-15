@@ -1,0 +1,71 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: monew
+
+  profiles:
+    active: local # local | dev | prod
+
+  config:
+    import: optional:file:.env[.properties]
+
+  data:
+    mongodb:
+      uri: mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}/${MONGO_DB:monew_dev}?retryWrites=true&w=majority&appName=SB10-MONEW-TEAM5
+
+  jpa:
+    show-sql: false # 기본적으로 끔
+    properties:
+      hibernate:
+        format_sql: false    # 쿼리 줄바꿈 안 함
+        highlight_sql: false # SQL 색상 강조 안 함
+
+# 환경 변수 설정
+monew:
+  aws:
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+    region: ${AWS_REGION:ap-northeast-2}
+    bucket: ${AWS_S3_BUCKET}
+    presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600}
+
+# 로깅 레벨 설정
+logging:
+  level:
+    root: info
+    org.springframework.boot: info
+    org.springframework.web: info
+
+# Swagger 설정
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    disable-swagger-default-url: true
+    display-request-duration: true
+  api-docs:
+    enabled: true
+    path: /api-docs
+
+# Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: never
+
+  # Actuator info에 노출될 애플리케이션 정보
+info:
+  app:
+    name: MONEW
+    version: 1.0.0
+    java-version: 17
+    spring-boot-version: 3.4.3
+

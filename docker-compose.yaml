@@ -1,0 +1,64 @@
+version: '1.0.0'
+
+services:
+  app:
+    image: monew:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: monew-server
+    ports:
+      - "8080:80"
+    environment:
+      - SERVER_PORT=80
+      - SPRING_PROFILES_ACTIVE=dev
+      # DB 설정 (아래 db 서비스와 연결, 나중에 RDS로 전환 예정)
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # MongoDB 설정 (Atlas 연결)
+      - MONGO_USER=${MONGO_USER}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_DB=${MONGO_DB}
+      # AWS 설정
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_S3_PRESIGNED_URL_EXPIRATION=${AWS_S3_PRESIGNED_URL_EXPIRATION}
+
+    # RDS 전환 시 주석 처리 또는 삭제하세요.
+    depends_on:
+      - db
+    networks:
+      - monew-network
+
+  # ---------------------------------------------------------
+  # [PostgreSQL 로컬 컨테이너]
+  # RDS 세팅 완료 후에는 이 'db' 서비스 블록 전체를 주석 처리하거나 삭제하세요.
+  # ---------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: monew-db
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - monew-postgres-data:/var/lib/postgresql/data
+    networks:
+      - monew-network
+
+
+## RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
+volumes:
+  monew-postgres-data:
+
+networks:
+  monew-network:
+    driver: bridge

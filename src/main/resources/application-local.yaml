@@ -1,0 +1,45 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:mem:monew;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true # http://localhost:8080/h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+
+logging:
+  level:
+    com.codeit.monew: debug
+#    org.hibernate.SQL: debug # P6Spy가 대신 출력해주므로 주석처리
+#    org.hibernate.orm.jdbc.bind: trace # P6Spy가 대신 출력해주므로 주석처리
+
+# P6Spy 로그 출력
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
+      multiline: true
+      logging: slf4j
+
+# Actuator 설정, 로컬에선 환경변수 보이게 설정
+management:
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true

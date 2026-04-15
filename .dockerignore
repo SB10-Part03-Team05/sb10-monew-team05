@@ -1,0 +1,16 @@
+# 빌드 결과물 (도커 안에서 새로 빌드할 것이므로 제외)
+build/
+out/
+
+# 소스 제어
+.git
+.gitignore
+
+# 환경 변수 (이미지는 환경변수 주입으로 관리하므로 포함하지 않음)
+.env
+*.log
+
+# IDE 및 OS 관련
+.idea/
+.vscode/
+.DS_Store
