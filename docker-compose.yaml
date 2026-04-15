@@ -1,4 +1,4 @@
-version: '1.0.0'
+version: '3.8'
 
 services:
   app:
@@ -13,7 +13,7 @@ services:
       - SERVER_PORT=80
       - SPRING_PROFILES_ACTIVE=dev
       # DB 설정 (아래 db 서비스와 연결, 나중에 RDS로 전환 예정)
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=${DB_HOST:-db}
       - DB_PORT=5432
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
@@ -51,6 +51,7 @@ services:
       - "5432:5432"
     volumes:
       - monew-postgres-data:/var/lib/postgresql/data
+      - ./src/main/resources/schema-postgre.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
     networks:
       - monew-network
 
