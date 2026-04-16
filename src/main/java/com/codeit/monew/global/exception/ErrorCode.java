@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
   // User 관련 에러 코드
-  USER_NOT_FOUND("사용자 정보를 찾을 수 없습니다."),
+  USER_NOT_FOUND("유저를 찾을 수 없습니다."),
+  DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
 
   // Article 관련 에러 코드
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),

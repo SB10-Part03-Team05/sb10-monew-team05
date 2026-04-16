@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties(AwsProperties.class)
 public class MonewApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(MonewApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(MonewApplication.class, args);
+  }
 
 }
