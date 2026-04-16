@@ -1,10 +1,11 @@
 package com.codeit.monew.domain.article.controller;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 
 import com.codeit.monew.domain.article.dto.ArticleDto;
-import com.codeit.monew.domain.article.entity.ArticleSource;
+import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
@@ -12,6 +13,7 @@ import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -64,7 +65,7 @@ class ArticleControllerTest {
       UUID requestUserId = UUID.randomUUID();
       UUID articleId = UUID.randomUUID();
       ArticleDto articleDto = createArticleDto(articleId, ArticleSource.NAVER, "https://naver.com",
-          "테스트title", Instant.now(), "테스트summary", 5, 6, true);
+          "testTitle", Instant.now(), "testSummary", 5, 6, true);
 
       given(articleService.getArticle(articleId, requestUserId)).willReturn(articleDto);
 
@@ -115,6 +116,29 @@ class ArticleControllerTest {
           .andExpect(
               jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()))
           .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 출처 목록 조회 API 테스트")
+  class getSource {
+
+    @Test
+    @DisplayName("뉴스 기사 출처 목록 조회하면 200 상태코드와 DB에 저장된 뉴스 기사의 출처 목록이 반환된다.")
+    void success_get_article_source() throws Exception {
+      // given(준비)
+      List<ArticleSource> sources = List.of(ArticleSource.HANKYUNG, ArticleSource.NAVER,
+          ArticleSource.YEONHAP);
+
+      given(articleService.getSources()).willReturn(sources);
+
+      // when(실행), then(검증)
+      mockMvc.perform(get("/api/articles/sources"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$", hasSize(3)))
+          .andExpect(jsonPath("$[0]").value(ArticleSource.HANKYUNG.toString()))
+          .andExpect(jsonPath("$[1]").value(ArticleSource.NAVER.toString()))
+          .andExpect(jsonPath("$[2]").value(ArticleSource.YEONHAP.toString()));
     }
   }
 }
