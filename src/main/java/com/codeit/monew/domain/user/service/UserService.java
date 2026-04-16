@@ -23,6 +23,7 @@ public class UserService {
   private final UserMapper userMapper;
 
   public UserDto register(UserRegisterRequest request) {
+    log.info("[USER_CREATE] 유저 회원가입 요청: email={}, nickname={}", request.email(), request.nickname());
     existsByEmail(request.email());
 
     User user = new User(
@@ -32,7 +33,7 @@ public class UserService {
     );
     userRepository.save(user);
 
-    log.info("유저 생성 완료: userId={}", user.getId());
+    log.info("[USER_CREATE] 유저 생성 완료: userId={}", user.getId());
 
     return userMapper.toDto(user);
   }
