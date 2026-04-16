@@ -3,6 +3,7 @@ package com.codeit.monew.domain.comment.entity;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.MonewException;
 import jakarta.persistence.*;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -59,9 +60,9 @@ public class Comment {
 
   // 생성자
   public Comment(UUID articleId, UUID userId, String content) {
-    this.articleId = articleId;
-    this.userId = userId;
-    this.content = content;
+    this.articleId = Objects.requireNonNull(articleId, "articleId는 필수입니다.");
+    this.userId = Objects.requireNonNull(userId, "userId는 필수입니다.");
+    this.content = validateContent(content);
     this.likeCount = 0L;
 
     Instant now = Instant.now();
@@ -77,7 +78,7 @@ public class Comment {
     if (!this.userId.equals(requesterId)) { // 댓글 작성자와 요청자가 다르면 댓글 수정 권한 없음
       throw new MonewException(ErrorCode.COMMENT_UPDATE_FORBIDDEN); // 댓글 수정 권한 없음 에러 반환
     }
-    this.content = newContent;
+    this.content = validateContent(newContent);
     this.updatedAt = Instant.now();
   }
 
@@ -91,5 +92,16 @@ public class Comment {
     if (this.likeCount > 0) {
       this.likeCount--; // 좋아요 수가 0보다 클 때만 감소, 음수 좋아요 방어
     }
+  }
+
+  // 댓글 null/blank/길이 검증
+  private String validateContent(String value) {
+    if (value == null || value.isBlank()) {
+      throw new MonewException(ErrorCode.INVALID_REQUEST);
+    }
+    if (value.length() > 500) {
+      throw new MonewException(ErrorCode.INVALID_REQUEST);
+    }
+    return value;
   }
 }
