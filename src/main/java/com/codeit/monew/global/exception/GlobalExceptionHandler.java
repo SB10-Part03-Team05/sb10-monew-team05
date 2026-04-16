@@ -71,7 +71,9 @@ public class GlobalExceptionHandler {
 //            case  -> HttpStatus.UNAUTHORIZED;
 //            case  -> HttpStatus.BAD_REQUEST;
 //            case  -> HttpStatus.INTERNAL_SERVER_ERROR;
-
+      // User 관련
+      case USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case DUPLICATE_EMAIL -> HttpStatus.CONFLICT;
       // Comment 관련
       case COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN; // 댓글 수정 권한 없음 -> 403 Forbidden
 
