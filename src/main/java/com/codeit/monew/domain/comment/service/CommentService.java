@@ -8,8 +8,8 @@ import com.codeit.monew.domain.comment.mapper.CommentMapper;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.exception.ErrorCode;
-import com.codeit.monew.global.exception.MonewException;
+import com.codeit.monew.global.exception.article.ArticleNotFoundException;
+import com.codeit.monew.global.exception.user.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,11 +34,11 @@ public class CommentService {
 
     // 1. 유저 조회 및 검증
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new MonewException(ErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new UserNotFoundException(userId));
 
     // 2. 기사 조회 및 검증
     Article article = articleRepository.findById(articleId)
-        .orElseThrow(() -> new MonewException(ErrorCode.ARTICLE_NOT_FOUND));
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
 
     // 3. 댓글 엔티티 생성 및 영속화
     Comment comment = new Comment(article, userId, content);
