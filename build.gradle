@@ -60,6 +60,9 @@ dependencies {
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Levenshtein Distance(유사도 검증 알고리즘)
+    implementation 'org.apache.commons:commons-text:1.11.0'
 }
 
 tasks.named('test') {
