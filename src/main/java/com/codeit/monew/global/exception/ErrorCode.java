@@ -13,6 +13,7 @@ public enum ErrorCode {
   // Interest 관련 에러 코드
 
   // Comment 관련 에러 코드
+  COMMENT_UPDATE_FORBIDDEN("댓글 수정 권한이 없습니다."),
 
   // Server 에러 코드
   INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),

@@ -6,14 +6,14 @@ spring:
     name: monew
 
   profiles:
-    active: local # local | dev | prod
+    active: dev # local | dev | prod
 
   config:
     import: optional:file:.env[.properties]
 
   data:
     mongodb:
-      uri: mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}/${MONGO_DB:monew_dev}?retryWrites=true&w=majority&appName=SB10-MONEW-TEAM5
+      uri: ${MONGO_PROTO:mongodb}://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}/${MONGO_DB:monew_dev}?retryWrites=true&w=majority&appName=SB10-MONEW-TEAM5
 
   jpa:
     show-sql: false # 기본적으로 끔
