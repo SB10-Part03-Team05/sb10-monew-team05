@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(MonewException.class)
-  public ResponseEntity<ErrorResponse> handleDiscodeitException(MonewException exception) {
+  public ResponseEntity<ErrorResponse> handleMonewException(MonewException exception) {
     log.error("커스텀 예외 발생: code={}, message={}", exception.getErrorCode(), exception.getMessage(),
         exception);
     HttpStatus status = determineHttpStatus(exception);
