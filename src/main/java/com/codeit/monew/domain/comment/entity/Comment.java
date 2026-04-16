@@ -17,7 +17,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL") // 데이터 조회할 때마다 쿼리 뒤에 deleted_at IS NULL 조건 자동으로 추가하여 논리 삭제 구현
-@SQLDelete(sql = "UPDATE comments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
+@SQLDelete(sql = "UPDATE comments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?") // 삭제 시, deleted_at 필드에 현재 시각을 저장하여 논리 삭제 구현 & version 필드로 낙관적 락 방어하여 동시 삭제 방지
 public class Comment {
 
   // 댓글 id
