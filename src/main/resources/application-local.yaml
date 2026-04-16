@@ -3,6 +3,11 @@ spring:
     activate:
       on-profile: local
 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
   datasource:
     url: jdbc:h2:mem:monew;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
