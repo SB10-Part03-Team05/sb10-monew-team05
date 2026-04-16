@@ -6,7 +6,7 @@ spring:
     name: monew
 
   profiles:
-    active: local # local | dev | prod
+    active: dev # local | dev | prod
 
   config:
     import: optional:file:.env[.properties]
