@@ -9,6 +9,7 @@ public enum ErrorCode {
   DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
 
   // Article 관련 에러 코드
+  ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),
 
   // Interest 관련 에러 코드
 
