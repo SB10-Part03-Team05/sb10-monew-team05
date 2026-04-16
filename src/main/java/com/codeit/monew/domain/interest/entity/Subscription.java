@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.interest.entity;
 
+import com.codeit.monew.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -29,14 +30,9 @@ public class Subscription {
   @Column(columnDefinition = "uuid")
   private UUID id;
 
-  // User 엔티티 머지 후 주석처리 해제
-//  @ManyToOne(fetch = FetchType.LAZY)
-//  @JoinColumn(name = "user_id", nullable = false)
-//  private User user;
-
-  // User 엔티티 머지 후 아래 컬럼 제거 및 ManyToOne 주석 해제
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "interest_id", nullable = false)
@@ -51,11 +47,10 @@ public class Subscription {
     this.createdAt = LocalDateTime.now();
   }
 
-  // User 엔티티 머지 후 주석처리 해제
-//  public static Subscription create(User user, Interest interest) {
-//    Subscription subscription = new Subscription();
-//    subscription.user = user;
-//    subscription.interest = interest;
-//    return subscription;
-//  }
+  public static Subscription create(User user, Interest interest) {
+    Subscription subscription = new Subscription();
+    subscription.user = user;
+    subscription.interest = interest;
+    return subscription;
+  }
 }
