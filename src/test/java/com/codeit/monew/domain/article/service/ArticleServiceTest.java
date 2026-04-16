@@ -54,7 +54,7 @@ class ArticleServiceTest {
 
   private Article createArticle(UUID articleId, ArticleSource source, String sourceUrl,
       String title, Instant publishDate, String summary) {
-    Article article = new Article(source, sourceUrl, title, publishDate, summary);
+    Article article = new Article(sourceUrl, source, title, publishDate, summary);
 
     if (articleId == null) {
       ReflectionTestUtils.setField(article, "id", UUID.randomUUID());
