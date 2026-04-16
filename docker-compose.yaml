@@ -47,7 +47,7 @@ services:
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - monew-postgres-data:/var/lib/postgresql/data
       - ./src/main/resources/schema-postgre.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
@@ -68,12 +68,14 @@ services:
       - "27017:27017"
     volumes:
       - monew-mongodb-data:/data/db
+      - monew-mongodb-config:/data/configdb
     networks:
       - monew-network
 
 volumes:
   monew-postgres-data: # RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
   monew-mongodb-data:
+  monew-mongodb-config:
 
 networks:
   monew-network:
