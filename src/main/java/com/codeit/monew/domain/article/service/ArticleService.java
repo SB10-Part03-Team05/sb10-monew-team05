@@ -59,7 +59,6 @@ public class ArticleService {
   // 뉴스 기사 출처 목록 조회
   @Transactional(readOnly = true)
   public List<ArticleSource> getSources() {
-
     return articleRepository.findDistinctSource();
   }
 }
