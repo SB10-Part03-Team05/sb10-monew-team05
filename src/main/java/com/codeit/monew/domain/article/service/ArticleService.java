@@ -6,7 +6,9 @@ import com.codeit.monew.domain.article.mapper.ArticleMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
+import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
+import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ public class ArticleService {
 
   private final ArticleRepository articleRepository;
   private final ArticleViewHistoryRepository articleViewHistoryRepository;
+  private final UserRepository userRepository;
   private final CommentRepository commentRepository;
   private final ArticleMapper articleMapper;
 
@@ -29,6 +32,10 @@ public class ArticleService {
   public ArticleDto getArticle(UUID articleId, UUID requestUserId) {
     log.debug("[MESSAGE_FIND] 뉴스 기사 조회 시작: articleId={}, requestUserId={}", articleId,
         requestUserId);
+
+    // 존재하는 사용자인지 검증
+    userRepository.findByIdAndDeletedAtIsNull(requestUserId)
+        .orElseThrow(() -> new UserNotFoundException(requestUserId));
 
     Article article = articleRepository.findByIdAndDeletedAtIsNull(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
