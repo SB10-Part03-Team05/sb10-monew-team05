@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: monew:local
@@ -18,10 +16,11 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      # MongoDB 설정 (Atlas 연결)
+      # MongoDB 설정
       - MONGO_USER=${MONGO_USER}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PROTO=${MONGO_PROTO:-mongodb}
+      - MONGO_HOST=${MONGO_HOST:-mongodb}
       - MONGO_DB=${MONGO_DB}
       # AWS 설정
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
@@ -30,9 +29,9 @@ services:
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
       - AWS_S3_PRESIGNED_URL_EXPIRATION=${AWS_S3_PRESIGNED_URL_EXPIRATION}
 
-    # RDS 전환 시 주석 처리 또는 삭제하세요.
     depends_on:
-      - db
+      - db # RDS 전환 시 주석 처리 또는 삭제하세요.
+      - mongodb
     networks:
       - monew-network
 
@@ -55,10 +54,26 @@ services:
     networks:
       - monew-network
 
+  # ---------------------------------------------------------
+  # [MongoDB 로컬 컨테이너]
+  # ---------------------------------------------------------
+  mongodb:
+    image: mongo:latest
+    container_name: monew-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}     # 초기 루트 계정
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD} # 초기 루트 비밀번호
+      - MONGO_INITDB_DATABASE=${MONGO_DB}             # 초기 생성 데이터베이스
+    ports:
+      - "27017:27017"
+    volumes:
+      - monew-mongodb-data:/data/db
+    networks:
+      - monew-network
 
-## RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
 volumes:
-  monew-postgres-data:
+  monew-postgres-data: # RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
+  monew-mongodb-data:
 
 networks:
   monew-network:
