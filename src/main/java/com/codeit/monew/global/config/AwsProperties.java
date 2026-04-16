@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class AwsProperties {
 
-    private String accessKey;
-    private String secretKey;
-    private String region;
-    private String bucket;
-    private long presignedUrlExpiration;
+  private String accessKey;
+  private String secretKey;
+  private String region;
+  private String bucket;
+  private long presignedUrlExpiration;
 
 }
