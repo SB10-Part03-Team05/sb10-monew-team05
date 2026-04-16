@@ -1,6 +1,6 @@
 package com.codeit.monew.domain.article.dto;
 
-import com.codeit.monew.domain.article.entity.ArticleSource;
+import com.codeit.monew.domain.article.ArticleSource;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;

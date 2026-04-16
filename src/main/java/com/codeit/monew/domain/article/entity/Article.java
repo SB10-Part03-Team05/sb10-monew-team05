@@ -137,9 +137,9 @@ public class Article extends BaseUpdatableEntity {
 
     this.comments.add(comment);
 
-    if (comment.getArticle() != this) {
-      comment.setArticle(this);
-    }
+//    if (comment.getArticle() != this) {
+//      comment.setArticle(this);
+//    }
   }
 
   public void addInterest(Interest interest) {
@@ -147,8 +147,17 @@ public class Article extends BaseUpdatableEntity {
       return;
     }
 
+    // 이미 등록된 관심사인지 UUID 기반으로 비교하여 중복 방지
     boolean alreadyExists = this.articleInterests.stream()
-        .anyMatch(articleInterest -> articleInterest.getInterest().equals(interest));
+        .anyMatch(articleInterest -> {
+          Interest existingInterest = articleInterest.getInterest();
+          // 둘 중 하나라도 ID가 없으면(신규 엔티티면) 참조 동일성(==)으로 비교
+          if (existingInterest.getId() == null || interest.getId() == null) {
+            return existingInterest == interest;
+          }
+          // ID가 있다면 UUID 값으로 비교
+          return existingInterest.getId().equals(interest.getId());
+        });
 
     if (!alreadyExists) {
       ArticleInterest mapping = ArticleInterest.create(this, interest);
