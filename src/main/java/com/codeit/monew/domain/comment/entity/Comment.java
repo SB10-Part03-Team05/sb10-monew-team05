@@ -4,6 +4,7 @@ import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.global.common.base.BaseUpdatableEntity;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.MonewException;
+import com.codeit.monew.global.exception.comment.CommentUpdateForbiddenException;
 import jakarta.persistence.*;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -63,7 +64,7 @@ public class Comment extends BaseUpdatableEntity {
   // 댓글 수정 시, 작성자와 요청자가 같은지 검증
   public void updateContent(String newContent, UUID requesterId) {
     if (!this.userId.equals(requesterId)) { // 댓글 작성자와 요청자가 다르면 댓글 수정 권한 없음
-      throw new MonewException(ErrorCode.COMMENT_UPDATE_FORBIDDEN); // 댓글 수정 권한 없음 에러 반환
+      throw new CommentUpdateForbiddenException(requesterId); // 댓글 수정 권한 없음 에러 반환
     }
     this.content = validateContent(newContent);
   }
