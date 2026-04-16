@@ -33,6 +33,7 @@ public class ArticleController {
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = ArticleDto.class))),
       @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<ArticleDto> getArticle(
