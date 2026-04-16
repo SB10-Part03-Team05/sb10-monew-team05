@@ -9,7 +9,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "comment_likes")
+@Table(
+    name = "comment_likes",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_comment_likes_comment_user",
+            columnNames = {"comment_id", "user_id"}
+        )
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CommentLike {
