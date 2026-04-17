@@ -14,10 +14,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.View;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private final View error;
+
+  public GlobalExceptionHandler(View error) {
+    this.error = error;
+  }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleException(Exception e) {
@@ -54,10 +61,11 @@ public class GlobalExceptionHandler {
         e.getMessage(), e);
 
     Map<String, Object> details = new HashMap<>();
-    e.getBindingResult().getAllErrors().forEach(error -> {
-      String fieldName = ((FieldError) error).getField();
-      String errorMessage = error.getDefaultMessage();
-      details.put(fieldName, errorMessage);
+    e.getBindingResult().getFieldErrors().forEach(fieldError -> {
+      details.put(fieldError.getField(), fieldError.getDefaultMessage());
+    });
+    e.getBindingResult().getGlobalErrors().forEach(fieldError -> {
+      details.put(fieldError.getObjectName(), fieldError.getDefaultMessage());
     });
 
     ErrorResponse response = new ErrorResponse(
