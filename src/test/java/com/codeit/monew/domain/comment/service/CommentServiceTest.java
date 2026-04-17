@@ -64,7 +64,7 @@ class CommentServiceTest {
       CommentDto expectedDto = new CommentDto(UUID.randomUUID(), articleId, userId, nickname, content, 0L, false, Instant.now());
 
       // DB 조회 및 매핑 Mock 설정
-      given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+      given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(mockUser));
       given(mockUser.getNickname()).willReturn(nickname);
 
       given(articleRepository.findById(articleId)).willReturn(Optional.of(mockArticle));
@@ -91,7 +91,7 @@ class CommentServiceTest {
       UUID userId = UUID.randomUUID();
 
       // 유저 없음
-      given(userRepository.findById(userId)).willReturn(Optional.empty());
+      given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.empty());
 
       // when & then
       assertThatThrownBy(() -> commentService.registerComment(articleId, userId, "내용"))
@@ -110,7 +110,7 @@ class CommentServiceTest {
       UUID userId = UUID.randomUUID();
       User mockUser = mock(User.class);
 
-      given(userRepository.findById(userId)).willReturn(Optional.of(mockUser)); // 유저 존재
+      given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(mockUser)); // 유저 존재
       given(articleRepository.findById(articleId)).willReturn(Optional.empty()); // 기사 없음
 
       // when & then
