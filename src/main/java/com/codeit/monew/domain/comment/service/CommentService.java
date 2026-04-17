@@ -33,7 +33,7 @@ public class CommentService {
   public CommentDto registerComment(UUID articleId, UUID userId, String content) {
 
     // 1. 유저 조회 및 검증
-    User user = userRepository.findById(userId)
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
 
     // 2. 기사 조회 및 검증

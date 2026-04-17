@@ -36,7 +36,7 @@ public class CommentController {
   public ResponseEntity<CommentDto> registerComment(
       @Valid @RequestBody CommentRegisterRequest request) {
 
-    log.debug("댓글 등록 요청: 요청자 userId= {}", request.userId());
+    log.debug("댓글 등록 요청 수신");
 
     CommentDto response = commentService.registerComment(
         request.articleId(),
