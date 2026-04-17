@@ -5,8 +5,6 @@ import com.codeit.monew.domain.user.dto.UserRegisterRequest;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.exception.ErrorCode;
-import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +21,7 @@ public class UserService {
   private final UserMapper userMapper;
 
   public UserDto register(UserRegisterRequest request) {
-    log.info("[USER_CREATE] 유저 회원가입 요청: email={}, nickname={}", request.email(), request.nickname());
+    log.debug("[USER_CREATE] 유저 회원가입 요청: email={}, nickname={}", request.email(), request.nickname());
     existsByEmail(request.email());
 
     User user = new User(
