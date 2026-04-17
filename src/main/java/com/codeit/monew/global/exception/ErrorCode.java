@@ -10,6 +10,7 @@ public enum ErrorCode {
   // User 관련 에러 코드
   USER_NOT_FOUND("유저를 찾을 수 없습니다."),
   DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
+  USER_ACCESS_DENIED("사용자 수정, 삭제 권한이 없습니다."),
 
   // Article 관련 에러 코드
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),
@@ -21,6 +22,7 @@ public enum ErrorCode {
   COMMENT_UPDATE_FORBIDDEN("댓글 수정 권한이 없습니다."),
   COMMENT_CONTENT_BLANK("댓글 내용은 비어있을 수 없습니다."),
   COMMENT_CONTENT_TOO_LONG("댓글 내용은 500자를 초과할 수 없습니다."),
+  COMMENT_NOT_FOUND("댓글 정보를 찾을 수 없습니다."),
 
   // Server 에러 코드
   INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),
