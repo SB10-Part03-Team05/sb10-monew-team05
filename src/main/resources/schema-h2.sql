@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 관심사 table
 CREATE TABLE IF NOT EXISTS interests (
     id               UUID PRIMARY KEY,
-    name             VARCHAR(50)              NOT NULL,
+    name             VARCHAR(50)              NOT NULL UNIQUE,
     subscriber_count BIGINT                   NOT NULL DEFAULT 0,
     created_at       TIMESTAMP WITH TIME ZONE NOT NULL
 );
