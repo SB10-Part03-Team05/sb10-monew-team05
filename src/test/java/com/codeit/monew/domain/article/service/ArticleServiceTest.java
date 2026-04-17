@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.article.dto.ArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
-import com.codeit.monew.domain.article.entity.ArticleSource;
+import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
@@ -20,6 +20,7 @@ import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -54,8 +55,7 @@ class ArticleServiceTest {
 
   private Article createArticle(UUID articleId, ArticleSource source, String sourceUrl,
       String title, Instant publishDate, String summary) {
-    Article article = new Article(sourceUrl, source, title, publishDate, summary);
-
+    Article article = Article.createArticle(source, sourceUrl, title, publishDate, summary);
     if (articleId == null) {
       ReflectionTestUtils.setField(article, "id", UUID.randomUUID());
     } else {
@@ -171,4 +171,28 @@ class ArticleServiceTest {
       verify(articleMapper, never()).toDto(any(Article.class), anyLong(), anyLong(), anyBoolean());
     }
   }
+
+  @Nested
+  @DisplayName("뉴스 기사 출처 목록 조회 테스트")
+  class getSource {
+
+    @Test
+    @DisplayName("DB에 저장된 뉴스 기사의 출처 목록을 조회할 수 있다.")
+    void success_get_article_source() {
+      // given(준비)
+      List<ArticleSource> expectedSources = List.of(ArticleSource.CHOSUN, ArticleSource.NAVER,
+          ArticleSource.YEONHAP);
+
+      given(articleService.getSources()).willReturn(expectedSources);
+
+      // when(실행)
+      List<ArticleSource> result = articleService.getSources();
+
+      // then(검증)
+      assertEquals(expectedSources, result);
+
+      verify(articleRepository).findDistinctSource();
+    }
+  }
+
 }
