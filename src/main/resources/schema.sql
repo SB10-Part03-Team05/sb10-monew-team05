@@ -14,7 +14,7 @@ CREATE TABLE users
 CREATE TABLE interests
 (
     id               UUID PRIMARY KEY,
-    name             VARCHAR(50) NOT NULL,
+    name             VARCHAR(50) NOT NULL UNIQUE,
     subscriber_count BIGINT      NOT NULL DEFAULT 0,
     created_at       TIMESTAMPTZ NOT NULL
 );

@@ -1,11 +1,11 @@
 package com.codeit.monew.domain.comment.entity;
 
+import com.codeit.monew.global.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -20,12 +20,7 @@ import java.util.UUID;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class CommentLike {
-
-  // 좋아요 id
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+public class CommentLike extends BaseEntity {
 
   // 좋아요 한 댓글
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -36,14 +31,9 @@ public class CommentLike {
   @Column(name = "user_id", nullable = false, updatable = false)
   private UUID userId;
 
-  // 좋아요 생성 시각
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private Instant createdAt;
-
   // 생성자
   public CommentLike(Comment comment, UUID userId) {
     this.comment = comment;
     this.userId = userId;
-    this.createdAt = Instant.now();
   }
 }

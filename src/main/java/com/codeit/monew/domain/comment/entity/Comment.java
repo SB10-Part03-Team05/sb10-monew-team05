@@ -1,7 +1,10 @@
 package com.codeit.monew.domain.comment.entity;
 
+import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.global.common.base.BaseUpdatableEntity;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.MonewException;
+import com.codeit.monew.global.exception.comment.CommentUpdateForbiddenException;
 import jakarta.persistence.*;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -19,16 +22,13 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL") // 데이터 조회할 때마다 쿼리 뒤에 deleted_at IS NULL 조건 자동으로 추가하여 논리 삭제 구현
 @SQLDelete(sql = "UPDATE comments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?") // 삭제 시, deleted_at 필드에 현재 시각을 저장하여 논리 삭제 구현 & version 필드로 낙관적 락 방어하여 동시 삭제 방지
-public class Comment {
+public class Comment extends BaseUpdatableEntity {
 
-  // 댓글 id
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
 
-  // 기사 id
-  @Column(name = "article_id", nullable = false, updatable = false) // 객체 참조 대신 ID 참조를 사용하여 성능 최적화
-  private UUID articleId;
+  // 기사
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "article_id", nullable = false, updatable = false)
+  private Article article;
 
   // 작성자 id
   @Column(name = "user_id", nullable = false, updatable = false)
@@ -50,24 +50,12 @@ public class Comment {
   @Column(name = "deleted_at")
   private Instant deletedAt;
 
-  // 생성 시각
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private Instant createdAt;
-
-  // 수정 시각
-  @Column(name = "updated_at", nullable = false)
-  private Instant updatedAt;
-
   // 생성자
-  public Comment(UUID articleId, UUID userId, String content) {
-    this.articleId = Objects.requireNonNull(articleId, "articleId는 필수입니다.");
+  public Comment(Article article, UUID userId, String content) {
+    this.article = Objects.requireNonNull(article, "article는 필수입니다.");
     this.userId = Objects.requireNonNull(userId, "userId는 필수입니다.");
     this.content = validateContent(content);
     this.likeCount = 0L;
-
-    Instant now = Instant.now();
-    this.createdAt = now;
-    this.updatedAt = now;
   }
 
   // --- 비즈니스 로직 ---
@@ -76,10 +64,9 @@ public class Comment {
   // 댓글 수정 시, 작성자와 요청자가 같은지 검증
   public void updateContent(String newContent, UUID requesterId) {
     if (!this.userId.equals(requesterId)) { // 댓글 작성자와 요청자가 다르면 댓글 수정 권한 없음
-      throw new MonewException(ErrorCode.COMMENT_UPDATE_FORBIDDEN); // 댓글 수정 권한 없음 에러 반환
+      throw new CommentUpdateForbiddenException(requesterId); // 댓글 수정 권한 없음 에러 반환
     }
     this.content = validateContent(newContent);
-    this.updatedAt = Instant.now();
   }
 
   // 좋아요 등록
@@ -97,10 +84,10 @@ public class Comment {
   // 댓글 null/blank/길이 검증
   private String validateContent(String value) {
     if (value == null || value.isBlank()) {
-      throw new MonewException(ErrorCode.INVALID_REQUEST);
+      throw new MonewException(ErrorCode.COMMENT_CONTENT_BLANK);
     }
     if (value.length() > 500) {
-      throw new MonewException(ErrorCode.INVALID_REQUEST);
+      throw new MonewException(ErrorCode.COMMENT_CONTENT_TOO_LONG);
     }
     return value;
   }
