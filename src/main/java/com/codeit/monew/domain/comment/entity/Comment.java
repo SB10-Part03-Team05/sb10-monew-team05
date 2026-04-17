@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.comment.entity;
 
 import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.global.common.base.BaseUpdatableEntity;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.MonewException;
@@ -30,9 +31,10 @@ public class Comment extends BaseUpdatableEntity {
   @JoinColumn(name = "article_id", nullable = false, updatable = false)
   private Article article;
 
-  // 작성자 id
-  @Column(name = "user_id", nullable = false, updatable = false)
-  private UUID userId;
+  // 작성자
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false, updatable = false)
+  private User user;
 
   // 댓글 내용
   @Column(nullable = false, length = 500)
@@ -51,9 +53,9 @@ public class Comment extends BaseUpdatableEntity {
   private Instant deletedAt;
 
   // 생성자
-  public Comment(Article article, UUID userId, String content) {
+  public Comment(Article article, User user, String content) {
     this.article = Objects.requireNonNull(article, "article는 필수입니다.");
-    this.userId = Objects.requireNonNull(userId, "userId는 필수입니다.");
+    this.user = Objects.requireNonNull(user, "user는 필수입니다.");
     this.content = validateContent(content);
     this.likeCount = 0L;
   }
@@ -63,7 +65,7 @@ public class Comment extends BaseUpdatableEntity {
 
   // 댓글 수정 시, 작성자와 요청자가 같은지 검증
   public void updateContent(String newContent, UUID requesterId) {
-    if (!this.userId.equals(requesterId)) { // 댓글 작성자와 요청자가 다르면 댓글 수정 권한 없음
+    if (!this.user.getId().equals(requesterId)) { // 댓글 작성자와 요청자가 다르면 댓글 수정 권한 없음
       throw new CommentUpdateForbiddenException(requesterId); // 댓글 수정 권한 없음 에러 반환
     }
     this.content = validateContent(newContent);
