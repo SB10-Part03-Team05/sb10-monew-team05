@@ -13,6 +13,7 @@ import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -111,21 +112,21 @@ public class InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
 
-    // 중복 구독 확인
-    if (subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)) {
-      throw new IllegalArgumentException("이미 구독 중인 관심사입니다.");
-    }
-
     // 사용자 존재 여부 확인
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-    // 구독 저장
-    Subscription subscription = Subscription.create(user, interest);
-    subscriptionRepository.save(subscription);
+    // 구독 저장 (DB UNIQUE 제약으로 중복 방지)
+    Subscription subscription;
+    try {
+      subscription = Subscription.create(user, interest);
+      subscriptionRepository.save(subscription);
+    } catch (DataIntegrityViolationException e) {
+      throw new IllegalArgumentException("이미 구독 중인 관심사입니다.");
+    }
 
     // 구독자 수 증가
-    interest.increaseSubscriberCount();
+    interestRepository.incrementSubscriberCount(interestId);
 
     return SubscriptionDto.from(subscription);
   }
@@ -145,6 +146,6 @@ public class InterestService {
     }
 
     // 구독자 수 감소
-    interest.decreaseSubscriberCount();
+    interestRepository.decrementSubscriberCount(interestId);
   }
 }
