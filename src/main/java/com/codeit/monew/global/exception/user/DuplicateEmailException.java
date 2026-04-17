@@ -6,6 +6,6 @@ import com.codeit.monew.global.exception.MonewException;
 public class DuplicateEmailException extends UserException {
 
   public DuplicateEmailException(String email) {
-    super(ErrorCode.USER_NOT_FOUND, "email", email);
+    super(ErrorCode.DUPLICATE_EMAIL, "email", email);
   }
 }
