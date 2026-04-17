@@ -17,6 +17,7 @@ public enum ErrorCode {
   COMMENT_UPDATE_FORBIDDEN("댓글 수정 권한이 없습니다."),
   COMMENT_CONTENT_BLANK("댓글 내용은 비어있을 수 없습니다."),
   COMMENT_CONTENT_TOO_LONG("댓글 내용은 500자를 초과할 수 없습니다."),
+  COMMENT_NOT_FOUND("댓글 정보를 찾을 수 없습니다."),
 
   // Server 에러 코드
   INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),

@@ -1,12 +1,11 @@
 package com.codeit.monew.domain.comment.entity;
 
+import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.global.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -27,13 +26,14 @@ public class CommentLike extends BaseEntity {
   @JoinColumn(name = "comment_id", nullable = false, updatable = false)
   private Comment comment;
 
-  // 좋아요 누른 당사자 id
-  @Column(name = "user_id", nullable = false, updatable = false)
-  private UUID userId;
+  // 좋아요 누른 유저
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false, updatable = false)
+  private User user;
 
   // 생성자
-  public CommentLike(Comment comment, UUID userId) {
+  public CommentLike(Comment comment, User user) {
     this.comment = comment;
-    this.userId = userId;
+    this.user = user;
   }
 }

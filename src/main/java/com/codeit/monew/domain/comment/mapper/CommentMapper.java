@@ -10,6 +10,7 @@ import org.mapstruct.ReportingPolicy;
 public interface CommentMapper {
   @Mapping(target = "id", source = "comment.id")
   @Mapping(target = "articleId", source = "comment.article.id")
+  @Mapping(target = "userId", source = "comment.user.id")
   @Mapping(target = "userNickname", source = "nickname")
   @Mapping(target = "likedByMe", source = "isLiked")
   CommentDto toDto(Comment comment, String nickname, boolean isLiked);
