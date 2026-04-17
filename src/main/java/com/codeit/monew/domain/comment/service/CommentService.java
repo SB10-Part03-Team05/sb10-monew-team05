@@ -41,7 +41,7 @@ public class CommentService {
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
 
     // 3. 댓글 엔티티 생성 및 영속화
-    Comment comment = new Comment(article, userId, content);
+    Comment comment = new Comment(article, user, content);
     Comment savedComment = commentRepository.save(comment);
     log.info("댓글 등록 완료: commentId= {}, articleId= {}", savedComment.getId(), articleId);
 
