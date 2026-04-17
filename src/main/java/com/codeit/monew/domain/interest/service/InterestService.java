@@ -1,11 +1,19 @@
 package com.codeit.monew.domain.interest.service;
 
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
+import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
+import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
+import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
+import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
+import com.codeit.monew.domain.user.entity.User;
+import com.codeit.monew.domain.user.repository.UserRepository;
+import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +27,10 @@ public class InterestService {
 
   private final InterestRepository interestRepository;
   private final KeywordRepository keywordRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final UserRepository userRepository;
 
+  // 1. 관심사 등록
   @Transactional
   public InterestDto register(InterestRegisterRequest request) {
 
@@ -40,7 +51,7 @@ public class InterestService {
     List<Keyword> keywords = request.keywords().stream()
         .map(name -> Keyword.create(interest, name))
         .toList();
-
+    keywordRepository.saveAll(keywords);
     interest.getKeywords().addAll(keywords);
 
     return InterestDto.from(interest);
@@ -54,5 +65,87 @@ public class InterestService {
     int maxLen = Math.max(a.length(), b.length());
     if (maxLen == 0) return 1.0;
     return 1.0 - ((double) distance / maxLen);
+  }
+
+  // 2. 관심사 수정
+  @Transactional
+  public InterestDto update(UUID interestId, InterestUpdateRequest request) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 기존 키워드 전체 삭제
+    keywordRepository.deleteAllByInterestId(interestId);
+
+    // 새 키워드 저장
+    List<Keyword> keywords = request.keywords().stream()
+        .map(name -> Keyword.create(interest, name))
+        .toList();
+    keywordRepository.saveAll(keywords);
+
+    // interest 키워드 리스트 갱신
+    interest.getKeywords().clear();
+    interest.getKeywords().addAll(keywords);
+
+    return InterestDto.from(interest);
+  }
+
+  // 3. 관심사 삭제
+  @Transactional
+  public void delete(UUID interestId) {
+      // 관심사 존재 여부 확인
+      Interest interest = interestRepository.findById(interestId)
+          .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+      // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
+      interestRepository.delete(interest);
+  }
+
+  // 4. 관심사 목록 조회
+
+  // 5. 관심사 구독
+  @Transactional
+  public SubscriptionDto subscribe(UUID interestId, UUID userId) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 사용자 존재 여부 확인
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+    // 구독 저장 (DB UNIQUE 제약으로 중복 방지)
+    Subscription subscription;
+    try {
+      subscription = Subscription.create(user, interest);
+      subscriptionRepository.save(subscription);
+    } catch (DataIntegrityViolationException e) {
+      throw new IllegalArgumentException("이미 구독 중인 관심사입니다.");
+    }
+
+    // 구독자 수 증가
+    interestRepository.incrementSubscriberCount(interestId);
+
+    return SubscriptionDto.from(subscription);
+  }
+
+  // 6. 관심사 구독 취소
+  @Transactional
+  public void unsubscribe(UUID interestId, UUID userId) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 구독 여부 확인 및 구독 취소
+    long deleted = subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
+    if (deleted == 0) {
+      throw new IllegalArgumentException("구독 중이지 않은 관심사입니다.");
+    }
+
+    // 구독자 수 감소
+    interestRepository.decrementSubscriberCount(interestId);
   }
 }
