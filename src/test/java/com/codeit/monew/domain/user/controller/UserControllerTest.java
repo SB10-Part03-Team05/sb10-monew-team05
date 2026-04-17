@@ -33,7 +33,7 @@ class UserControllerTest {
   private MockMvc mockMvc;
 
   @Autowired
-  private ObjectMapper om;
+  private ObjectMapper objectMapper;
 
   @MockitoBean
   private UserService userService;
@@ -42,7 +42,6 @@ class UserControllerTest {
   @DisplayName("사용자 회원가입 API 테스트")
   class createUser {
 
-    //todo 유효한 회원가입 요청 시 201 상태코드와 등록된 사용자 정보가 반환된다
     @Test
     @DisplayName("유효한 회원가입 요청 시 201 상태코드와 등록된 사용자 정보가 반환된다.")
     void success_register_user() throws Exception {
@@ -58,19 +57,19 @@ class UserControllerTest {
       // when, then
       mockMvc.perform(post("/api/users")
               .contentType(MediaType.APPLICATION_JSON)
-              .content(om.writeValueAsString(request)))
+              .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.id").value(userId.toString()))
           .andExpect(jsonPath("$.email").value(request.email()))
           .andExpect(jsonPath("$.nickname").value(request.nickname()));
     }
 
-    //todo 중복된 이메일로 회원가입 요청 시 409 상태 코드와 DuplicateEmail 예외가 발생한다.
     @Test
     @DisplayName("중복된 이메일로 회원가입 요청 시 409 상태 코드와 DuplicateEmail 예외가 발생한다.")
     void fail_register_when_email_duplicated() throws Exception {
       // given
-      UserRegisterRequest request = new UserRegisterRequest("test@email.com", "testNickname", "Password123!");
+      UserRegisterRequest request = new UserRegisterRequest("test@email.com", "testNickname",
+          "Password123!");
 
       given(userService.register(any(UserRegisterRequest.class))).willThrow(
           new DuplicateEmailException(request.email()));
@@ -78,11 +77,25 @@ class UserControllerTest {
       // when, then
       mockMvc.perform(post("/api/users")
               .contentType(MediaType.APPLICATION_JSON)
-              .content(om.writeValueAsString(request)))
+              .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isConflict())
           .andExpect(jsonPath("$.code").value(ErrorCode.DUPLICATE_EMAIL.toString()))
           .andExpect(jsonPath("$.status").value(409))
-          .andExpect(jsonPath("$.exceptionType").value(DuplicateEmailException.class.getSimpleName()));
+          .andExpect(
+              jsonPath("$.exceptionType").value(DuplicateEmailException.class.getSimpleName()));
+    }
+
+    @Test
+    @DisplayName("잘못된 이메일 형식으로 회원가입 요청 시 400 상태 코드가 반환된다.")
+    void fail_register_when_email_invalid() throws Exception {
+      // given
+      UserRegisterRequest request = new UserRegisterRequest("invalid-email", "testNickname", "Password123!");
+      // when, then
+      mockMvc.perform(post("/api/users")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.status").value(400));
     }
   }
 }

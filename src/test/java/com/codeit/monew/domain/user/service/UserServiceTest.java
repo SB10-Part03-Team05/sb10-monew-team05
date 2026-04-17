@@ -11,6 +11,7 @@ import com.codeit.monew.domain.user.dto.UserRegisterRequest;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
 import java.time.Instant;
 import java.util.UUID;
@@ -67,7 +68,6 @@ class UserServiceTest {
       UserDto result = userService.register(request);
 
       // then
-      assertEquals(expectedUserDto, result);
       assertEquals(expectedUserDto.id(), result.id());
       assertEquals(expectedUserDto.email(), result.email());
       assertEquals(expectedUserDto.nickname(), result.nickname());
@@ -86,8 +86,9 @@ class UserServiceTest {
       given(userRepository.existsByEmail(request.email())).willReturn(true);
 
       // when, then
-      assertThrows(DuplicateEmailException.class, () -> userService.register(request));
-
+      DuplicateEmailException exception = assertThrows(DuplicateEmailException.class,
+          () -> userService.register(request));
+      assertEquals(ErrorCode.DUPLICATE_EMAIL, exception.getErrorCode());
       verify(userRepository).existsByEmail(request.email());
       verify(userRepository, never()).save(any(User.class));
       verify(userMapper, never()).toDto(any(User.class));
