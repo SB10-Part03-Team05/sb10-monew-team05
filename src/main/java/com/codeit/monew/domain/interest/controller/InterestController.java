@@ -49,48 +49,4 @@ public class InterestController {
     return ResponseEntity.ok(response);
   }
 
-  // 3. 관심사 삭제
-  @DeleteMapping("/{interestId}")
-  public ResponseEntity<Void> delete(
-      @PathVariable UUID interestId
-  ) {
-    interestService.delete(interestId);
-    return ResponseEntity.noContent().build();
-  }
-
-  // 4. 관심사 목록 조회
-  @GetMapping
-  public ResponseEntity<CursorPageResponseInterestDto> getList(
-      @RequestParam(required = false) String keyword,
-      @RequestParam String orderBy,
-      @RequestParam String direction,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) LocalDateTime after,
-      @RequestParam int limit,
-      @RequestHeader("Monew-Request-User-ID") UUID userId
-  ) {
-    CursorPageResponseInterestDto response = interestService.getList(keyword, orderBy, direction, cursor, after, limit, userId);
-    return ResponseEntity.ok(response);
-  }
-
-  // 5. 관심사 구독
-  @PostMapping("/{interestId}/subscriptions")
-  public ResponseEntity<SubscriptionDto> subscribe(
-      @PathVariable UUID interestId,
-      @RequestHeader("Monew-Request-User-ID") UUID userId
-  ) {
-    SubscriptionDto response = interestService.subscribe(interestId, userId);
-    return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
-
-  // 6. 관심사 구독 취소
-  @DeleteMapping("/{interestId}/subscriptions")
-  public ResponseEntity<Void> unsubscribe(
-      @PathVariable UUID interestId,
-      @RequestHeader("Monew-Request-User-ID") UUID userId
-  ) {
-    interestService.unsubscribe(interestId, userId);
-    return ResponseEntity.noContent().build();
-  }
-
 }

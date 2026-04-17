@@ -82,4 +82,19 @@ public class InterestService {
 
     return InterestDto.from(interest);
   }
+
+  // 3. 관심사 삭제
+  @Transactional
+  public void delete(UUID interestId) {
+      // 관심사 존재 여부 확인
+      Interest interest = interestRepository.findById(interestId)
+          .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+      // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
+      interestRepository.delete(interest);
+  }
+
+  // 4. 관심사 목록 조회
+  // 5. 관심사 구독
+  // 6. 관심사 구독 취소
 }
