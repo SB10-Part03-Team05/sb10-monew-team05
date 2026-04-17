@@ -1,11 +1,13 @@
 package com.codeit.monew.domain.interest.service;
 
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
+import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
+import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class InterestService {
   private final InterestRepository interestRepository;
   private final KeywordRepository keywordRepository;
 
+  // 1. 관심사 등록
   @Transactional
   public InterestDto register(InterestRegisterRequest request) {
 
@@ -54,5 +57,29 @@ public class InterestService {
     int maxLen = Math.max(a.length(), b.length());
     if (maxLen == 0) return 1.0;
     return 1.0 - ((double) distance / maxLen);
+  }
+
+  // 2. 관심사 수정
+  @Transactional
+  public InterestDto update(UUID interestId, InterestUpdateRequest request) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 기존 키워드 전체 삭제
+    keywordRepository.deleteAllByInterestId(interestId);
+
+    // 새 키워드 저장
+    List<Keyword> keywords = request.keywords().stream()
+        .map(name -> Keyword.create(interest, name))
+        .toList();
+    keywordRepository.saveAll(keywords);
+
+    // interest 키워드 리스트 갱신
+    interest.getKeywords().clear();
+    interest.getKeywords().addAll(keywords);
+
+    return InterestDto.from(interest);
   }
 }
