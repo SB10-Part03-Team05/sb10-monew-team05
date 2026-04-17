@@ -6,9 +6,9 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -114,6 +114,26 @@ public class GlobalExceptionHandler {
         Instant.now(),
         "INVALID_PARAMETER_TYPE",
         "요청 파라미터 형식이 올바르지 않습니다.",
+        details,
+        e.getClass().getSimpleName(),
+        HttpStatus.BAD_REQUEST.value()
+    );
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleException(MissingServletRequestParameterException e) {
+    log.warn("[EXCEPTION] 필수 요청 파라미터 누락 예외: code={}, message={}", e.getClass().getSimpleName(),
+        e.getMessage(), e);
+
+    Map<String, Object> details = new HashMap<>();
+    details.put("parameterName", e.getParameterName());
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        Instant.now(),
+        "MISSING_REQUEST_PARAMETER",
+        "필수 파라미터가 누락되었습니다.",
         details,
         e.getClass().getSimpleName(),
         HttpStatus.BAD_REQUEST.value()
