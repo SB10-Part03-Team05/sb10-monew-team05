@@ -73,7 +73,8 @@ public class GlobalExceptionHandler {
 
       case USER_NOT_FOUND, ARTICLE_NOT_FOUND -> HttpStatus.NOT_FOUND;
       case DUPLICATE_EMAIL -> HttpStatus.CONFLICT;
-      case COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN; // 댓글 수정 권한 없음 -> 403 Forbidden
+      case COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN;
+      case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG -> HttpStatus.BAD_REQUEST;
 
       default -> HttpStatus.INTERNAL_SERVER_ERROR; // 지금은 디버깅 에러 잡는 용도, 나중에 지워야 함
     };
