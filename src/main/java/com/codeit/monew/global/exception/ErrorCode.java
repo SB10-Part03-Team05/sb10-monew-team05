@@ -4,6 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum ErrorCode {
+  // common
+  INVALID_PARAMETER_INPUT("입력값이 유효하지 않습니다."),
+
   // User 관련 에러 코드
   USER_NOT_FOUND("유저를 찾을 수 없습니다."),
   DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
