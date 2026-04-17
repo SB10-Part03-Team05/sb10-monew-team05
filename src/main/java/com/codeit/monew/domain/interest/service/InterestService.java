@@ -24,7 +24,7 @@ public class InterestService {
   public InterestDto register(InterestRegisterRequest request) {
 
     // 유사도 검사
-    List<String> existingNames = interestRepository.findAllNames();
+    List<String> existingNames = interestRepository.findAllNamesWithLock();
     for (String existingName : existingNames) {
       // 추후 공통 예외 클래스 생기면 커스텀 예외로 교체 예정 !!
       if (calculateSimilarity(request.name(), existingName) >= 0.8) {
