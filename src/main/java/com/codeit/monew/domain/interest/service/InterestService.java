@@ -3,10 +3,15 @@ package com.codeit.monew.domain.interest.service;
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
 import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
+import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
+import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
+import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
+import com.codeit.monew.domain.user.entity.User;
+import com.codeit.monew.domain.user.repository.UserRepository;
 import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -21,6 +26,8 @@ public class InterestService {
 
   private final InterestRepository interestRepository;
   private final KeywordRepository keywordRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final UserRepository userRepository;
 
   // 1. 관심사 등록
   @Transactional
@@ -95,6 +102,51 @@ public class InterestService {
   }
 
   // 4. 관심사 목록 조회
+
   // 5. 관심사 구독
+  @Transactional
+  public SubscriptionDto subscribe(UUID interestId, UUID userId) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 중복 구독 확인
+    if (subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)) {
+      throw new IllegalArgumentException("이미 구독 중인 관심사입니다.");
+    }
+
+    // 사용자 존재 여부 확인
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+    // 구독 저장
+    Subscription subscription = Subscription.create(user, interest);
+    subscriptionRepository.save(subscription);
+
+    // 구독자 수 증가
+    interest.increaseSubscriberCount();
+
+    return SubscriptionDto.from(subscription);
+  }
+
   // 6. 관심사 구독 취소
+  @Transactional
+  public void unsubscribe(UUID interestId, UUID userId) {
+
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+
+    // 구독 여부 확인
+    if (!subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)) {
+      throw new IllegalArgumentException("구독 중이지 않은 관심사입니다.");
+    }
+
+    // 구독 취소
+    subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
+
+    // 구독자 수 감소
+    interest.decreaseSubscriberCount();
+  }
 }
