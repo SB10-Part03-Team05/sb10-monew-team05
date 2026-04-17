@@ -56,7 +56,6 @@ public class InterestService {
 
     return InterestDto.from(interest);
   }
-
   private double calculateSimilarity(String a, String b) {
     a = a.toLowerCase();
     b = b.toLowerCase();
