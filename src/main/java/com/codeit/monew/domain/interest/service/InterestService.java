@@ -138,13 +138,11 @@ public class InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
 
-    // 구독 여부 확인
-    if (!subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)) {
+    // 구독 여부 확인 및 구독 취소
+    long deleted = subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
+    if (deleted == 0) {
       throw new IllegalArgumentException("구독 중이지 않은 관심사입니다.");
     }
-
-    // 구독 취소
-    subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
 
     // 구독자 수 감소
     interest.decreaseSubscriberCount();
