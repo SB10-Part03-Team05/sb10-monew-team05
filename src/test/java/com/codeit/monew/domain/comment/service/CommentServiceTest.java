@@ -121,4 +121,76 @@ class CommentServiceTest {
       verify(commentRepository, never()).save(any());
     }
   }
+
+  @Nested
+  @DisplayName("댓글 수정 테스트")
+  class UpdateComment {
+
+    @Test
+    @DisplayName("작성자가 수정을 요청하면 내용이 정상적으로 변경되고 DTO를 반환한다.")
+    void success_update_comment() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      String newContent = "수정된 테스트 내용";
+      String nickname = "작성자닉네임";
+
+      // User 모의 객체 세팅
+      User mockUser = mock(User.class);
+      given(mockUser.getId()).willReturn(userId);
+      given(mockUser.getNickname()).willReturn(nickname);
+
+      // Comment 모의/실제 객체 세팅
+      Article mockArticle = mock(Article.class);
+      Comment comment = new Comment(mockArticle, mockUser, "원래 내용"); // 실제 엔티티 사용 (내부 로직 검증용)
+
+      CommentDto expectedDto = new CommentDto(commentId, UUID.randomUUID(), userId, nickname, newContent, 0L, false, Instant.now());
+
+      // DB 조회 및 매퍼 모의 설정
+      given(commentRepository.findByIdWithUser(commentId)).willReturn(Optional.of(comment));
+      given(commentMapper.toDto(any(Comment.class), anyString(), anyBoolean())).willReturn(expectedDto);
+
+      // when
+      CommentDto result = commentService.updateComment(commentId, userId, newContent);
+
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.content()).isEqualTo(newContent);
+      assertThat(comment.getContent()).isEqualTo(newContent); // 엔티티 내부 상태가 변했는지 검증
+    }
+
+    @Test
+    @DisplayName("DB에 존재하지 않는 댓글 ID로 요청하면 CommentNotFoundException이 발생한다.")
+    void fail_commentNotFound() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+
+      given(commentRepository.findByIdWithUser(commentId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> commentService.updateComment(commentId, requesterId, "수정 시도"))
+          .isInstanceOf(com.codeit.monew.global.exception.comment.CommentNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("댓글 작성자가 아닌 다른 유저가 수정을 요청하면 CommentUpdateForbiddenException이 발생한다.")
+    void fail_commentUpdateForbidden() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID(); // 작성자
+      UUID hackerId = UUID.randomUUID(); // 요청자
+
+      User author = mock(User.class);
+      given(author.getId()).willReturn(authorId);
+
+      Comment comment = new Comment(mock(Article.class), author, "원래 내용");
+
+      given(commentRepository.findByIdWithUser(commentId)).willReturn(Optional.of(comment));
+
+      // when & then
+      assertThatThrownBy(() -> commentService.updateComment(commentId, hackerId, "작성자가 아닌 유저가 댓글 수정 시도"))
+          .isInstanceOf(com.codeit.monew.global.exception.comment.CommentUpdateForbiddenException.class);
+    }
+  }
 }
