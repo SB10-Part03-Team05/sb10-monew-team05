@@ -151,7 +151,7 @@ class UserControllerTest {
       UUID requestUserId = UUID.randomUUID();
 
       given(userService.update(any(UUID.class), any(UUID.class), any(UserUpdateRequest.class))).willThrow(
-          new UserAccessDeniedException(userId)
+          new UserAccessDeniedException(requestUserId)
       );
       // when, then
       mockMvc.perform(patch("/api/users/" + userId)
@@ -164,7 +164,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("수정할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_update_user_fail_when_id_mismatch() throws Exception {
+    void should_fail_update_user_fail_when_user_not_found() throws Exception {
       // given
       UserUpdateRequest request = new UserUpdateRequest("newNickName");
       UUID userId = UUID.randomUUID();
