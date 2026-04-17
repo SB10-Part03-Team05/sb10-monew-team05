@@ -130,7 +130,7 @@ public class GlobalExceptionHandler {
 //            case  -> HttpStatus.BAD_REQUEST;
 //            case  -> HttpStatus.INTERNAL_SERVER_ERROR;
 
-      case USER_NOT_FOUND, ARTICLE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case USER_NOT_FOUND, ARTICLE_NOT_FOUND, INTEREST_NOT_FOUND -> HttpStatus.NOT_FOUND;
       case DUPLICATE_EMAIL -> HttpStatus.CONFLICT;
       case COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN;
       case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG -> HttpStatus.BAD_REQUEST;
