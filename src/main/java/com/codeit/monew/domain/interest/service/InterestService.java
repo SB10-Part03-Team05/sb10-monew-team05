@@ -51,7 +51,7 @@ public class InterestService {
     List<Keyword> keywords = request.keywords().stream()
         .map(name -> Keyword.create(interest, name))
         .toList();
-
+    keywordRepository.saveAll(keywords);
     interest.getKeywords().addAll(keywords);
 
     return InterestDto.from(interest);
