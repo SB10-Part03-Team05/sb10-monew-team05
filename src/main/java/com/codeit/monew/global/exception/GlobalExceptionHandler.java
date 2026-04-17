@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -129,7 +130,7 @@ public class GlobalExceptionHandler {
 //            case  -> HttpStatus.BAD_REQUEST;
 //            case  -> HttpStatus.INTERNAL_SERVER_ERROR;
 
-      case USER_NOT_FOUND, ARTICLE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case USER_NOT_FOUND, ARTICLE_NOT_FOUND, COMMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
       case DUPLICATE_EMAIL -> HttpStatus.CONFLICT;
       case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN;
       case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG -> HttpStatus.BAD_REQUEST;
