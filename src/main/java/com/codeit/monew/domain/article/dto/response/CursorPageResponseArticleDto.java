@@ -1,4 +1,4 @@
-package com.codeit.monew.domain.article.dto;
+package com.codeit.monew.domain.article.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
