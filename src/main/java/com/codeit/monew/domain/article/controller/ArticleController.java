@@ -1,10 +1,9 @@
 package com.codeit.monew.domain.article.controller;
 
-import com.codeit.monew.domain.article.dto.ArticleDto;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
-import com.codeit.monew.domain.article.dto.CursorPageResponseArticleDto;
-import com.codeit.monew.domain.article.entity.type.ArticleDirection;
-import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
+import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorResponse;
 import com.codeit.monew.global.exception.common.InvalidParameterException;
@@ -16,17 +15,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -75,25 +76,17 @@ public class ArticleController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<CursorPageResponseArticleDto> search(
-      @Parameter(description = "검색어(제목, 요약)") @RequestParam(required = false) String keyword,
-      @Parameter(description = "관심사 ID") @RequestParam(required = false) UUID interestId,
-      @Parameter(description = "출처(포함)") @RequestParam(required = false) List<ArticleSource> sourceIn,
-      @Parameter(description = "날짜 시작(범위)") @RequestParam(required = false) Instant publishDateFrom,
-      @Parameter(description = "날짜 끝(범위)") @RequestParam(required = false) Instant publishDateTo,
-      @Parameter(description = "정렬 속성 이름") @RequestParam ArticleOrderBy orderBy,
-      @Parameter(description = "정렬 방향 (ASC, DESC)") @RequestParam ArticleDirection direction,
-      @Parameter(description = "커서 값") @RequestParam(required = false) String cursor,
-      @Parameter(description = "보조 커서(createdAt) 값") @RequestParam(required = false) Instant after,
-      @Parameter(description = "커서 페이지 크기") @RequestParam int limit,
+      @Valid @ParameterObject @ModelAttribute ArticleSearchRequest request,
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {
+    String keyword = request.getKeyword();
+    Instant publishDateFrom = request.getPublishDateFrom();
+    Instant publishDateTo = request.getPublishDateTo();
+
     // keyword 정규화
     // `strip` 이 `trim` 보다 `\n`(줄바꿈) `\t`(탭) 같은 유니코드 공백까지 잘 처리. 단, java 11이상
-    keyword = keyword == null ? null : keyword.strip();
-
-    // keyword(검색어) 화이트 스페이스 검증
-    if (keyword != null && keyword.isEmpty()) {
-      throw new InvalidParameterException("keyword", keyword);
+    if (keyword != null) {
+      request.setKeyword(keyword.strip());
     }
 
     // 날짜 시작일은 날짜 종료일보다 늦을 수 없음
@@ -103,14 +96,7 @@ public class ArticleController {
           publishDateTo);
     }
 
-    // 커서 페이지 크기는 1이상의 정수
-    if (limit < 1) {
-      throw new InvalidParameterException("limit", limit);
-    }
-
-    CursorPageResponseArticleDto response = articleService.search(keyword, interestId,
-        sourceIn, publishDateFrom, publishDateTo, orderBy, direction, cursor, after, limit,
-        requestUserId);
+    CursorPageResponseArticleDto response = articleService.search(request, requestUserId);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
