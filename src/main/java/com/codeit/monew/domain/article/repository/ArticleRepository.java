@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-public interface ArticleRepository extends JpaRepository<Article, UUID> {
+public interface ArticleRepository extends JpaRepository<Article, UUID>, ArticleQueryRepository {
 
   Optional<Article> findByIdAndDeletedAtIsNull(UUID id);
 
