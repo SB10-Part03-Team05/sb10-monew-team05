@@ -1,10 +1,9 @@
 package com.codeit.monew.domain.article.controller;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 
-import com.codeit.monew.domain.article.dto.ArticleDto;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorCode;

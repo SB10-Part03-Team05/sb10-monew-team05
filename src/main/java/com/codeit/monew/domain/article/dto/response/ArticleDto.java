@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ArticleDto(
+
     @Schema(description = "기사 ID")
     UUID id,
 
