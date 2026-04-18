@@ -1,7 +1,6 @@
 package com.codeit.monew.domain.article.service;
 
 import com.codeit.monew.domain.article.ArticleSource;
-import com.codeit.monew.domain.article.dto.ArticleSearchCondition;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
