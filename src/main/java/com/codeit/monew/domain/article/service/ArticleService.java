@@ -86,12 +86,6 @@ public class ArticleService {
           .orElseThrow(() -> new InterestNotFoundException(request.getInterestId()));
     }
 
-    // cursor 자료형에 따라 parse
-    ArticleSearchCondition condition = new ArticleSearchCondition(request.getKeyword(),
-        request.getInterestId(), request.getSourceIn(), request.getPublishDateFrom(),
-        request.getPublishDateTo(), request.getOrderBy(), request.getDirection(),
-        request.getCursor(), request.getAfter(), request.getLimit(), requestUserId);
-
-    return articleRepository.searchArticleList(condition);
+    return articleRepository.searchArticleList(request, requestUserId);
   }
 }
