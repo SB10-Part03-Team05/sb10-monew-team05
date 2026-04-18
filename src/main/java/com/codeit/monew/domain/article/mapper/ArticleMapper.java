@@ -1,6 +1,6 @@
 package com.codeit.monew.domain.article.mapper;
 
-import com.codeit.monew.domain.article.dto.ArticleDto;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
 import org.mapstruct.Mapper;
 
