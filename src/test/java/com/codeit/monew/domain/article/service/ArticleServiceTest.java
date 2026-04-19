@@ -8,21 +8,29 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
+import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.entity.type.ArticleDirection;
+import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
+import com.codeit.monew.domain.interest.entity.Interest;
+import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
+import com.codeit.monew.global.exception.interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +54,9 @@ class ArticleServiceTest {
 
   @Mock
   private CommentRepository commentRepository;
+
+  @Mock
+  private InterestRepository interestRepository;
 
   @Mock
   private ArticleMapper articleMapper;
@@ -84,6 +95,18 @@ class ArticleServiceTest {
     return user;
   }
 
+  private Interest createInterest(UUID interestId, String name) {
+    Interest interest = Interest.create("삼성");
+
+    if (interestId == null) {
+      ReflectionTestUtils.setField(interest, "id", UUID.randomUUID());
+    } else {
+      ReflectionTestUtils.setField(interest, "id", interestId);
+    }
+
+    return interest;
+  }
+
   @Nested
   @DisplayName("뉴스 기사 단건 조회 테스트")
   class getArticle {
@@ -113,9 +136,6 @@ class ArticleServiceTest {
 
       // then(검증)
       assertEquals(expectedArticleDto, result);
-      assertEquals(expectedArticleDto.id(), result.id());
-      assertEquals(expectedArticleDto.source(), result.source());
-      assertEquals(expectedArticleDto.title(), result.title());
 
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
@@ -195,4 +215,99 @@ class ArticleServiceTest {
     }
   }
 
+  @Nested
+  @DisplayName("뉴스 기사 목록 조회 테스트")
+  class search {
+
+    private ArticleSearchRequest request;
+    private UUID interestId;
+    private UUID requestUserId;
+
+    @BeforeEach
+    void setUp() {
+      interestId = UUID.randomUUID();
+      requestUserId = UUID.randomUUID();
+
+      request = new ArticleSearchRequest();
+      request.setInterestId(interestId);
+      request.setOrderBy(ArticleOrderBy.publishDate);
+      request.setDirection(ArticleDirection.DESC);
+      request.setLimit(3);
+    }
+
+    @Test
+    @DisplayName("여러 쿼리 파라미터로 뉴스 기사 목록 조회할 수 있다.")
+    void success_search_article_list() {
+      // given(준비)
+      Interest interest = createInterest(interestId, "삼성");
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+
+      Article article1 = createArticle(null, ArticleSource.NAVER, "https://naver.com", "testTitle1",
+          Instant.now(), "testSummary1");
+      Article article2 = createArticle(null, ArticleSource.YEONHAP, "https://yeonhap.com",
+          "testTitle2", Instant.parse("2026-04-17T09:12:15Z"), "testSummary2");
+
+      ArticleDto articleDto1 = createArticleDto(article1, 5, 6, true);
+      ArticleDto articleDto2 = createArticleDto(article2, 3, 7, false);
+
+      CursorPageResponseArticleDto expectedResponseDto = new CursorPageResponseArticleDto(
+          List.of(articleDto1, articleDto2),
+          "2026-04-17T09:12:15Z",
+          Instant.parse("2026-04-17T09:12:15Z"),
+          2,
+          2,
+          false
+      );
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.of(user));
+      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(articleRepository.searchArticleList(request, requestUserId)).willReturn(
+          expectedResponseDto);
+
+      // when(실행)
+      CursorPageResponseArticleDto result = articleService.search(request, requestUserId);
+
+      // then(검증)
+      assertEquals(expectedResponseDto, result);
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(interestRepository).findById(interestId);
+      verify(articleRepository).searchArticleList(request, requestUserId);
+    }
+
+    @Test
+    @DisplayName("뉴스 기사 단건 조회 시 존재하지 않거나 논리 삭제된 사용자 ID가 조회되면 UserNotFound 예외가 발생한다.")
+    void fail_search_article_list_when_user_not_found() {
+      // given(준비)
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.empty());
+
+      // when(실행), then(검증)
+      assertThrows(UserNotFoundException.class,
+          () -> articleService.search(request, requestUserId));
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(interestRepository, never()).findById(any());
+      verify(articleRepository, never()).searchArticleList(any(ArticleSearchRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("뉴스 기사 단건 조회 시 존재하지 않은 관심사 ID가 조회되면 InterestNotFound 예외가 발생한다.")
+    void fail_search_article_list_when_interest_not_found() {
+      // given(준비)
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+
+      request.setInterestId(interestId);
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.of(user));
+      given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+      // when(실행), then(검증)
+      assertThrows(InterestNotFoundException.class,
+          () -> articleService.search(request, requestUserId));
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(interestRepository).findById(any());
+      verify(articleRepository, never()).searchArticleList(any(ArticleSearchRequest.class), any());
+    }
+  }
 }
