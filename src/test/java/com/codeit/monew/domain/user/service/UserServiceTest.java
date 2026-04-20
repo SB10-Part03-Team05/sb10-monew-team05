@@ -122,7 +122,7 @@ class UserServiceTest {
       given(userMapper.toDto(any(User.class))).willReturn(expectedUserDto);
 
       // when
-      UserDto result = userService.update(userId, userId, request);
+      UserDto result = userService.update(userId, request);
 
       // then
       assertEquals(expectedUserDto.nickname(), result.nickname());
@@ -140,23 +140,8 @@ class UserServiceTest {
 
       // when, then
       UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-          () -> userService.update(userId, userId, request));
+          () -> userService.update(userId, request));
       assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
-      verify(userMapper, never()).toDto(any(User.class));
-    }
-
-    @Test
-    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 UserAccessDenied 예외가 발생한다.")
-    void should_fail_update_user_nickname_when_id_mismatch() {
-      // given
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-      UserUpdateRequest request = new UserUpdateRequest("newNickname");
-
-      // when, then
-      UserAccessDeniedException exception = assertThrows(UserAccessDeniedException.class,
-          () -> userService.update(userId, requestUserId, request));
-      assertEquals(ErrorCode.USER_ACCESS_DENIED, exception.getErrorCode());
       verify(userMapper, never()).toDto(any(User.class));
     }
   }
@@ -176,7 +161,7 @@ class UserServiceTest {
       given(userRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).willReturn(Optional.of(user));
 
       // when
-      userService.softDelete(userId, userId);
+      userService.softDelete(userId);
 
       // then
       assertNotNull(user.getDeletedAt());
@@ -193,21 +178,8 @@ class UserServiceTest {
 
       // when, then
       UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-          () -> userService.softDelete(userId, userId));
+          () -> userService.softDelete(userId));
       assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 UserAccessDenied 예외가 발생한다.")
-    void should_fail_soft_delete_user_when_id_mismatch() {
-      // given
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-
-      // when, then
-      UserAccessDeniedException exception = assertThrows(UserAccessDeniedException.class,
-          () -> userService.softDelete(userId, requestUserId));
-      assertEquals(ErrorCode.USER_ACCESS_DENIED, exception.getErrorCode());
     }
   }
 
@@ -226,7 +198,7 @@ class UserServiceTest {
       given(userRepository.findById(any(UUID.class))).willReturn(Optional.of(user));
 
       // when
-      userService.hardDelete(userId, userId);
+      userService.hardDelete(userId);
 
       // then
       verify(userRepository).findById(any(UUID.class));
@@ -243,21 +215,8 @@ class UserServiceTest {
 
       // when, then
       UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-          () -> userService.hardDelete(userId, userId));
+          () -> userService.hardDelete(userId));
       assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 UserAccessDenied 예외가 발생한다.")
-    void should_fail_hard_delete_user_when_id_mismatch() {
-      // given
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-
-      // when, then
-      UserAccessDeniedException exception = assertThrows(UserAccessDeniedException.class,
-          () -> userService.hardDelete(userId, requestUserId));
-      assertEquals(ErrorCode.USER_ACCESS_DENIED, exception.getErrorCode());
     }
   }
 }

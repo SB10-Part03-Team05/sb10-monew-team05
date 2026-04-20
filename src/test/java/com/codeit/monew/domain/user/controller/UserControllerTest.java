@@ -117,7 +117,7 @@ class UserControllerTest {
       Instant createdAt = Instant.now();
       UserDto responseDto = new UserDto(userId, "test@email.com", "newNickName", createdAt);
 
-      given(userService.update(any(UUID.class), any(UUID.class), any(UserUpdateRequest.class))).willReturn(responseDto);
+      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willReturn(responseDto);
       // when, then
       mockMvc.perform(patch("/api/users/" + userId)
               .header("Monew-Request-User-ID", userId)
@@ -152,7 +152,7 @@ class UserControllerTest {
       UUID userId = UUID.randomUUID();
       UUID requestUserId = UUID.randomUUID();
 
-      given(userService.update(any(UUID.class), any(UUID.class), any(UserUpdateRequest.class))).willThrow(
+      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willThrow(
           new UserAccessDeniedException(requestUserId)
       );
       // when, then
@@ -171,7 +171,7 @@ class UserControllerTest {
       UserUpdateRequest request = new UserUpdateRequest("newNickName");
       UUID userId = UUID.randomUUID();
 
-      given(userService.update(any(UUID.class), any(UUID.class), any(UserUpdateRequest.class))).willThrow(
+      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willThrow(
           new UserNotFoundException(userId)
       );
       // when, then
@@ -194,7 +194,7 @@ class UserControllerTest {
       // given
       UUID userId = UUID.randomUUID();
 
-      willDoNothing().given(userService).softDelete(userId, userId);
+      willDoNothing().given(userService).softDelete(userId);
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId)
@@ -209,7 +209,7 @@ class UserControllerTest {
       UUID userId = UUID.randomUUID();
       UUID requestUserId = UUID.randomUUID();
 
-      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).softDelete(any(UUID.class), any(UUID.class));
+      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).softDelete(any(UUID.class));
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId)
@@ -224,7 +224,7 @@ class UserControllerTest {
       // given
       UUID userId = UUID.randomUUID();
 
-      willThrow(new UserNotFoundException(userId)).given(userService).softDelete(any(UUID.class), any(UUID.class));
+      willThrow(new UserNotFoundException(userId)).given(userService).softDelete(any(UUID.class));
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId)
@@ -244,7 +244,7 @@ class UserControllerTest {
       // given
       UUID userId = UUID.randomUUID();
 
-      willDoNothing().given(userService).hardDelete(userId, userId);
+      willDoNothing().given(userService).hardDelete(userId);
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId + "/hard")
@@ -259,7 +259,7 @@ class UserControllerTest {
       UUID userId = UUID.randomUUID();
       UUID requestUserId = UUID.randomUUID();
 
-      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).hardDelete(any(UUID.class), any(UUID.class));
+      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).hardDelete(any(UUID.class));
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId + "/hard")
@@ -274,7 +274,7 @@ class UserControllerTest {
       // given
       UUID userId = UUID.randomUUID();
 
-      willThrow(new UserNotFoundException(userId)).given(userService).hardDelete(any(UUID.class), any(UUID.class));
+      willThrow(new UserNotFoundException(userId)).given(userService).hardDelete(any(UUID.class));
 
       // when, then
       mockMvc.perform(delete("/api/users/" + userId + "/hard")
