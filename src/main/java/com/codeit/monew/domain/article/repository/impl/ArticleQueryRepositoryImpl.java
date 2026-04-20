@@ -265,7 +265,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
 
     try {
       return Long.parseLong(cursor);
-    } catch (DateTimeParseException e) {
+    } catch (NumberFormatException e) {
       throw new InvalidParameterException("cursor", cursor);
     }
   }
