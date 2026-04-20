@@ -96,6 +96,12 @@ public class ArticleController {
           publishDateTo);
     }
 
+    // cursor가 null이면 after도 null
+    if ((request.getCursor() == null) != (request.getAfter() == null)) {
+      throw new InvalidParameterException("cursor", request.getCursor(), "after",
+          request.getAfter());
+    }
+
     CursorPageResponseArticleDto response = articleService.search(request, requestUserId);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
