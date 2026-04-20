@@ -13,7 +13,7 @@ public record CursorPageResponseArticleDto(
     @Schema(description = "다음 페이지 커서")
     String nextCursor,
 
-    @Schema(description = "다음 보조 커서(마지막 요소의 생성 시간", example = "2026-04-17T16:33:59.000Z")
+    @Schema(description = "다음 보조 커서(마지막 요소의 생성 시간)", example = "2026-04-17T16:33:59.000Z")
     Instant nextAfter,
 
     @Schema(description = "페이지 크기")
