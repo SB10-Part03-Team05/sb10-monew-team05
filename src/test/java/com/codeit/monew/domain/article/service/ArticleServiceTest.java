@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.article.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -8,9 +9,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.dto.ArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
-import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
@@ -181,7 +182,7 @@ class ArticleServiceTest {
     void success_get_article_source() {
       // given(준비)
       List<ArticleSource> expectedSources = List.of(ArticleSource.CHOSUN, ArticleSource.NAVER,
-          ArticleSource.YEONHAP);
+          ArticleSource.YONHAP);
 
       given(articleService.getSources()).willReturn(expectedSources);
 
