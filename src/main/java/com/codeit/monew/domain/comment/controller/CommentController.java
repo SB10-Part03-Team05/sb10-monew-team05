@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -75,5 +76,35 @@ public class CommentController {
     log.info("댓글 수정 성공: 수정된 commentId= {}", response.id());
 
     return ResponseEntity.ok(response);
+  }
+
+  @Operation(summary = "댓글 논리 삭제", description = "댓글을 논리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "댓글 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @DeleteMapping("/{commentId}")
+  public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId) {
+
+    log.debug("댓글 논리 삭제 요청: commentId={}", commentId);
+
+    commentService.deleteComment(commentId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(summary = "댓글 물리 삭제", description = "댓글을 물리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "댓글 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @DeleteMapping("/{commentId}/hard")
+  public ResponseEntity<Void> hardDeleteComment(@PathVariable UUID commentId) {
+
+    log.debug("댓글 물리 삭제 요청: commentId={}", commentId);
+
+    commentService.hardDeleteComment(commentId);
+    return ResponseEntity.noContent().build();
   }
 }
