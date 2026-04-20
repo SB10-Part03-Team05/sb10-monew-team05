@@ -73,6 +73,10 @@ jacoco {
     toolVersion = "0.8.12"
 }
 
+test {
+    finalizedBy jacocoTestReport
+}
+
 jacocoTestReport {
     dependsOn test
     reports {
@@ -108,7 +112,7 @@ jacocoTestReport {
 def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
 
 sourceSets {
-    main.java.srcDirs += [ querydslDir ]
+    main.java.srcDirs += [querydslDir]
 }
 
 tasks.withType(JavaCompile).configureEach {
