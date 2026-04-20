@@ -175,7 +175,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("작성자가 아닌 사람이 수정하면 400 Bad Request(권한 없음)를 반환한다.")
+    @DisplayName("작성자가 아닌 사람이 수정하면 403 Forbidden을 반환한다.")
     void fail_updateForbidden() throws Exception {
       // given
       UUID commentId = UUID.randomUUID(); // 작성자
@@ -191,7 +191,7 @@ class CommentControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andDo(print())
-          .andExpect(status().isBadRequest())
+          .andExpect(status().isForbidden())
           .andExpect(jsonPath("$.code").value("COMMENT_UPDATE_FORBIDDEN"));
     }
   }
