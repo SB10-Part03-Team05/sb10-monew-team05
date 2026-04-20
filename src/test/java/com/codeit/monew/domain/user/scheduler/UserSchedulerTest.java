@@ -32,6 +32,7 @@ class UserSchedulerTest {
   void should_hard_delete_users_when_soft_deleted_over_24_hours_ago() {
     // given
     User targetUser = new User("test@email.com", "testNickname", "testPassword1");
+    targetUser.softDelete();
     List<User> targets = List.of(targetUser);
     given(userRepository.findByDeletedAtBefore(any(Instant.class))).willReturn(targets);
 

@@ -220,7 +220,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("논리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_fail_update_user_fail_when_user_not_found() throws Exception {
+    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
       // given
       UUID userId = UUID.randomUUID();
 
@@ -270,7 +270,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("물리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_fail_update_user_fail_when_user_not_found() throws Exception {
+    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
       // given
       UUID userId = UUID.randomUUID();
 
