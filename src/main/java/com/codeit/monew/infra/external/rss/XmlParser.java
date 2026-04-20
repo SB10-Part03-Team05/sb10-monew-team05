@@ -26,8 +26,7 @@ public class XmlParser {
 
     // XML 문법에 어긋나는 요소들을 정규표현식으로 미리 제거 (전처리)
     String sanitizedXml = xml
-        .replaceAll("<!DOCTYPE[^>]*>", "")
-        .replaceAll("\\s+(async|defer|crossorigin|allowfullscreen)(?=[\\s/>])", "");
+        .replaceAll("<!DOCTYPE[^>]*>", "");
 
     try {
       // ROME 라이브러리를 사용하여 문자열 XML을 SyndFeed(RSS 표준 객체)로 변환
@@ -40,7 +39,7 @@ public class XmlParser {
           articles.add(Article.createArticle(
               mapArticleSource(source),
               extractLink(entry, source),
-              entry.getTitle() == null ? null : entry.getTitle().trim(),
+              entry.getTitle() == null ? null : Jsoup.parse(entry.getTitle()).text().trim(),
               entry.getPublishedDate() == null ? null
                   : entry.getPublishedDate().toInstant(),
               extractSummary(entry)
