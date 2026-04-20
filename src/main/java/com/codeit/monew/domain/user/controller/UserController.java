@@ -70,12 +70,12 @@ public class UserController {
   @DeleteMapping("/{userId}")
   @Operation(summary = "사용자 논리 삭제", description = "사용자를 논리적으로 삭제합니다.")
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content(schema = @Schema(implementation = UserDto.class))),
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content()),
       @ApiResponse(responseCode = "403", description = "사용자 삭제 권한 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "404", description = "사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<UserDto> softDelete(
+  public ResponseEntity<Void> softDelete(
       @Parameter(description = "사용자 ID") @PathVariable UUID userId,
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {
@@ -86,12 +86,12 @@ public class UserController {
   @DeleteMapping("/{userId}/hard")
   @Operation(summary = "사용자 물리 삭제", description = "사용자를 물리적으로 삭제합니다.")
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content(schema = @Schema(implementation = UserDto.class))),
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content()),
       @ApiResponse(responseCode = "403", description = "사용자 삭제 권한 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "404", description = "사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<UserDto> hardDelete(
+  public ResponseEntity<Void> hardDelete(
       @Parameter(description = "사용자 ID") @PathVariable UUID userId,
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {

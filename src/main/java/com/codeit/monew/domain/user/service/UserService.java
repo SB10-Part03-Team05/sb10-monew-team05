@@ -58,25 +58,25 @@ public class UserService {
   }
 
   public void softDelete(UUID userId, UUID requestUserId) {
-    log.debug("[USER_UPDATE] 유저 논리 삭제 요청: userId={}", userId);
+    log.debug("[USER_DELETE] 유저 논리 삭제 요청: userId={}", userId);
 
     verifySameUser(userId, requestUserId);
 
     User user = userRepository.findByIdAndDeletedAtIsNull(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
     user.softDelete();
-    log.info("[USER_UPDATE] 유저 논리 삭제 완료: userId={}", user.getId());
+    log.info("[USER_DELETE] 유저 논리 삭제 완료: userId={}", user.getId());
   }
 
   public void hardDelete(UUID userId, UUID requestUserId) {
-    log.debug("[USER_UPDATE] 유저 물리 삭제 요청: userId={}", userId);
+    log.debug("[USER_DELETE] 유저 물리 삭제 요청: userId={}", userId);
 
     verifySameUser(userId, requestUserId);
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
     userRepository.delete(user);
-    log.info("[USER_UPDATE] 유저 물리 삭제 완료: userId={}", user.getId());
+    log.info("[USER_DELETE] 유저 물리 삭제 완료: userId={}", user.getId());
   }
 
   private void verifySameUser(UUID userId, UUID requestUserId) {

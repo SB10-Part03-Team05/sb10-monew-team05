@@ -19,11 +19,11 @@ public class UserScheduler {
   private final UserRepository userRepository;
 
   //크론 표현식으로 매일 0시 0분에 실행되도록 처리
-  @Scheduled(cron = "0 0 0 * * *")
+  @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
   @Transactional
   public void cleanUpUser() {
     Instant threshold = Instant.now().minus(Duration.ofDays(1));
-    log.info("[USER_CLEAN_UP] 논리 삭제 후 1일 지난 사용자 삭제 스케줄러 동작: 기준 사간={}", threshold);
+    log.info("[USER_CLEAN_UP] 논리 삭제 후 1일 지난 사용자 삭제 스케줄러 동작: 기준 시간={}", threshold);
     List<User> targets = userRepository.findByDeletedAtBefore(threshold);
     log.info("[USER_CLEAN_UP] 삭제 대상 사용자 수={}", targets.size());
     userRepository.deleteAllInBatch(targets);
