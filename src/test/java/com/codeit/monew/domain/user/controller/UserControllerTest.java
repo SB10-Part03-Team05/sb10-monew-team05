@@ -9,12 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.codeit.monew.domain.user.dto.UserDto;
+import com.codeit.monew.domain.user.dto.UserLoginRequest;
 import com.codeit.monew.domain.user.dto.UserRegisterRequest;
 import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.service.UserService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
+import com.codeit.monew.global.exception.user.PasswordMismatchException;
 import com.codeit.monew.global.exception.user.UserAccessDeniedException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -117,10 +119,10 @@ class UserControllerTest {
       Instant createdAt = Instant.now();
       UserDto responseDto = new UserDto(userId, "test@email.com", "newNickName", createdAt);
 
-      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willReturn(responseDto);
+      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willReturn(
+          responseDto);
       // when, then
       mockMvc.perform(patch("/api/users/" + userId)
-              .header("Monew-Request-User-ID", userId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk())
@@ -137,7 +139,6 @@ class UserControllerTest {
 
       // when, then
       mockMvc.perform(patch("/api/users/" + userId)
-              .header("Monew-Request-User-ID", userId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest())
@@ -145,28 +146,8 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 403 상태 코드가 반환된다.")
-    void should_fail_update_user_when_id_mismatch() throws Exception {
-      // given
-      UserUpdateRequest request = new UserUpdateRequest("newNickName");
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-
-      given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willThrow(
-          new UserAccessDeniedException(requestUserId)
-      );
-      // when, then
-      mockMvc.perform(patch("/api/users/" + userId)
-              .header("Monew-Request-User-ID", requestUserId)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.status").value(403));
-    }
-
-    @Test
     @DisplayName("수정할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_fail_update_user_fail_when_user_not_found() throws Exception {
+    void should_fail_update_user_when_user_not_found() throws Exception {
       // given
       UserUpdateRequest request = new UserUpdateRequest("newNickName");
       UUID userId = UUID.randomUUID();
@@ -176,7 +157,6 @@ class UserControllerTest {
       );
       // when, then
       mockMvc.perform(patch("/api/users/" + userId)
-              .header("Monew-Request-User-ID", userId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNotFound())
@@ -203,32 +183,15 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("요청자 ID와 논리 삭제할 사용자의 ID가 다르면 403 상태 코드가 반환된다.")
-    void should_fail_delete_user_when_id_mismatch() throws Exception {
-      // given
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-
-      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).softDelete(any(UUID.class));
-
-      // when, then
-      mockMvc.perform(delete("/api/users/" + userId)
-              .header("Monew-Request-User-ID", requestUserId))
-          .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.status").value(403));
-    }
-
-    @Test
     @DisplayName("논리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
+    void should_fail_delete_user_when_user_not_found() throws Exception {
       // given
       UUID userId = UUID.randomUUID();
 
       willThrow(new UserNotFoundException(userId)).given(userService).softDelete(any(UUID.class));
 
       // when, then
-      mockMvc.perform(delete("/api/users/" + userId)
-              .header("Monew-Request-User-ID", userId))
+      mockMvc.perform(delete("/api/users/" + userId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.status").value(404));
     }
@@ -253,34 +216,87 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("요청자 ID와 물리 삭제할 사용자의 ID가 다르면 403 상태 코드가 반환된다.")
-    void should_fail_delete_user_when_id_mismatch() throws Exception {
-      // given
-      UUID userId = UUID.randomUUID();
-      UUID requestUserId = UUID.randomUUID();
-
-      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).hardDelete(any(UUID.class));
-
-      // when, then
-      mockMvc.perform(delete("/api/users/" + userId + "/hard")
-              .header("Monew-Request-User-ID", requestUserId))
-          .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.status").value(403));
-    }
-
-    @Test
     @DisplayName("물리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
-    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
+    void should_fail_delete_user_when_user_not_found() throws Exception {
       // given
       UUID userId = UUID.randomUUID();
 
       willThrow(new UserNotFoundException(userId)).given(userService).hardDelete(any(UUID.class));
 
       // when, then
-      mockMvc.perform(delete("/api/users/" + userId + "/hard")
-              .header("Monew-Request-User-ID", userId))
+      mockMvc.perform(delete("/api/users/" + userId + "/hard"))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.status").value(404));
+    }
+  }
+
+  @Nested
+  @DisplayName("사용자 로그인 API 테스트")
+  class loginUser {
+
+    @Test
+    @DisplayName("유효한 로그인 요청 시 200 상태코드가 반환된다.")
+    void should_login_user_and_return_200() throws Exception {
+      // given
+      UserLoginRequest request = new UserLoginRequest("test@email.com", "testPassword1!");
+      UUID userId = UUID.randomUUID();
+      Instant createdAt = Instant.now();
+      UserDto responseDto = new UserDto(userId, "test@email.com", "testNickname", createdAt);
+
+      given(userService.login(request)).willReturn(responseDto);
+      // when, then
+      mockMvc.perform(post("/api/users/login")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(userId.toString()))
+          .andExpect(jsonPath("$.email").value(request.email()));
+    }
+
+    @Test
+    @DisplayName("로그인할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
+    void should_fail_login_user_when_user_not_found() throws Exception {
+      // given
+      UserLoginRequest request = new UserLoginRequest("test@email.com", "testPassword1!");
+
+      given(userService.login(any(UserLoginRequest.class))).willThrow(
+          new UserNotFoundException(request.email()));
+      // when, then
+      mockMvc.perform(post("/api/users/login")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    @DisplayName("잘못된 이메일 형식으로 로그인 요청 시 400 상태 코드가 반환된다.")
+    void should_fail_login_user_when_email_invalid() throws Exception {
+      // given
+      UserLoginRequest request = new UserLoginRequest("invalid-email", "testPassword1!");
+
+      // when, then
+      mockMvc.perform(post("/api/users/login")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 맞지 않을 시 401 상태 코드가 반환된다.")
+    void should_fail_login_user_when_password_mismatch() throws Exception {
+      // given
+      UserLoginRequest request = new UserLoginRequest("test@email.com", "testPassword1!");
+
+      given(userService.login(any(UserLoginRequest.class))).willThrow(
+          new PasswordMismatchException(request.email()));
+      // when, then
+      mockMvc.perform(post("/api/users/login")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.status").value(401));
     }
   }
 }
