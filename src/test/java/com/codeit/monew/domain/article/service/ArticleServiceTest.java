@@ -24,7 +24,7 @@ import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
-import com.codeit.monew.global.exception.interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.List;

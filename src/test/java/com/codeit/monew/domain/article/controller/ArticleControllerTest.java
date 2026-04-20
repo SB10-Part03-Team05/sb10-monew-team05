@@ -15,7 +15,7 @@ import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
-import com.codeit.monew.global.exception.interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
