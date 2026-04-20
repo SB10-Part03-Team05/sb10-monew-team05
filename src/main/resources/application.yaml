@@ -31,6 +31,10 @@ monew:
     bucket: ${AWS_S3_BUCKET}
     presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600}
 
+  naver:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+
 # 로깅 레벨 설정
 logging:
   level:

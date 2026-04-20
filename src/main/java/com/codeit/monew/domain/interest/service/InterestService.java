@@ -12,6 +12,11 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
+import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
+import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.Interest.SubscriptionNotFoundException;
+import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +42,8 @@ public class InterestService {
     // 유사도 검사
     List<String> existingNames = interestRepository.findAllNamesWithLock();
     for (String existingName : existingNames) {
-      // 추후 공통 예외 클래스 생기면 커스텀 예외로 교체 예정 !!
       if (calculateSimilarity(request.name(), existingName) >= 0.8) {
-        throw new IllegalArgumentException("유사한 관심사가 이미 존재합니다: " + existingName);
+        throw new DuplicateInterestException(existingName);
       }
     }
 
@@ -72,7 +76,7 @@ public class InterestService {
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 기존 키워드 전체 삭제
     keywordRepository.deleteAllByInterestId(interestId);
@@ -95,7 +99,7 @@ public class InterestService {
   public void delete(UUID interestId) {
       // 관심사 존재 여부 확인
       Interest interest = interestRepository.findById(interestId)
-          .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+          .orElseThrow(() -> new InterestNotFoundException(interestId));
 
       // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
       interestRepository.delete(interest);
@@ -109,11 +113,11 @@ public class InterestService {
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 사용자 존재 여부 확인
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        .orElseThrow(() -> new UserNotFoundException(userId));
 
     // 구독 저장 (DB UNIQUE 제약으로 중복 방지)
     Subscription subscription;
@@ -121,7 +125,10 @@ public class InterestService {
       subscription = Subscription.create(user, interest);
       subscriptionRepository.save(subscription);
     } catch (DataIntegrityViolationException e) {
-      throw new IllegalArgumentException("이미 구독 중인 관심사입니다.");
+      if (isDuplicateConstraintViolation(e)) {
+        throw new AlreadySubscribedException(userId, interestId);
+      }
+      throw e;
     }
 
     // 구독자 수 증가
@@ -130,18 +137,27 @@ public class InterestService {
     return SubscriptionDto.from(subscription);
   }
 
+  // UNIQUE 제약 위반 여부 확인 (PostgreSQL SQLState 23505)
+  private boolean isDuplicateConstraintViolation(DataIntegrityViolationException e) {
+    Throwable cause = e.getMostSpecificCause();
+    if (cause instanceof java.sql.SQLException sqlException) {
+      return "23505".equals(sqlException.getSQLState());
+    }
+    return false;
+  }
+
   // 6. 관심사 구독 취소
   @Transactional
   public void unsubscribe(UUID interestId, UUID userId) {
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관심사입니다: " + interestId));
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 구독 여부 확인 및 구독 취소
     long deleted = subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
     if (deleted == 0) {
-      throw new IllegalArgumentException("구독 중이지 않은 관심사입니다.");
+      throw new SubscriptionNotFoundException(userId, interestId);
     }
 
     // 구독자 수 감소

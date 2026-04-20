@@ -7,11 +7,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "article_interests")
 @IdClass(ArticleInterestId.class) // 복합키 식별자 클래스 필요
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

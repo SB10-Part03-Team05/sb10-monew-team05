@@ -3,6 +3,7 @@ package com.codeit.monew.domain.interest.dto.response;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.entity.Subscription;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +14,7 @@ public record SubscriptionDto (
     String interestName,
     List<String> interestKeywords,
     long interestSubscriberCount,
-    LocalDateTime createdAt
+    Instant createdAt
 ) {
   public static SubscriptionDto from(Subscription subscription) {
     Interest interest = subscription.getInterest();
