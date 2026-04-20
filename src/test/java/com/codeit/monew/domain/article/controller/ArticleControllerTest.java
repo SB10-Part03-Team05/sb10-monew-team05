@@ -1,11 +1,13 @@
 package com.codeit.monew.domain.article.controller;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.codeit.monew.domain.article.dto.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.dto.ArticleDto;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
@@ -24,11 +26,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
 @WebMvcTest(ArticleController.class)
@@ -128,7 +125,7 @@ class ArticleControllerTest {
     void success_get_article_source() throws Exception {
       // given(준비)
       List<ArticleSource> sources = List.of(ArticleSource.HANKYUNG, ArticleSource.NAVER,
-          ArticleSource.YEONHAP);
+          ArticleSource.YONHAP);
 
       given(articleService.getSources()).willReturn(sources);
 
@@ -138,7 +135,7 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$", hasSize(3)))
           .andExpect(jsonPath("$[0]").value(ArticleSource.HANKYUNG.toString()))
           .andExpect(jsonPath("$[1]").value(ArticleSource.NAVER.toString()))
-          .andExpect(jsonPath("$[2]").value(ArticleSource.YEONHAP.toString()));
+          .andExpect(jsonPath("$[2]").value(ArticleSource.YONHAP.toString()));
     }
   }
 }

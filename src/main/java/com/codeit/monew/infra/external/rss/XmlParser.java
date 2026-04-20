@@ -7,7 +7,6 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import java.io.StringReader;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +41,7 @@ public class XmlParser {
               mapArticleSource(source),
               extractLink(entry, source),
               entry.getTitle() == null ? null : entry.getTitle().trim(),
-              entry.getPublishedDate() == null ? Instant.now()
+              entry.getPublishedDate() == null ? null
                   : entry.getPublishedDate().toInstant(),
               extractSummary(entry)
           ));
@@ -97,7 +96,7 @@ public class XmlParser {
       case NAVER -> ArticleSource.NAVER;
       case HANKYUNG -> ArticleSource.HANKYUNG;
       case CHOSUN -> ArticleSource.CHOSUN;
-      case YONHAP -> ArticleSource.YEONHAP;
+      case YONHAP -> ArticleSource.YONHAP;
     };
   }
 }
