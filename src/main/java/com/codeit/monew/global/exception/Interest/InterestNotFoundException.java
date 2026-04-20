@@ -6,6 +6,6 @@ import java.util.UUID;
 public class InterestNotFoundException extends InterestException {
 
   public InterestNotFoundException(UUID interestId) {
-    super(ErrorCode.INTERST_NOT_FOUND, "interestId", interestId);
+    super(ErrorCode.INTEREST_NOT_FOUND, "interestId", interestId);
   }
 }
