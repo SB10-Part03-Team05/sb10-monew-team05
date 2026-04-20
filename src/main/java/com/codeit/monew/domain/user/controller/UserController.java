@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.user.controller;
 
 import com.codeit.monew.domain.user.dto.UserDto;
+import com.codeit.monew.domain.user.dto.UserLoginRequest;
 import com.codeit.monew.domain.user.dto.UserRegisterRequest;
 import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.service.UserService;
@@ -60,10 +61,9 @@ public class UserController {
   })
   public ResponseEntity<UserDto> update(
       @Parameter(description = "사용자 ID") @PathVariable UUID userId,
-      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
       @Valid @RequestBody UserUpdateRequest request
   ) {
-    UserDto dto = userService.update(userId, requestUserId, request);
+    UserDto dto = userService.update(userId, request);
     return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 
@@ -76,10 +76,9 @@ public class UserController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<Void> softDelete(
-      @Parameter(description = "사용자 ID") @PathVariable UUID userId,
-      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
+      @Parameter(description = "사용자 ID") @PathVariable UUID userId
   ) {
-    userService.softDelete(userId, requestUserId);
+    userService.softDelete(userId);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
@@ -92,10 +91,24 @@ public class UserController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<Void> hardDelete(
-      @Parameter(description = "사용자 ID") @PathVariable UUID userId,
-      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
+      @Parameter(description = "사용자 ID") @PathVariable UUID userId
   ) {
-    userService.hardDelete(userId, requestUserId);
+    userService.hardDelete(userId);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @PostMapping("/login")
+  @Operation(summary = "로그인", description = "사용자 로그인을 처리합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "로그인 성공", content = @Content(schema = @Schema(implementation = UserDto.class))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "로그인 실패 (이메일 또는 비밀번호 불일치)", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<UserDto> login(
+      @Valid @RequestBody UserLoginRequest request
+  ) {
+    UserDto dto = userService.login(request);
+    return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 }

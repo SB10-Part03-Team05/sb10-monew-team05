@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.user.service;
 
 import com.codeit.monew.domain.user.dto.UserDto;
+import com.codeit.monew.domain.user.dto.UserLoginRequest;
 import com.codeit.monew.domain.user.dto.UserRegisterRequest;
 import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.entity.User;
@@ -8,8 +9,11 @@ import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
+import com.codeit.monew.global.exception.user.PasswordMismatchException;
 import com.codeit.monew.global.exception.user.UserAccessDeniedException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
+import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,10 +46,8 @@ public class UserService {
     return userMapper.toDto(user);
   }
 
-  public UserDto update(UUID userId, UUID requestUserId, UserUpdateRequest request) {
+  public UserDto update(UUID userId, UserUpdateRequest request) {
     log.debug("[USER_UPDATE] 유저 수정 요청: userId={}", userId);
-
-    verifySameUser(userId, requestUserId);
 
     // Soft Delete를 고려해 findByIdAndDeletedAtIsNull()을 호출
     User user = userRepository.findByIdAndDeletedAtIsNull(userId)
@@ -57,10 +59,8 @@ public class UserService {
     return userMapper.toDto(user);
   }
 
-  public void softDelete(UUID userId, UUID requestUserId) {
+  public void softDelete(UUID userId) {
     log.debug("[USER_DELETE] 유저 논리 삭제 요청: userId={}", userId);
-
-    verifySameUser(userId, requestUserId);
 
     User user = userRepository.findByIdAndDeletedAtIsNull(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
@@ -68,10 +68,8 @@ public class UserService {
     log.info("[USER_DELETE] 유저 논리 삭제 완료: userId={}", user.getId());
   }
 
-  public void hardDelete(UUID userId, UUID requestUserId) {
+  public void hardDelete(UUID userId) {
     log.debug("[USER_DELETE] 유저 물리 삭제 요청: userId={}", userId);
-
-    verifySameUser(userId, requestUserId);
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
@@ -79,11 +77,16 @@ public class UserService {
     log.info("[USER_DELETE] 유저 물리 삭제 완료: userId={}", user.getId());
   }
 
-  private void verifySameUser(UUID userId, UUID requestUserId) {
-    // URI에 포함된 userId와 헤더에 포함된 requestUserId를 비교해서 다르다면 예외를 던진다.
-    if (!userId.equals(requestUserId)) {
-      throw new UserAccessDeniedException(requestUserId);
+  public UserDto login(UserLoginRequest request) {
+    log.debug("[USER_LOGIN] 유저 로그인 요청: email={}", request.email());
+
+    User user = userRepository.findByEmailAndDeletedAtIsNull(request.email())
+        .orElseThrow(() -> new UserNotFoundException(request.email()));
+    if (!user.getPassword().equals(request.password())) {
+      throw new PasswordMismatchException(request.email());
     }
+    log.info("[USER_LOGIN] 유저 로그인 완료: email={}", request.email());
+    return userMapper.toDto(user);
   }
 
   private void existsByEmail(String email) {
