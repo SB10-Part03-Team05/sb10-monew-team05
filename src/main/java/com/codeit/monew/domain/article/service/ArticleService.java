@@ -43,6 +43,7 @@ public class ArticleService {
     userRepository.findByIdAndDeletedAtIsNull(requestUserId)
         .orElseThrow(() -> new UserNotFoundException(requestUserId));
 
+    // 뉴스 기사 존재 검증
     Article article = articleRepository.findByIdAndDeletedAtIsNull(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
 
@@ -85,6 +86,15 @@ public class ArticleService {
           .orElseThrow(() -> new InterestNotFoundException(request.getInterestId()));
     }
 
-    return articleRepository.searchArticleList(request, requestUserId);
+    CursorPageResponseArticleDto responseArticleDto = articleRepository.searchArticleList(request,
+        requestUserId);
+
+    log.debug(
+        "[ARTICLE_LIST_FIND] 뉴스 기사 목록 조회 성공: contentSize={}, size={}, totalElement={}, hasNext={}, nextCursor={}, nextAfter={}",
+        responseArticleDto.content().size(), responseArticleDto.size(),
+        responseArticleDto.totalElements(), responseArticleDto.hasNext(),
+        responseArticleDto.nextCursor(), responseArticleDto.nextAfter());
+
+    return responseArticleDto;
   }
 }
