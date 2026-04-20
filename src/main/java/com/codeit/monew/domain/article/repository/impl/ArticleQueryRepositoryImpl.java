@@ -11,6 +11,7 @@ import com.codeit.monew.domain.article.entity.type.ArticleDirection;
 import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.repository.ArticleQueryRepository;
 import com.codeit.monew.domain.comment.entity.QComment;
+import com.codeit.monew.global.exception.common.InvalidParameterException;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -18,6 +19,7 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -140,6 +142,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return toSlice(content, pageable);
   }
 
+  // orderBy = publishDate
   List<ArticleDto> searchQueryByPublishDate(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
@@ -157,12 +160,16 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
                 : article.publishDate.asc(),
             request.getDirection() == ArticleDirection.DESC
                 ? article.createdAt.desc()
-                : article.createdAt.asc()
+                : article.createdAt.asc(),
+            request.getDirection() == ArticleDirection.DESC
+                ? article.id.desc()
+                : article.id.asc()
         )
         .limit(request.getLimit() + 1)
         .fetch();
   }
 
+  // orderBy = commentCount || viewCount
   List<ArticleDto> searchQueryByCount(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
@@ -180,7 +187,10 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
                 : countExpression.asc(),
             request.getDirection() == ArticleDirection.DESC
                 ? article.createdAt.desc()
-                : article.createdAt.asc()
+                : article.createdAt.asc(),
+            request.getDirection() == ArticleDirection.DESC
+                ? article.id.desc()
+                : article.id.asc()
         )
         .limit(request.getLimit() + 1)
         .fetch();
@@ -240,14 +250,24 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     if (cursor == null) {
       return null;
     }
-    return Instant.parse(cursor);
+
+    try {
+      return Instant.parse(cursor);
+    } catch (DateTimeParseException e) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
   }
 
   private Long parserLong(String cursor) {
     if (cursor == null) {
       return null;
     }
-    return Long.parseLong(cursor);
+
+    try {
+      return Long.parseLong(cursor);
+    } catch (DateTimeParseException e) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
   }
 
   private BooleanExpression keywordContains(QArticle article, String keyword) {
