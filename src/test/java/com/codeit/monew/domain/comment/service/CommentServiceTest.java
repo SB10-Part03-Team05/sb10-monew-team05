@@ -193,4 +193,75 @@ class CommentServiceTest {
           .isInstanceOf(com.codeit.monew.global.exception.comment.CommentUpdateForbiddenException.class);
     }
   }
+
+  @Nested
+  @DisplayName("댓글 논리 삭제 (deleteComment) 테스트")
+  class DeleteComment {
+
+    @Test
+    @DisplayName("존재하는 댓글 ID로 요청하면 논리 삭제(commentRepository.delete)가 수행된다.")
+    void success_logical_delete() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      Comment mockComment = mock(Comment.class);
+
+      given(commentRepository.findById(commentId)).willReturn(Optional.of(mockComment));
+
+      // when
+      commentService.deleteComment(commentId);
+
+      // then
+      // 일반 delete()가 호출되었는지 검증 -> 엔티티의 @SQLDelete가 작동하여 논리 삭제됨
+      verify(commentRepository).delete(mockComment);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글 ID면 CommentNotFoundException이 발생한다.")
+    void fail_logical_delete_notFound() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> commentService.deleteComment(commentId))
+          .isInstanceOf(com.codeit.monew.global.exception.comment.CommentNotFoundException.class);
+
+      verify(commentRepository, never()).delete(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 물리 삭제 (hardDeleteComment) 테스트")
+  class HardDeleteComment {
+
+    @Test
+    @DisplayName("존재하는 댓글 ID로 요청하면 물리 삭제(commentRepository.deleteByIdHard)가 수행된다.")
+    void success_hard_delete() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      given(commentRepository.existsById(commentId)).willReturn(true);
+
+      // when
+      commentService.hardDeleteComment(commentId);
+
+      // then
+      // 일반 delete()가 아닌, deleteByIdHard()가 호출되었는지 검증
+      verify(commentRepository).deleteByIdHard(commentId);
+      verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("실패: 존재하지 않는 댓글 ID면 CommentNotFoundException이 발생한다.")
+    void fail_hard_delete_notFound() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      given(commentRepository.existsById(commentId)).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
+          .isInstanceOf(com.codeit.monew.global.exception.comment.CommentNotFoundException.class);
+
+      verify(commentRepository, never()).deleteByIdHard(any());
+    }
+  }
 }

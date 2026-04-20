@@ -23,6 +23,9 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -100,7 +103,7 @@ class CommentControllerTest {
 
     @Test
     @DisplayName("올바른 요청을 보내면 200 OK와 수정된 데이터를 반환한다.")
-    void success() throws Exception {
+    void success_update_comment() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
@@ -193,6 +196,81 @@ class CommentControllerTest {
           .andDo(print())
           .andExpect(status().isForbidden())
           .andExpect(jsonPath("$.code").value("COMMENT_UPDATE_FORBIDDEN"));
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 논리 삭제 API 테스트")
+  class DeleteCommentAPI {
+
+    private final String URL = "/api/comments/{commentId}";
+
+    @Test
+    @DisplayName("정상적인 삭제 요청 시 204 No Content를 반환한다.")
+    void success_logical_delete() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      // 삭제 메서드는 반환값이 void이므로 willDoNothing() 사용 (생략 가능)
+
+      // when & then
+      mockMvc.perform(delete(URL, commentId))
+          .andDo(print())
+          .andExpect(status().isNoContent()); // 💡 204 상태 코드 검증
+
+      verify(commentService).deleteComment(commentId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글 ID로 논리 삭제 요청 시 404 Not Found를 반환한다.")
+    void fail_logical_delete_notFound() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      doThrow(new CommentNotFoundException(commentId))
+          .when(commentService).deleteComment(commentId);
+
+      // when & then
+      mockMvc.perform(delete(URL, commentId))
+          .andDo(print())
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"));
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 물리 삭제 API 테스트")
+  class HardDeleteCommentAPI {
+
+    private final String URL = "/api/comments/{commentId}/hard";
+
+    @Test
+    @DisplayName("정상적인 물리 삭제 요청 시 204 No Content를 반환한다.")
+    void success_hard_delete() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete(URL, commentId))
+          .andDo(print())
+          .andExpect(status().isNoContent());
+
+      verify(commentService).hardDeleteComment(commentId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글 ID로 물리 삭제 요청 시 404 Not Found를 반환한다.")
+    void fail_hard_delete_notFound() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      doThrow(new CommentNotFoundException(commentId))
+          .when(commentService).hardDeleteComment(commentId);
+
+      // when & then
+      mockMvc.perform(delete(URL, commentId))
+          .andDo(print())
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"));
     }
   }
 }
