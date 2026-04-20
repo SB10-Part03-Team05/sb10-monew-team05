@@ -1,4 +1,4 @@
-package com.codeit.monew.global.exception.interest;
+package com.codeit.monew.global.exception.Interest;
 
 import com.codeit.monew.global.exception.ErrorCode;
 import java.util.UUID;
