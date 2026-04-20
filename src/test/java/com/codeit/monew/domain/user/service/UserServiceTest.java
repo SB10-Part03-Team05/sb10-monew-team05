@@ -160,4 +160,104 @@ class UserServiceTest {
       verify(userMapper, never()).toDto(any(User.class));
     }
   }
+
+  @Nested
+  @DisplayName("사용자 논리 삭제 테스트")
+  class softDeleteUser {
+
+    @Test
+    @DisplayName("사용자 논리 삭제에 성공해야 한다.")
+    void should_soft_delete_user_success() {
+      // given
+      UUID userId = UUID.randomUUID();
+      User user = createUser(userId, "test@email.com", "testNickname",
+          "testPassword1!");
+
+      given(userRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).willReturn(Optional.of(user));
+
+      // when
+      userService.softDelete(userId, userId);
+
+      // then
+      assertNotNull(user.getDeletedAt());
+      verify(userRepository).findByIdAndDeletedAtIsNull(any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("사용자가 존재하지 않으면 UserNotFound 예외가 발생한다.")
+    void should_fail_soft_delete_user_when_user_not_found() {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      given(userRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).willReturn(Optional.empty());
+
+      // when, then
+      UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+          () -> userService.softDelete(userId, userId));
+      assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 UserAccessDenied 예외가 발생한다.")
+    void should_fail_soft_delete_user_when_id_mismatch() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      // when, then
+      UserAccessDeniedException exception = assertThrows(UserAccessDeniedException.class,
+          () -> userService.softDelete(userId, requestUserId));
+      assertEquals(ErrorCode.USER_ACCESS_DENIED, exception.getErrorCode());
+    }
+  }
+
+  @Nested
+  @DisplayName("사용자 물리 삭제 테스트")
+  class hardDeleteUser {
+
+    @Test
+    @DisplayName("사용자 물리 삭제에 성공해야 한다.")
+    void should_hard_delete_user_success() {
+      // given
+      UUID userId = UUID.randomUUID();
+      User user = createUser(userId, "test@email.com", "testNickname",
+          "testPassword1!");
+
+      given(userRepository.findById(any(UUID.class))).willReturn(Optional.of(user));
+
+      // when
+      userService.hardDelete(userId, userId);
+
+      // then
+      verify(userRepository).findById(any(UUID.class));
+      verify(userRepository).delete(any(User.class));
+    }
+
+    @Test
+    @DisplayName("사용자가 존재하지 않으면 UserNotFound 예외가 발생한다.")
+    void should_fail_hard_delete_user_when_user_not_found() {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      given(userRepository.findById(any(UUID.class))).willReturn(Optional.empty());
+
+      // when, then
+      UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+          () -> userService.hardDelete(userId, userId));
+      assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("요청자 ID와 수정할 사용자의 ID가 다르면 UserAccessDenied 예외가 발생한다.")
+    void should_fail_hard_delete_user_when_id_mismatch() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      // when, then
+      UserAccessDeniedException exception = assertThrows(UserAccessDeniedException.class,
+          () -> userService.hardDelete(userId, requestUserId));
+      assertEquals(ErrorCode.USER_ACCESS_DENIED, exception.getErrorCode());
+    }
+  }
 }

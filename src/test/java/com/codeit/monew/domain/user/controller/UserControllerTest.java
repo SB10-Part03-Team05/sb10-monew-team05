@@ -2,6 +2,8 @@ package com.codeit.monew.domain.user.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -107,7 +109,7 @@ class UserControllerTest {
   class updateUser {
 
     @Test
-    @DisplayName("유효한 요청 시 200 상태코드와 수정된 사용자 정보가 반환된다.")
+    @DisplayName("유효한 수정 요청 시 200 상태코드와 수정된 사용자 정보가 반환된다.")
     void should_update_user_success_and_return_200() throws Exception {
       // given
       UserUpdateRequest request = new UserUpdateRequest("newNickName");
@@ -177,6 +179,106 @@ class UserControllerTest {
               .header("Monew-Request-User-ID", userId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.status").value(404));
+    }
+  }
+
+  @Nested
+  @DisplayName("사용자 논리 삭제 API 테스트")
+  class softDeleteUser {
+
+    @Test
+    @DisplayName("유효한 삭제 요청 시 204 상태코드가 반환된다.")
+    void should_delete_user_and_return_204() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      willDoNothing().given(userService).softDelete(userId, userId);
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId)
+              .header("Monew-Request-User-ID", userId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("요청자 ID와 논리 삭제할 사용자의 ID가 다르면 403 상태 코드가 반환된다.")
+    void should_fail_delete_user_when_id_mismatch() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).softDelete(any(UUID.class), any(UUID.class));
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId)
+              .header("Monew-Request-User-ID", requestUserId))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @DisplayName("논리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
+    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      willThrow(new UserNotFoundException(userId)).given(userService).softDelete(any(UUID.class), any(UUID.class));
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId)
+              .header("Monew-Request-User-ID", userId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.status").value(404));
+    }
+  }
+
+  @Nested
+  @DisplayName("사용자 물리 삭제 API 테스트")
+  class hardDeleteUser {
+
+    @Test
+    @DisplayName("유효한 삭제 요청 시 204 상태코드가 반환된다.")
+    void should_delete_user_and_return_204() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      willDoNothing().given(userService).hardDelete(userId, userId);
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId + "/hard")
+              .header("Monew-Request-User-ID", userId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("요청자 ID와 물리 삭제할 사용자의 ID가 다르면 403 상태 코드가 반환된다.")
+    void should_fail_delete_user_when_id_mismatch() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      willThrow(new UserAccessDeniedException(requestUserId)).given(userService).hardDelete(any(UUID.class), any(UUID.class));
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId + "/hard")
+              .header("Monew-Request-User-ID", requestUserId))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @DisplayName("물리 삭제할 사용자가 존재하지 않으면 404 상태 코드가 반환된다.")
+    void should_fail_delete_user_fail_when_user_not_found() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      willThrow(new UserNotFoundException(userId)).given(userService).hardDelete(any(UUID.class), any(UUID.class));
+
+      // when, then
+      mockMvc.perform(delete("/api/users/" + userId + "/hard")
+              .header("Monew-Request-User-ID", userId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.status").value(404));
     }
