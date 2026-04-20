@@ -66,4 +66,33 @@ public class CommentService {
     boolean likedByMe = false; // 좋아요 기능 구현 전까지 고정값, TODO: 좋아요 기능 구현 후 수정
     return commentMapper.toDto(comment, comment.getUser().getNickname(), likedByMe);
   }
+
+  // 댓글 논리 삭제 (삭제 기본값)
+  @Transactional
+  public void deleteComment(UUID commentId) {
+    Comment comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    // 엔티티에 설정된 @SQLDelete 작동 -> deleted_at에 현재 시간 기록
+    commentRepository.delete(comment);
+    log.info("댓글 논리 삭제 완료: commentId= {}", commentId);
+  }
+
+  // 댓글 물리 삭제
+  @Transactional
+  public void hardDeleteComment(UUID commentId) {
+    // 1. 댓글 존재 여부 확인
+    boolean exists = commentRepository.existsById(commentId);
+    if (!exists) {
+      throw new CommentNotFoundException(commentId);
+    }
+
+    // 2. 연관 데이터 물리 삭제
+    // TODO: CommentLikeRepository 생성 후 적용 필요
+    // commentLikeRepository.deleteByCommentId(commentId);
+
+    // 3. 댓글 물리 삭제
+    commentRepository.deleteByIdHard(commentId);
+    log.info("댓글 물리 삭제 완료: commentId= {}", commentId);
+  }
 }
