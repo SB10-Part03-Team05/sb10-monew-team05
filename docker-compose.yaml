@@ -22,12 +22,16 @@ services:
       - MONGO_PROTO=${MONGO_PROTO:-mongodb}
       - MONGO_HOST=${MONGO_HOST:-mongodb}
       - MONGO_DB=${MONGO_DB}
+      - MONGO_RETRY_WRITES=${MONGO_RETRY_WRITES:-false}
       # AWS 설정
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
       - AWS_SECRET_KEY=${AWS_SECRET_KEY}
       - AWS_REGION=${AWS_REGION}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
       - AWS_S3_PRESIGNED_URL_EXPIRATION=${AWS_S3_PRESIGNED_URL_EXPIRATION}
+      # 네이버 설정
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
 
     depends_on:
       - db # RDS 전환 시 주석 처리 또는 삭제하세요.
@@ -60,7 +64,7 @@ services:
   # [MongoDB 로컬 컨테이너]
   # ---------------------------------------------------------
   mongodb:
-    image: mongo:latest
+    image: mongo:7.0
     container_name: monew-mongodb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}     # 초기 루트 계정

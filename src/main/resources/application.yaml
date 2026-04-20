@@ -6,14 +6,14 @@ spring:
     name: monew
 
   profiles:
-    active: dev # local | dev | prod
+    active: local # local | dev | prod
 
   config:
     import: optional:file:.env[.properties]
 
   data:
     mongodb:
-      uri: ${MONGO_PROTO:mongodb}://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}/${MONGO_DB:monew_dev}?retryWrites=true&w=majority&appName=SB10-MONEW-TEAM5
+      uri: ${MONGO_PROTO:mongodb}://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}/${MONGO_DB:monew_dev}?retryWrites=${MONGO_RETRY_WRITES:false}&w=majority&appName=SB10-MONEW-TEAM5
 
   jpa:
     show-sql: false # 기본적으로 끔
@@ -30,6 +30,10 @@ monew:
     region: ${AWS_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
     presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600}
+
+  naver:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
 
 # 로깅 레벨 설정
 logging:

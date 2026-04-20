@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.article.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -11,8 +12,8 @@ import static org.mockito.Mockito.verify;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
-import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.entity.type.ArticleDirection;
 import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
@@ -202,7 +203,7 @@ class ArticleServiceTest {
     void success_get_article_source() {
       // given(준비)
       List<ArticleSource> expectedSources = List.of(ArticleSource.CHOSUN, ArticleSource.NAVER,
-          ArticleSource.YEONHAP);
+          ArticleSource.YONHAP);
 
       given(articleService.getSources()).willReturn(expectedSources);
 
@@ -245,7 +246,7 @@ class ArticleServiceTest {
 
       Article article1 = createArticle(null, ArticleSource.NAVER, "https://naver.com", "testTitle1",
           Instant.now(), "testSummary1");
-      Article article2 = createArticle(null, ArticleSource.YEONHAP, "https://yeonhap.com",
+      Article article2 = createArticle(null, ArticleSource.YONHAP, "https://yeonhap.com",
           "testTitle2", Instant.parse("2026-04-17T09:12:15Z"), "testSummary2");
 
       ArticleDto articleDto1 = createArticleDto(article1, 5, 6, true);

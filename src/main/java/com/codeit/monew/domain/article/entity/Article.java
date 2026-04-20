@@ -63,11 +63,12 @@ public class Article extends BaseUpdatableEntity {
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Comment> comments = new ArrayList<>(); // 댓글
 
-  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
+  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ArticleInterest> articleInterests = new ArrayList<>(); // 관심사
 
   // 3. 조회수 (article_view_histories 테이블 개수 기반)
+  @Builder.Default
   @Basic(fetch = FetchType.LAZY)
   @Formula("(SELECT COUNT(*) FROM article_view_histories v WHERE v.article_id = id)")
   private Long viewCount = 0L; // 조회수

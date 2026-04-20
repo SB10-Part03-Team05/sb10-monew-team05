@@ -135,7 +135,7 @@ class ArticleControllerTest {
     void success_get_article_source() throws Exception {
       // given(준비)
       List<ArticleSource> sources = List.of(ArticleSource.HANKYUNG, ArticleSource.NAVER,
-          ArticleSource.YEONHAP);
+          ArticleSource.YONHAP);
 
       given(articleService.getSources()).willReturn(sources);
 
@@ -145,7 +145,7 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$", hasSize(3)))
           .andExpect(jsonPath("$[0]").value(ArticleSource.HANKYUNG.toString()))
           .andExpect(jsonPath("$[1]").value(ArticleSource.NAVER.toString()))
-          .andExpect(jsonPath("$[2]").value(ArticleSource.YEONHAP.toString()));
+          .andExpect(jsonPath("$[2]").value(ArticleSource.YONHAP.toString()));
     }
   }
 
@@ -160,7 +160,7 @@ class ArticleControllerTest {
       UUID requestUserId = UUID.randomUUID();
       ArticleDto articleDto1 = createArticleDto(null, ArticleSource.NAVER, "https://naver.com",
           "testTitle1", Instant.now(), "testSummary1", 5, 6, true);
-      ArticleDto articleDto2 = createArticleDto(null, ArticleSource.YEONHAP, "https://yeonhap.com",
+      ArticleDto articleDto2 = createArticleDto(null, ArticleSource.YONHAP, "https://yeonhap.com",
           "testTitle2", Instant.parse("2026-04-17T09:12:15Z"), "testSummary2", 3, 7, false);
 
       CursorPageResponseArticleDto response = new CursorPageResponseArticleDto(
