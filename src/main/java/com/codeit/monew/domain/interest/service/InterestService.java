@@ -125,13 +125,25 @@ public class InterestService {
       subscription = Subscription.create(user, interest);
       subscriptionRepository.save(subscription);
     } catch (DataIntegrityViolationException e) {
-      throw new AlreadySubscribedException(userId, interestId);
+      if (isDuplicateConstraintViolation(e)) {
+        throw new AlreadySubscribedException(userId, interestId);
+      }
+      throw e;
     }
 
     // 구독자 수 증가
     interestRepository.incrementSubscriberCount(interestId);
 
     return SubscriptionDto.from(subscription);
+  }
+
+  // UNIQUE 제약 위반 여부 확인 (PostgreSQL SQLState 23505)
+  private boolean isDuplicateConstraintViolation(DataIntegrityViolationException e) {
+    Throwable cause = e.getMostSpecificCause();
+    if (cause instanceof java.sql.SQLException sqlException) {
+      return "23505".equals(sqlException.getSQLState());
+    }
+    return false;
   }
 
   // 6. 관심사 구독 취소
