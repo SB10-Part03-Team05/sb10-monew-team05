@@ -14,4 +14,6 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
   @Query("SELECT DISTINCT a.source FROM Article AS a WHERE a.deletedAt IS NULL ORDER BY a.source ASC ")
   List<ArticleSource> findDistinctSource();
+
+  boolean existsBySourceUrl(String sourceUrl);
 }
