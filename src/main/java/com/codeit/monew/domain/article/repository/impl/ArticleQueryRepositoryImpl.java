@@ -1,13 +1,29 @@
 package com.codeit.monew.domain.article.repository.impl;
 
+import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
+import com.codeit.monew.domain.article.entity.QArticle;
+import com.codeit.monew.domain.article.entity.QArticleInterest;
+import com.codeit.monew.domain.article.entity.QArticleViewHistory;
+import com.codeit.monew.domain.article.entity.type.ArticleDirection;
+import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.repository.ArticleQueryRepository;
+import com.codeit.monew.domain.comment.entity.QComment;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,35 +35,276 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   @Override
   public CursorPageResponseArticleDto searchArticleList(ArticleSearchRequest request,
       UUID requestUserId) {
+    // 기본 인스턴스 사용
+    QArticle article = QArticle.article;
+    QComment comment = QComment.comment;
+    QArticleInterest articleInterest = QArticleInterest.articleInterest;
+    // 별칭 직접 지정
+    QArticleViewHistory articleViewAll = new QArticleViewHistory("articleViewAll"); // 조회 수
+    QArticleViewHistory articleViewMe = new QArticleViewHistory("articleViewMe"); // 사용자 조회 여부
+
+    Pageable pageable = PageRequest.of(0, request.getLimit());
+
     // 정렬 기준에 따라 분기(각자 참고하는 기준이 다름)
     // publishDate는 article table, viewCount는 article_histories table, commentCount는 comment table
-    return switch (request.getOrderBy()) {
-      case publishDate -> searchArticleListByPublishDate(request, requestUserId);
-      case viewCount -> searchArticleListByViewCount(request, requestUserId);
-      case commentCount -> searchArticleListByCommentCount(request, requestUserId);
-    };
+    Slice<ArticleDto> articleDtoSlice =
+        switch (request.getOrderBy()) {
+          case publishDate ->
+              searchArticleListByPublishDate(request, requestUserId, article, comment,
+                  articleViewAll, articleViewMe, articleInterest, pageable);
+          case commentCount ->
+              searchArticleListByCommentCount(request, requestUserId, article, comment,
+                  articleViewAll, articleViewMe, articleInterest, pageable);
+          case viewCount -> searchArticleListByViewCount(request, requestUserId, article, comment,
+              articleViewAll, articleViewMe, articleInterest, pageable);
+        };
+
+    // 전체 요소 수
+    Long totalElement = findTotalElement(request, article, articleInterest);
+
+    // 마지막 ArticleDto 찾기
+    List<ArticleDto> sliceContent = articleDtoSlice.getContent();
+    ArticleDto lastArticleDto = !sliceContent.isEmpty()
+        ? sliceContent.get(sliceContent.size() - 1)
+        : null;
+
+    // nextCursor, afterCursor
+    String nextCursor = null;
+    Instant after = null;
+    if (articleDtoSlice.hasNext() && lastArticleDto != null) {
+      nextCursor = findNextCursor(lastArticleDto, request.getOrderBy());
+      after = findCreatedAtById(article, lastArticleDto.id());
+    }
+
+    return new CursorPageResponseArticleDto(
+        articleDtoSlice.getContent(),
+        nextCursor,
+        after,
+        request.getLimit(),
+        totalElement,
+        articleDtoSlice.hasNext()
+    );
   }
 
-  private CursorPageResponseArticleDto searchArticleListByPublishDate(ArticleSearchRequest request,
-      UUID requestUserId) {
+  // orderBy가 publishDate일 때
+  private Slice<ArticleDto> searchArticleListByPublishDate(ArticleSearchRequest request,
+      UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
+
     Instant normalizedCursor =
         request.getCursor() == null ? null : parserInstant(request.getCursor());
 
-    return null;
+    List<ArticleDto> content = searchQueryByPublishDate(request, requestUserId, article, comment,
+        articleViewAll, articleViewMe, articleInterest, normalizedCursor);
+
+    // Slice 생성
+    return toSlice(content, pageable);
   }
 
-  private CursorPageResponseArticleDto searchArticleListByViewCount(ArticleSearchRequest request,
-      UUID requestUserId) {
-    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
+  // orderBy가 commentCount일 때
+  private Slice<ArticleDto> searchArticleListByCommentCount(ArticleSearchRequest request,
+      UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
 
-    return null;
+    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
+    NumberExpression<Long> commentCountExpression = comment.id.countDistinct();
+
+    List<ArticleDto> content = searchQueryByCommentCount(request, requestUserId, article, comment,
+        articleViewAll, articleViewMe, articleInterest, normalizedCursor, commentCountExpression);
+
+    // Slice 생성
+    return toSlice(content, pageable);
+
   }
 
-  private CursorPageResponseArticleDto searchArticleListByCommentCount(ArticleSearchRequest request,
-      UUID requestUserId) {
-    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
+  // orderBy가 viewCount일 때
+  private Slice<ArticleDto> searchArticleListByViewCount(ArticleSearchRequest request,
+      UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
 
-    return null;
+    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
+    NumberExpression<Long> viewCountExpression = articleViewAll.id.countDistinct();
+
+    List<ArticleDto> content = searchQueryByViewCount(request, requestUserId, article, comment,
+        articleViewAll, articleViewMe, articleInterest, normalizedCursor, viewCountExpression);
+
+    // Slice 생성
+    return toSlice(content, pageable);
+  }
+
+  List<ArticleDto> searchQueryByPublishDate(ArticleSearchRequest request, UUID requestUserId,
+      QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
+      Instant normalizedCursor) {
+
+    return queryFactory.select(Projections.constructor(
+            ArticleDto.class,
+            article.id,
+            article.source,
+            article.sourceUrl,
+            article.title,
+            article.publishDate,
+            article.summary,
+            comment.id.countDistinct(), // 댓글 수 집계
+            articleViewAll.id.countDistinct(), // 조회 수 집계
+            articleViewMe.id.countDistinct().gt(0L) // 조회 여부(1이상이면 true)
+        ))
+        .from(article)
+        .leftJoin(articleInterest).on(
+            articleInterest.article.eq(article)
+        )
+        .leftJoin(comment).on(
+            comment.article.eq(article),
+            comment.deletedAt.isNull() // 논리 삭제된 것은 제외
+        )
+        .leftJoin(articleViewAll).on(
+            articleViewAll.article.eq(article)
+        )
+        .leftJoin(articleViewMe).on(
+            articleViewMe.article.eq(article),
+            articleViewMe.user.id.eq(requestUserId) // 조회 여부
+        )
+        .where(
+            article.deletedAt.isNull(),
+            keywordContains(article, request.getKeyword()),
+            interestIdEq(articleInterest, request.getInterestId()),
+            sourceIn(article, request.getSourceIn()),
+            publishDateGoe(article, request.getPublishDateFrom()),
+            publishDateLoe(article, request.getPublishDateTo()),
+            publishDateCursorCondition(article, request.getDirection(), normalizedCursor,
+                request.getAfter())
+        )
+        .groupBy(
+            article.id
+        )
+        .orderBy(
+            request.getDirection() == ArticleDirection.DESC
+                ? article.publishDate.desc()
+                : article.publishDate.asc(),
+            request.getDirection() == ArticleDirection.DESC
+                ? article.createdAt.desc()
+                : article.createdAt.asc()
+        )
+        .limit(request.getLimit() + 1)
+        .fetch();
+  }
+
+  List<ArticleDto> searchQueryByCommentCount(ArticleSearchRequest request, UUID requestUserId,
+      QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
+      Long normalizedCursor, NumberExpression<Long> commentCountExpression) {
+
+    return queryFactory.select(Projections.constructor(
+            ArticleDto.class,
+            article.id,
+            article.source,
+            article.sourceUrl,
+            article.title,
+            article.publishDate,
+            article.summary,
+            comment.id.countDistinct(), // 댓글 수 집계
+            articleViewAll.id.countDistinct(), // 조회 수 집계
+            articleViewMe.id.countDistinct().gt(0L) // 조회 여부(1이상이면 true)
+        ))
+        .from(article)
+        .leftJoin(articleInterest).on(
+            articleInterest.article.eq(article)
+        )
+        .leftJoin(comment).on(
+            comment.article.eq(article),
+            comment.deletedAt.isNull() // 논리 삭제된 것은 제외
+        )
+        .leftJoin(articleViewAll).on(
+            articleViewAll.article.eq(article)
+        )
+        .leftJoin(articleViewMe).on(
+            articleViewMe.article.eq(article),
+            articleViewMe.user.id.eq(requestUserId) // 조회 여부
+        )
+        .where(
+            article.deletedAt.isNull(),
+            keywordContains(article, request.getKeyword()),
+            interestIdEq(articleInterest, request.getInterestId()),
+            sourceIn(article, request.getSourceIn()),
+            publishDateGoe(article, request.getPublishDateFrom()),
+            publishDateLoe(article, request.getPublishDateTo())
+        )
+        .groupBy(
+            article.id
+        )
+        .having(
+            commentCountCursorCondition(article, request.getDirection(), normalizedCursor,
+                request.getAfter(), commentCountExpression)
+        )
+        .orderBy(
+            request.getDirection() == ArticleDirection.DESC
+                ? commentCountExpression.desc()
+                : commentCountExpression.asc(),
+            request.getDirection() == ArticleDirection.DESC
+                ? article.createdAt.desc()
+                : article.createdAt.asc()
+        )
+        .limit(request.getLimit() + 1)
+        .fetch();
+  }
+
+  List<ArticleDto> searchQueryByViewCount(ArticleSearchRequest request, UUID requestUserId,
+      QArticle article, QComment comment, QArticleViewHistory articleViewAll,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
+      Long normalizedCursor, NumberExpression<Long> viewCountExpression) {
+
+    return queryFactory.select(Projections.constructor(
+            ArticleDto.class,
+            article.id,
+            article.source,
+            article.sourceUrl,
+            article.title,
+            article.publishDate,
+            article.summary,
+            comment.id.countDistinct(), // 댓글 수 집계
+            articleViewAll.id.countDistinct(), // 조회 수 집계
+            articleViewMe.id.countDistinct().gt(0L) // 조회 여부(1이상이면 true)
+        ))
+        .from(article)
+        .leftJoin(articleInterest).on(
+            articleInterest.article.eq(article)
+        )
+        .leftJoin(comment).on(
+            comment.article.eq(article),
+            comment.deletedAt.isNull() // 논리 삭제된 것은 제외
+        )
+        .leftJoin(articleViewAll).on(
+            articleViewAll.article.eq(article)
+        )
+        .leftJoin(articleViewMe).on(
+            articleViewMe.article.eq(article),
+            articleViewMe.user.id.eq(requestUserId) // 조회 여부
+        )
+        .where(
+            article.deletedAt.isNull(),
+            keywordContains(article, request.getKeyword()),
+            interestIdEq(articleInterest, request.getInterestId()),
+            sourceIn(article, request.getSourceIn()),
+            publishDateGoe(article, request.getPublishDateFrom()),
+            publishDateLoe(article, request.getPublishDateTo())
+        )
+        .groupBy(
+            article.id
+        )
+        .having(
+            viewCountCursorCondition(article, request.getDirection(), normalizedCursor,
+                request.getAfter(), viewCountExpression)
+        )
+        .orderBy(
+            request.getDirection() == ArticleDirection.DESC
+                ? viewCountExpression.desc()
+                : viewCountExpression.asc(),
+            request.getDirection() == ArticleDirection.DESC
+                ? article.createdAt.desc()
+                : article.createdAt.asc()
+        )
+        .limit(request.getLimit() + 1)
+        .fetch();
   }
 
   private Instant parserInstant(String cursor) {
@@ -62,5 +319,143 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
       return null;
     }
     return Long.parseLong(cursor);
+  }
+
+  private BooleanExpression keywordContains(QArticle article, String keyword) {
+    return keyword != null
+        ? article.title.contains(keyword).or(article.summary.contains(keyword))
+        : null;
+  }
+
+  private BooleanExpression interestIdEq(QArticleInterest articleInterest, UUID interestId) {
+    return interestId != null
+        ? articleInterest.interest.id.eq(interestId)
+        : null;
+  }
+
+  private BooleanExpression sourceIn(QArticle article, List<ArticleSource> sourceIn) {
+    return sourceIn != null
+        ? article.source.in(sourceIn)
+        : null;
+  }
+
+  // `goe` -> `>=` 이상
+  private BooleanExpression publishDateGoe(QArticle article, Instant publishDate) {
+    return publishDate != null ? article.publishDate.goe(publishDate) : null;
+  }
+
+  // `loe` -> `<=` 이하
+  private BooleanExpression publishDateLoe(QArticle article, Instant publishDate) {
+    return publishDate != null ? article.publishDate.loe(publishDate) : null;
+  }
+
+  // orderBy가 publishDate일 때 커서 조건
+  private BooleanExpression publishDateCursorCondition(QArticle article, ArticleDirection direction,
+      Instant cursor, Instant after) {
+
+    if (cursor == null || after == null) {
+      return null;
+    }
+
+    // `lt` -> `<` 미만
+    if (direction == ArticleDirection.DESC) {
+      return article.publishDate.lt(cursor)
+          .or(article.publishDate.eq(cursor).and(article.createdAt.lt(after)));
+    }
+
+    // `gt` -> `>` 초과
+    return article.publishDate.gt(cursor)
+        .or(article.publishDate.eq(cursor).and(article.createdAt.gt(after)));
+  }
+
+  // orderBy가 commentCount일 때 커서 조건
+  private BooleanExpression commentCountCursorCondition(QArticle article,
+      ArticleDirection direction, Long cursor, Instant after,
+      NumberExpression<Long> commentCountExpression) {
+
+    if (cursor == null || after == null) {
+      return null;
+    }
+
+    // `lt` -> `<` 미만
+    if (direction == ArticleDirection.DESC) {
+      return commentCountExpression.lt(cursor)
+          .or(commentCountExpression.eq(cursor).and(article.createdAt.lt(after)));
+    }
+
+    // `gt` -> `>` 초과
+    return commentCountExpression.gt(cursor)
+        .or(commentCountExpression.eq(cursor).and(article.createdAt.gt(after)));
+  }
+
+  // orderBy가 commentCount일 때 커서 조건
+  private BooleanExpression viewCountCursorCondition(QArticle article, ArticleDirection direction,
+      Long cursor, Instant after, NumberExpression<Long> viewCountExpression) {
+
+    if (cursor == null || after == null) {
+      return null;
+    }
+
+    // `lt` -> `<` 미만
+    if (direction == ArticleDirection.DESC) {
+      return viewCountExpression.lt(cursor)
+          .or(viewCountExpression.eq(cursor).and(article.createdAt.lt(after)));
+    }
+
+    // `gt` -> `>` 초과
+    return viewCountExpression.gt(cursor)
+        .or(viewCountExpression.eq(cursor).and(article.createdAt.gt(after)));
+  }
+
+  // Slice 생성 메서드
+  private Slice<ArticleDto> toSlice(List<ArticleDto> content, Pageable pageable) {
+    boolean hasNext = content.size() > pageable.getPageSize(); // 11 > 10
+
+    if (hasNext) {
+      content.remove(pageable.getPageSize());
+    }
+
+    return new SliceImpl<>(content, pageable, hasNext);
+  }
+
+  // nextCursor(다음 페이지 커서) 찾기
+  private String findNextCursor(ArticleDto lastArticleDto, ArticleOrderBy orderBy) {
+    return switch (orderBy) {
+      case publishDate -> lastArticleDto.publishDate().toString();
+      case commentCount -> String.valueOf(lastArticleDto.commentCount());
+      case viewCount -> String.valueOf(lastArticleDto.viewCount());
+    };
+  }
+
+  // nextAfter(다음 보조 커서) 찾기
+  private Instant findCreatedAtById(QArticle article, UUID articleId) {
+    return queryFactory
+        .select(article.createdAt)
+        .from(article)
+        .where(
+            article.id.eq(articleId),
+            article.deletedAt.isNull()
+        )
+        .fetchOne();
+  }
+
+  // totalElement(총 요소 수) 찾기
+  private Long findTotalElement(ArticleSearchRequest request, QArticle article,
+      QArticleInterest articleInterest) {
+    return queryFactory
+        .select(article.id.countDistinct())
+        .from(article)
+        .where(
+            article.deletedAt.isNull(),
+            keywordContains(article, request.getKeyword()),
+            interestIdEq(articleInterest, request.getInterestId()),
+            sourceIn(article, request.getSourceIn()),
+            publishDateGoe(article, request.getPublishDateFrom()),
+            publishDateLoe(article, request.getPublishDateTo())
+        )
+        .leftJoin(articleInterest).on(
+            articleInterest.article.eq(article)
+        )
+        .fetchOne();
   }
 }
