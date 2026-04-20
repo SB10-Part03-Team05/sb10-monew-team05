@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.interest.entity;
 
 import com.codeit.monew.domain.user.entity.User;
+import com.codeit.monew.global.common.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -23,12 +24,7 @@ import lombok.NoArgsConstructor;
     uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "interest_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Subscription {
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(columnDefinition = "uuid")
-  private UUID id;
+public class Subscription extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
@@ -37,15 +33,6 @@ public class Subscription {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "interest_id", nullable = false)
   private Interest interest;
-
-  @Column(nullable = false, updatable = false)
-  private LocalDateTime createdAt;
-
-  // 엔티티가 DB에 저장되는 시점에 자동으로 생성 시각 세팅
-  @PrePersist
-  protected void onCreate() {
-    this.createdAt = LocalDateTime.now();
-  }
 
   public static Subscription create(User user, Interest interest) {
     Subscription subscription = new Subscription();
