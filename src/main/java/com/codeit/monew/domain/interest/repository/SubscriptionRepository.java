@@ -6,11 +6,13 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
 
   // 중복 구독 확인용
-  boolean existsByUserIdAndInterestId(UUID userId, UUID interestId);
+  boolean existsByUserIdAndInterestId(@Param("userId") UUID userId,
+      @Param("interestId") UUID interestId);
 
   // 구독 취소용
   @Transactional
