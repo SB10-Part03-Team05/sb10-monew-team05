@@ -78,14 +78,14 @@ public class UserService {
   }
 
   public UserDto login(UserLoginRequest request) {
-    log.debug("[USER_LOGIN] 유저 로그인 요청: email={}", request.email());
+    log.debug("[USER_LOGIN] 유저 로그인 요청");
 
     User user = userRepository.findByEmailAndDeletedAtIsNull(request.email())
         .orElseThrow(() -> new UserNotFoundException(request.email()));
     if (!user.getPassword().equals(request.password())) {
       throw new PasswordMismatchException(request.email());
     }
-    log.info("[USER_LOGIN] 유저 로그인 완료: email={}", request.email());
+    log.info("[USER_LOGIN] 유저 로그인 완료: userId={}", user.getId());
     return userMapper.toDto(user);
   }
 

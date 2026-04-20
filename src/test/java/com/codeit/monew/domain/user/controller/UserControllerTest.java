@@ -177,8 +177,7 @@ class UserControllerTest {
       willDoNothing().given(userService).softDelete(userId);
 
       // when, then
-      mockMvc.perform(delete("/api/users/" + userId)
-              .header("Monew-Request-User-ID", userId))
+      mockMvc.perform(delete("/api/users/" + userId))
           .andExpect(status().isNoContent());
     }
 
@@ -210,8 +209,7 @@ class UserControllerTest {
       willDoNothing().given(userService).hardDelete(userId);
 
       // when, then
-      mockMvc.perform(delete("/api/users/" + userId + "/hard")
-              .header("Monew-Request-User-ID", userId))
+      mockMvc.perform(delete("/api/users/" + userId + "/hard"))
           .andExpect(status().isNoContent());
     }
 
