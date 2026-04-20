@@ -14,6 +14,7 @@ import com.codeit.monew.domain.comment.entity.QComment;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 
@@ -43,6 +44,8 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     QArticleViewHistory articleViewAll = new QArticleViewHistory("articleViewAll"); // 조회 수
     QArticleViewHistory articleViewMe = new QArticleViewHistory("articleViewMe"); // 사용자 조회 여부
 
+    NumberExpression<Long> commentCountExpression = comment.id.countDistinct();
+    NumberExpression<Long> viewCountExpression = articleViewAll.id.countDistinct();
     Pageable pageable = PageRequest.of(0, request.getLimit());
 
     // 정렬 기준에 따라 분기(각자 참고하는 기준이 다름)
@@ -52,11 +55,20 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
           case publishDate ->
               searchArticleListByPublishDate(request, requestUserId, article, comment,
                   articleViewAll, articleViewMe, articleInterest, pageable);
-          case commentCount ->
-              searchArticleListByCommentCount(request, requestUserId, article, comment,
-                  articleViewAll, articleViewMe, articleInterest, pageable);
-          case viewCount -> searchArticleListByViewCount(request, requestUserId, article, comment,
-              articleViewAll, articleViewMe, articleInterest, pageable);
+          case commentCount -> {
+            Long normalizedCursor =
+                request.getCursor() == null ? null : parserLong(request.getCursor());
+            yield searchArticleListByCommentCount(request, requestUserId, article, comment,
+                articleViewAll, articleViewMe, articleInterest, normalizedCursor,
+                commentCountExpression, pageable);
+          }
+          case viewCount -> {
+            Long normalizedCursor =
+                request.getCursor() == null ? null : parserLong(request.getCursor());
+            yield searchArticleListByViewCount(request, requestUserId, article, comment,
+                articleViewAll, articleViewMe, articleInterest, normalizedCursor,
+                viewCountExpression, pageable);
+          }
         };
 
     // 전체 요소 수
@@ -104,12 +116,10 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   // orderBy가 commentCount일 때
   private Slice<ArticleDto> searchArticleListByCommentCount(ArticleSearchRequest request,
       UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Long normalizedCursor,
+      NumberExpression<Long> commentCountExpression, Pageable pageable) {
 
-    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
-    NumberExpression<Long> commentCountExpression = comment.id.countDistinct();
-
-    List<ArticleDto> content = searchQueryByCommentCount(request, requestUserId, article, comment,
+    List<ArticleDto> content = searchQueryByCount(request, requestUserId, article, comment,
         articleViewAll, articleViewMe, articleInterest, normalizedCursor, commentCountExpression);
 
     // Slice 생성
@@ -120,12 +130,10 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   // orderBy가 viewCount일 때
   private Slice<ArticleDto> searchArticleListByViewCount(ArticleSearchRequest request,
       UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Long normalizedCursor,
+      NumberExpression<Long> viewCountExpression, Pageable pageable) {
 
-    Long normalizedCursor = request.getCursor() == null ? null : parserLong(request.getCursor());
-    NumberExpression<Long> viewCountExpression = articleViewAll.id.countDistinct();
-
-    List<ArticleDto> content = searchQueryByViewCount(request, requestUserId, article, comment,
+    List<ArticleDto> content = searchQueryByCount(request, requestUserId, article, comment,
         articleViewAll, articleViewMe, articleInterest, normalizedCursor, viewCountExpression);
 
     // Slice 생성
@@ -137,45 +145,11 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
       Instant normalizedCursor) {
 
-    return queryFactory.select(Projections.constructor(
-            ArticleDto.class,
-            article.id,
-            article.source,
-            article.sourceUrl,
-            article.title,
-            article.publishDate,
-            article.summary,
-            comment.id.countDistinct(), // 댓글 수 집계
-            articleViewAll.id.countDistinct(), // 조회 수 집계
-            articleViewMe.id.countDistinct().gt(0L) // 조회 여부(1이상이면 true)
-        ))
-        .from(article)
-        .leftJoin(articleInterest).on(
-            articleInterest.article.eq(article)
-        )
-        .leftJoin(comment).on(
-            comment.article.eq(article),
-            comment.deletedAt.isNull() // 논리 삭제된 것은 제외
-        )
-        .leftJoin(articleViewAll).on(
-            articleViewAll.article.eq(article)
-        )
-        .leftJoin(articleViewMe).on(
-            articleViewMe.article.eq(article),
-            articleViewMe.user.id.eq(requestUserId) // 조회 여부
-        )
+    return baseQuery(request, requestUserId, article, comment, articleViewAll, articleViewMe,
+        articleInterest)
         .where(
-            article.deletedAt.isNull(),
-            keywordContains(article, request.getKeyword()),
-            interestIdEq(articleInterest, request.getInterestId()),
-            sourceIn(article, request.getSourceIn()),
-            publishDateGoe(article, request.getPublishDateFrom()),
-            publishDateLoe(article, request.getPublishDateTo()),
             publishDateCursorCondition(article, request.getDirection(), normalizedCursor,
                 request.getAfter())
-        )
-        .groupBy(
-            article.id
         )
         .orderBy(
             request.getDirection() == ArticleDirection.DESC
@@ -189,57 +163,21 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
         .fetch();
   }
 
-  List<ArticleDto> searchQueryByCommentCount(ArticleSearchRequest request, UUID requestUserId,
+  List<ArticleDto> searchQueryByCount(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
-      Long normalizedCursor, NumberExpression<Long> commentCountExpression) {
+      Long normalizedCursor, NumberExpression<Long> countExpression) {
 
-    return queryFactory.select(Projections.constructor(
-            ArticleDto.class,
-            article.id,
-            article.source,
-            article.sourceUrl,
-            article.title,
-            article.publishDate,
-            article.summary,
-            comment.id.countDistinct(), // 댓글 수 집계
-            articleViewAll.id.countDistinct(), // 조회 수 집계
-            articleViewMe.id.countDistinct().gt(0L) // 조회 여부(1이상이면 true)
-        ))
-        .from(article)
-        .leftJoin(articleInterest).on(
-            articleInterest.article.eq(article)
-        )
-        .leftJoin(comment).on(
-            comment.article.eq(article),
-            comment.deletedAt.isNull() // 논리 삭제된 것은 제외
-        )
-        .leftJoin(articleViewAll).on(
-            articleViewAll.article.eq(article)
-        )
-        .leftJoin(articleViewMe).on(
-            articleViewMe.article.eq(article),
-            articleViewMe.user.id.eq(requestUserId) // 조회 여부
-        )
-        .where(
-            article.deletedAt.isNull(),
-            keywordContains(article, request.getKeyword()),
-            interestIdEq(articleInterest, request.getInterestId()),
-            sourceIn(article, request.getSourceIn()),
-            publishDateGoe(article, request.getPublishDateFrom()),
-            publishDateLoe(article, request.getPublishDateTo())
-        )
-        .groupBy(
-            article.id
-        )
+    return baseQuery(request, requestUserId, article, comment, articleViewAll, articleViewMe,
+        articleInterest)
         .having(
-            commentCountCursorCondition(article, request.getDirection(), normalizedCursor,
-                request.getAfter(), commentCountExpression)
+            countCursorCondition(article, request.getDirection(), normalizedCursor,
+                request.getAfter(), countExpression)
         )
         .orderBy(
             request.getDirection() == ArticleDirection.DESC
-                ? commentCountExpression.desc()
-                : commentCountExpression.asc(),
+                ? countExpression.desc()
+                : countExpression.asc(),
             request.getDirection() == ArticleDirection.DESC
                 ? article.createdAt.desc()
                 : article.createdAt.asc()
@@ -248,10 +186,9 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
         .fetch();
   }
 
-  List<ArticleDto> searchQueryByViewCount(ArticleSearchRequest request, UUID requestUserId,
+  private JPAQuery<ArticleDto> baseQuery(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
-      Long normalizedCursor, NumberExpression<Long> viewCountExpression) {
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest) {
 
     return queryFactory.select(Projections.constructor(
             ArticleDto.class,
@@ -281,30 +218,22 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
             articleViewMe.user.id.eq(requestUserId) // 조회 여부
         )
         .where(
-            article.deletedAt.isNull(),
-            keywordContains(article, request.getKeyword()),
-            interestIdEq(articleInterest, request.getInterestId()),
-            sourceIn(article, request.getSourceIn()),
-            publishDateGoe(article, request.getPublishDateFrom()),
-            publishDateLoe(article, request.getPublishDateTo())
+            commonWhere(request, article, articleInterest)
         )
-        .groupBy(
-            article.id
-        )
-        .having(
-            viewCountCursorCondition(article, request.getDirection(), normalizedCursor,
-                request.getAfter(), viewCountExpression)
-        )
-        .orderBy(
-            request.getDirection() == ArticleDirection.DESC
-                ? viewCountExpression.desc()
-                : viewCountExpression.asc(),
-            request.getDirection() == ArticleDirection.DESC
-                ? article.createdAt.desc()
-                : article.createdAt.asc()
-        )
-        .limit(request.getLimit() + 1)
-        .fetch();
+        .groupBy(article.id);
+  }
+
+  private BooleanExpression[] commonWhere(ArticleSearchRequest request, QArticle article,
+      QArticleInterest articleInterest) {
+
+    return new BooleanExpression[]{
+        article.deletedAt.isNull(),
+        keywordContains(article, request.getKeyword()),
+        interestIdEq(articleInterest, request.getInterestId()),
+        sourceIn(article, request.getSourceIn()),
+        publishDateGoe(article, request.getPublishDateFrom()),
+        publishDateLoe(article, request.getPublishDateTo())
+    };
   }
 
   private Instant parserInstant(String cursor) {
@@ -368,10 +297,10 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
         .or(article.publishDate.eq(cursor).and(article.createdAt.gt(after)));
   }
 
-  // orderBy가 commentCount일 때 커서 조건
-  private BooleanExpression commentCountCursorCondition(QArticle article,
+  // orderBy가 commentCount/viewCount일 때 커서 조건
+  private BooleanExpression countCursorCondition(QArticle article,
       ArticleDirection direction, Long cursor, Instant after,
-      NumberExpression<Long> commentCountExpression) {
+      NumberExpression<Long> countExpression) {
 
     if (cursor == null || after == null) {
       return null;
@@ -379,32 +308,13 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
 
     // `lt` -> `<` 미만
     if (direction == ArticleDirection.DESC) {
-      return commentCountExpression.lt(cursor)
-          .or(commentCountExpression.eq(cursor).and(article.createdAt.lt(after)));
+      return countExpression.lt(cursor)
+          .or(countExpression.eq(cursor).and(article.createdAt.lt(after)));
     }
 
     // `gt` -> `>` 초과
-    return commentCountExpression.gt(cursor)
-        .or(commentCountExpression.eq(cursor).and(article.createdAt.gt(after)));
-  }
-
-  // orderBy가 commentCount일 때 커서 조건
-  private BooleanExpression viewCountCursorCondition(QArticle article, ArticleDirection direction,
-      Long cursor, Instant after, NumberExpression<Long> viewCountExpression) {
-
-    if (cursor == null || after == null) {
-      return null;
-    }
-
-    // `lt` -> `<` 미만
-    if (direction == ArticleDirection.DESC) {
-      return viewCountExpression.lt(cursor)
-          .or(viewCountExpression.eq(cursor).and(article.createdAt.lt(after)));
-    }
-
-    // `gt` -> `>` 초과
-    return viewCountExpression.gt(cursor)
-        .or(viewCountExpression.eq(cursor).and(article.createdAt.gt(after)));
+    return countExpression.gt(cursor)
+        .or(countExpression.eq(cursor).and(article.createdAt.gt(after)));
   }
 
   // Slice 생성 메서드
@@ -445,16 +355,11 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return queryFactory
         .select(article.id.countDistinct())
         .from(article)
-        .where(
-            article.deletedAt.isNull(),
-            keywordContains(article, request.getKeyword()),
-            interestIdEq(articleInterest, request.getInterestId()),
-            sourceIn(article, request.getSourceIn()),
-            publishDateGoe(article, request.getPublishDateFrom()),
-            publishDateLoe(article, request.getPublishDateTo())
-        )
         .leftJoin(articleInterest).on(
             articleInterest.article.eq(article)
+        )
+        .where(
+            commonWhere(request, article, articleInterest)
         )
         .fetchOne();
   }
