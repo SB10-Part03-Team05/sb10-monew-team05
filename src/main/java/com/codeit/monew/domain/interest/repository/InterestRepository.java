@@ -18,11 +18,11 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
   List<String> findAllNamesWithLock();
 
   // 구독자 수 atomic 업데이트
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount + 1 WHERE i.id = :interestId")
-  void incrementSubscriberCount(@Param("interestId") UUID interestId);
+  int incrementSubscriberCount(@Param("interestId") UUID interestId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id AND i.subscriberCount > 0")
-  void decrementSubscriberCount(@Param("id") UUID id);
+  int decrementSubscriberCount(@Param("id") UUID id);
 }
