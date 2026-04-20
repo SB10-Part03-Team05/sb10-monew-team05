@@ -45,10 +45,7 @@ public class UserService {
   public UserDto update(UUID userId, UUID requestUserId, UserUpdateRequest request) {
     log.debug("[USER_UPDATE] 유저 수정 요청: userId={}", userId);
 
-    // URI에 포함된 userId와 헤더에 포함된 requestUserId를 비교해서 다르다면 예외를 던진다.
-    if (!userId.equals(requestUserId)) {
-      throw new UserAccessDeniedException(requestUserId);
-    }
+    verifySameUser(userId, requestUserId);
 
     // Soft Delete를 고려해 findByIdAndDeletedAtIsNull()을 호출
     User user = userRepository.findByIdAndDeletedAtIsNull(userId)
@@ -58,6 +55,35 @@ public class UserService {
 
     log.info("[USER_UPDATE] 유저 수정 완료: userId={}", user.getId());
     return userMapper.toDto(user);
+  }
+
+  public void softDelete(UUID userId, UUID requestUserId) {
+    log.debug("[USER_UPDATE] 유저 논리 삭제 요청: userId={}", userId);
+
+    verifySameUser(userId, requestUserId);
+
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+    user.softDelete();
+    log.info("[USER_UPDATE] 유저 논리 삭제 완료: userId={}", user.getId());
+  }
+
+  public void hardDelete(UUID userId, UUID requestUserId) {
+    log.debug("[USER_UPDATE] 유저 물리 삭제 요청: userId={}", userId);
+
+    verifySameUser(userId, requestUserId);
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+    userRepository.delete(user);
+    log.info("[USER_UPDATE] 유저 물리 삭제 완료: userId={}", user.getId());
+  }
+
+  private void verifySameUser(UUID userId, UUID requestUserId) {
+    // URI에 포함된 userId와 헤더에 포함된 requestUserId를 비교해서 다르다면 예외를 던진다.
+    if (!userId.equals(requestUserId)) {
+      throw new UserAccessDeniedException(requestUserId);
+    }
   }
 
   private void existsByEmail(String email) {

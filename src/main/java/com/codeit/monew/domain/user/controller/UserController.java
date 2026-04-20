@@ -17,6 +17,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,11 +59,43 @@ public class UserController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<UserDto> update(
-      @Parameter(description = "사용자 ID")@PathVariable UUID userId,
+      @Parameter(description = "사용자 ID") @PathVariable UUID userId,
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
       @Valid @RequestBody UserUpdateRequest request
   ) {
     UserDto dto = userService.update(userId, requestUserId, request);
     return ResponseEntity.status(HttpStatus.OK).body(dto);
+  }
+
+  @DeleteMapping("/{userId}")
+  @Operation(summary = "사용자 논리 삭제", description = "사용자를 논리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content(schema = @Schema(implementation = UserDto.class))),
+      @ApiResponse(responseCode = "403", description = "사용자 삭제 권한 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<UserDto> softDelete(
+      @Parameter(description = "사용자 ID") @PathVariable UUID userId,
+      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
+  ) {
+    userService.softDelete(userId, requestUserId);
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @DeleteMapping("/{userId}/hard")
+  @Operation(summary = "사용자 물리 삭제", description = "사용자를 물리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공", content = @Content(schema = @Schema(implementation = UserDto.class))),
+      @ApiResponse(responseCode = "403", description = "사용자 삭제 권한 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<UserDto> hardDelete(
+      @Parameter(description = "사용자 ID") @PathVariable UUID userId,
+      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
+  ) {
+    userService.hardDelete(userId, requestUserId);
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }
