@@ -92,7 +92,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
         articleDtoSlice.getContent(),
         nextCursor,
         after,
-        request.getLimit(),
+        articleDtoSlice.getNumberOfElements(),
         totalElement,
         articleDtoSlice.hasNext()
     );
