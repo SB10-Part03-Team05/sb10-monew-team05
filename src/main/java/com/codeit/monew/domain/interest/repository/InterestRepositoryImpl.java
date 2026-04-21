@@ -11,7 +11,10 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -58,19 +61,26 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
         .where(interest.id.in(interestIds))
         .fetch();
 
-    // 4. 구독 여부 조회
+    // 4. 원본 정렬 순서 유지
+    Map<UUID, Interest> interestMap = interestsWithKeywords.stream()
+        .collect(Collectors.toMap(Interest::getId, Function.identity()));
+    List<Interest> orderedInterests = interestIds.stream()
+        .map(interestMap::get)
+        .toList();
+
+    // 5. 구독 여부 조회
     List<UUID> subscribedIds = queryFactory
         .select(subscription.interest.id)
         .from(subscription)
         .where(subscription.user.id.eq(userId))
         .fetch();
 
-    // 5. InterestDto 변환
-    List<InterestDto> content = interestsWithKeywords.stream()
+    // 6. InterestDto 변환
+    List<InterestDto> content = orderedInterests.stream()
         .map(i -> InterestDto.from(i, subscribedIds.contains(i.getId())))
         .toList();
 
-    // 6. nextCursor, nextAfter 계산
+    // 7. nextCursor, nextAfter 계산
     String nextCursor = null;
     Instant nextAfter = null;
     if (hasNext && !interests.isEmpty()) {
@@ -81,7 +91,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       nextAfter = last.getCreatedAt();
     }
 
-    // 7. totalElements
+    // 8. totalElements
     Long totalElements = queryFactory
         .select(interest.countDistinct())
         .from(interest)
