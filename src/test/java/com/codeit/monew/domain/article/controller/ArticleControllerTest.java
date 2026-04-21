@@ -445,7 +445,7 @@ class ArticleControllerTest {
       UUID articleId = UUID.randomUUID();
 
       willThrow(new ArticleNotFoundException(articleId)).given(articleService).delete(articleId);
-      
+
       // when(실행), then(검증)
       mockMvc.perform(delete("/api/articles/{articleId}", articleId))
           .andExpect(status().isNotFound())
@@ -461,7 +461,7 @@ class ArticleControllerTest {
   class hardDelete {
 
     @Test
-    @DisplayName("뉴스 기사 논리 삭제하면 204 상태코드를 반환한다.")
+    @DisplayName("뉴스 기사 물리 삭제하면 204 상태코드를 반환한다.")
     void success_hard_delete_article() throws Exception {
       // given(준비)
       UUID articleId = UUID.randomUUID();

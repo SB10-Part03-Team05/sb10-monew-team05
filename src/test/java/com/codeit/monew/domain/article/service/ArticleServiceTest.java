@@ -493,7 +493,7 @@ class ArticleServiceTest {
       given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(
           Optional.of(article));
 
-      // when(준비)
+      // when(실행)
       articleService.delete(articleId);
 
       // then(검증)
@@ -512,7 +512,7 @@ class ArticleServiceTest {
 
       given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(Optional.empty());
 
-      // when(준비), then(검증)
+      // when(실행), then(검증)
       assertThrows(ArticleNotFoundException.class,
           () -> articleService.delete(articleId));
 
@@ -533,7 +533,7 @@ class ArticleServiceTest {
 
       given(articleRepository.hardDelete(articleId)).willReturn(1);
 
-      // when(준비)
+      // when(실행)
       articleService.hardDelete(articleId);
 
       // then(검증)
@@ -549,7 +549,7 @@ class ArticleServiceTest {
 
       given(articleRepository.hardDelete(articleId)).willReturn(0);
 
-      // when(준비), then(검증)
+      // when(실행), then(검증)
       assertThrows(ArticleNotFoundException.class,
           () -> articleService.hardDelete(articleId));
 
