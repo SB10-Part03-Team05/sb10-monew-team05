@@ -8,10 +8,14 @@ import static org.mockito.BDDMockito.given;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
+import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.domain.article.entity.ArticleViewHistory;
 import com.codeit.monew.domain.article.entity.type.ArticleDirection;
 import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.service.ArticleService;
+import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
@@ -29,11 +33,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,14 +57,61 @@ class ArticleControllerTest {
   @MockitoBean
   private ArticleService articleService;
 
-  private ArticleDto createArticleDto(UUID articleId, ArticleSource source, String sourceUrl,
-      String title, Instant publishDate, String summary, long commentCount, long viewCount,
-      boolean viewedByMe) {
-    if (articleId == null) {
-      articleId = UUID.randomUUID();
+  private User createUser(UUID userId, String email, String nickname, String password) {
+    User user = new User(email, nickname, password);
+
+    if (userId == null) {
+      ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+    } else {
+      ReflectionTestUtils.setField(user, "id", userId);
     }
-    return new ArticleDto(articleId, source, sourceUrl, title, publishDate, summary, commentCount,
-        viewCount, viewedByMe);
+
+    return user;
+  }
+
+  private Article createArticle(UUID articleId, ArticleSource source, String sourceUrl,
+      String title, Instant publishDate, String summary) {
+
+    Article article = Article.createArticle(source, sourceUrl, title, publishDate, summary);
+
+    if (articleId == null) {
+      ReflectionTestUtils.setField(article, "id", UUID.randomUUID());
+    } else {
+      ReflectionTestUtils.setField(article, "id", articleId);
+    }
+
+    return article;
+  }
+
+  private ArticleDto createArticleDto(Article article, long commentCount, long viewCount,
+      boolean viewedByMe) {
+
+    return new ArticleDto(article.getId(), article.getSource(), article.getSourceUrl(),
+        article.getTitle(), article.getPublishDate(), article.getSummary(), commentCount, viewCount,
+        viewedByMe);
+  }
+
+  private ArticleViewHistory createArticleViewHistory(UUID articleHistoryId, User user,
+      Article article) {
+
+    ArticleViewHistory articleViewHistory = new ArticleViewHistory(user, article);
+
+    if (articleHistoryId == null) {
+      ReflectionTestUtils.setField(articleViewHistory, "id", UUID.randomUUID());
+    } else {
+      ReflectionTestUtils.setField(articleViewHistory, "id", articleHistoryId);
+    }
+
+    return articleViewHistory;
+  }
+
+  private ArticleViewDto createArticleViewDto(ArticleViewHistory articleViewHistory,
+      UUID requestUserId,
+      Article article, long commentCount, long viewCount) {
+
+    return new ArticleViewDto(articleViewHistory.getId(), requestUserId, article.getCreatedAt(),
+        article.getId(), article.getSource(), article.getSourceUrl(), article.getTitle(),
+        article.getPublishDate(), article.getSummary(), commentCount, viewCount);
   }
 
   @Nested
@@ -71,8 +124,9 @@ class ArticleControllerTest {
       // given(준비)
       UUID requestUserId = UUID.randomUUID();
       UUID articleId = UUID.randomUUID();
-      ArticleDto articleDto = createArticleDto(articleId, ArticleSource.NAVER, "https://naver.com",
-          "testTitle", Instant.now(), "testSummary", 5, 6, true);
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com",
+          "testTitle", Instant.now(), "testSummary");
+      ArticleDto articleDto = createArticleDto(article, 5, 6, true);
 
       given(articleService.getArticle(articleId, requestUserId)).willReturn(articleDto);
 
@@ -158,10 +212,12 @@ class ArticleControllerTest {
     void success_search_article_list() throws Exception {
       // given(준비)
       UUID requestUserId = UUID.randomUUID();
-      ArticleDto articleDto1 = createArticleDto(null, ArticleSource.NAVER, "https://naver.com",
-          "testTitle1", Instant.now(), "testSummary1", 5, 6, true);
-      ArticleDto articleDto2 = createArticleDto(null, ArticleSource.YONHAP, "https://yeonhap.com",
-          "testTitle2", Instant.parse("2026-04-17T09:12:15Z"), "testSummary2", 3, 7, false);
+      Article article1 = createArticle(null, ArticleSource.NAVER, "https://naver.com",
+          "testTitle1", Instant.now(), "testSummary1");
+      Article article2 = createArticle(null, ArticleSource.YONHAP, "https://yeonhap.com",
+          "testTitle2", Instant.parse("2026-04-17T09:12:15Z"), "testSummary2");
+      ArticleDto articleDto1 = createArticleDto(article1, 5, 6, true);
+      ArticleDto articleDto2 = createArticleDto(article2, 3, 7, false);
 
       CursorPageResponseArticleDto response = new CursorPageResponseArticleDto(
           List.of(articleDto1, articleDto2),
@@ -288,6 +344,78 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(
               jsonPath("$.exceptionType").value(InterestNotFoundException.class.getSimpleName()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 view 등록 API 테스트")
+  class view {
+
+    @Test
+    @DisplayName("뉴스 기사 view가 등록되면 200 상태코드와 뉴스 기사 정보가 반환된다.")
+    void success_post_article_view() throws Exception {
+      // given(준비)
+      UUID requestUserId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com",
+          "testTitle", Instant.now(), "testSummary");
+      ArticleViewHistory articleViewHistory = createArticleViewHistory(null, user, article);
+      ArticleViewDto articleViewDto = createArticleViewDto(articleViewHistory, requestUserId,
+          article, 3, 5);
+
+      given(articleService.view(articleId, requestUserId)).willReturn(articleViewDto);
+
+      // when(실행), then(검증)
+      mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId)
+              .header("Monew-Request-User-ID", requestUserId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(articleViewDto.id().toString()))
+          .andExpect(jsonPath("$.viewedBy").value(articleViewDto.viewedBy().toString()))
+          .andExpect(jsonPath("$.articleId").value(articleViewDto.articleId().toString()))
+          .andExpect(jsonPath("$.source").value(articleViewDto.source().toString()));
+    }
+
+    @Test
+    @DisplayName("존재하지 않거나 논리 삭제된 사용자 ID가 조회되면 404 상태코드와 UserNotFound 예외가 발생한다.")
+    void fail_post_article_view_when_user_not_found() throws Exception {
+      // given(준비)
+      UUID requestUserId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      given(articleService.view(articleId, requestUserId)).willThrow(
+          new UserNotFoundException(requestUserId));
+
+      // when(실행), then(검증)
+      mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId)
+              .header("Monew-Request-User-ID", requestUserId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.exceptionType").value(UserNotFoundException.class.getSimpleName()))
+          .andExpect(jsonPath("$.details.userId").value(requestUserId.toString()));
+    }
+
+    @Test
+    @DisplayName("존재하지 않거나 논리 삭제된 뉴스 기사 ID가 조회되면 404 상태코드와 ArticleNotFound 예외가 발생한다.")
+    void fail_post_article_view_when_article_not_found() throws Exception {
+      // given(준비)
+      UUID requestUserId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      given(articleService.view(articleId, requestUserId)).willThrow(
+          new ArticleNotFoundException(articleId));
+
+      // when(실행), then(검증)
+      mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId)
+              .header("Monew-Request-User-ID", requestUserId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value(ErrorCode.ARTICLE_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()))
+          .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
     }
   }
 }
