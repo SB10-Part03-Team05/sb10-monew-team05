@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.interest.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
 import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
+import com.codeit.monew.domain.interest.dto.response.CursorPageResponseInterestDto;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
 import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.entity.Interest;
@@ -174,6 +176,79 @@ class InterestServiceTest {
   }
 
   // 4. 관심사 목록 조회
+  @Nested
+  @DisplayName("관심사 목록 조회 테스트")
+  class getList {
+
+    @Test
+    @DisplayName("관심사 목록을 조회할 수 있다.")
+    void success_get_interest_list() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID interestId = UUID.randomUUID();
+
+      InterestDto interestDto = new InterestDto(
+          interestId, "스포츠", List.of("축구", "야구"), 10L, false
+      );
+
+      CursorPageResponseInterestDto expected = new CursorPageResponseInterestDto(
+          List.of(interestDto),
+          null,
+          null,
+          1,
+          1L,
+          false
+      );
+
+      given(interestRepository.findInterests(
+          null, "name", "ASC", null, null, 10, userId
+      )).willReturn(expected);
+
+      // when
+      CursorPageResponseInterestDto result = interestService.getList(
+          null, "name", "ASC", null, null, 10, userId
+      );
+
+      // then
+      assertNotNull(result);
+      assertEquals(1, result.content().size());
+      assertEquals("스포츠", result.content().get(0).name());
+      assertFalse(result.hasNext());
+      verify(interestRepository).findInterests(
+          null, "name", "ASC", null, null, 10, userId
+      );
+    }
+
+    @Test
+    @DisplayName("검색어로 관심사 목록을 조회할 수 있다.")
+    void success_get_interest_list_with_keyword() {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      CursorPageResponseInterestDto expected = new CursorPageResponseInterestDto(
+          List.of(),
+          null,
+          null,
+          0,
+          0L,
+          false
+      );
+
+      given(interestRepository.findInterests(
+          "없는검색어", "name", "ASC", null, null, 10, userId
+      )).willReturn(expected);
+
+      // when
+      CursorPageResponseInterestDto result = interestService.getList(
+          "없는검색어", "name", "ASC", null, null, 10, userId
+      );
+
+      // then
+      assertNotNull(result);
+      assertEquals(0, result.content().size());
+      assertFalse(result.hasNext());
+    }
+  }
 
   // 5. 관심사 구독
   @Nested
