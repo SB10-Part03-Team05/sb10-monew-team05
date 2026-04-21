@@ -23,7 +23,7 @@ public record UserActivityDto(
       String id,
       String interestId,
       String interestName,
-      String interestKeywords,
+      List<String> interestKeywords,
       Long interestSubscriberCount,
       Instant createdAt
   ) {}

@@ -44,7 +44,7 @@ public class UserActivity {
     private String id;
     private String interestId;
     private String interestName;
-    private String interestKeywords;
+    private List<String> interestKeywords = new ArrayList<>();
     private Long interestSubscriberCount;
     private Instant createdAt;
   }
