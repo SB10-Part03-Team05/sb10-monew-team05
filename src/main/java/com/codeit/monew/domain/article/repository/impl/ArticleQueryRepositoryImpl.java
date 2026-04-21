@@ -271,7 +271,8 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   }
 
   private BooleanExpression keywordContains(QArticle article, String keyword) {
-    return keyword != null
+    // ""일 경우를 `null` 을 가지게 하기 위해 `isBlank()` 조건 추가
+    return keyword != null && !keyword.isBlank()
         ? article.title.contains(keyword).or(article.summary.contains(keyword))
         : null;
   }
