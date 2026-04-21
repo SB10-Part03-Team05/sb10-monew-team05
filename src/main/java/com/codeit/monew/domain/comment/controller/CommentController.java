@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "댓글 기사 관리", description = "댓글 관련 API")
+@Tag(name = "댓글 관리", description = "댓글 관련 API")
 @Slf4j
 @RestController
 @RequestMapping("/api/comments")
