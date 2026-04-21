@@ -3,6 +3,7 @@ package com.codeit.monew.domain.article.controller;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorResponse;
@@ -26,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -103,6 +105,23 @@ public class ArticleController {
     }
 
     CursorPageResponseArticleDto response = articleService.search(request, requestUserId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @PostMapping(value = "/{articleId}/article-views")
+  @Operation(summary = "뉴스 기사 뷰 등록", description = "뉴스 기사 뷰를 등록합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "뉴스 기사 조회 처리 성공", content = @Content(schema = @Schema(implementation = ArticleViewDto.class))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 필수 헤더 누락", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사/사용자 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<ArticleViewDto> view(
+      @Parameter(description = "기사 ID") @PathVariable UUID articleId,
+      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
+  ) {
+    ArticleViewDto response = articleService.view(articleId, requestUserId);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
