@@ -118,7 +118,7 @@ public class ArticleScrapeService {
     }
 
     // 기사의 제목과 내용을 합쳐서 검색 대상 텍스트를 만들고 모두 소문자로 변환
-    String contentToSearch = (Objects.toString(article.getTitle(), "") +
+    String contentToSearch = (Objects.toString(article.getTitle(), "") + "/" +
         Objects.toString(article.getSummary(), "")).toLowerCase();
 
     // 키워드 이름을 소문자로 변경 후 위에서 만든 테스트에 포함되어 있는지 확인 후 관심사 추출
