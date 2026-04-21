@@ -5,10 +5,11 @@ import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.comment.dto.CommentDto;
 import com.codeit.monew.domain.comment.entity.Comment;
 import com.codeit.monew.domain.comment.mapper.CommentMapper;
+import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.exception.article.ArticleNotFoundException; // 경로 확인 필요
+import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 
 import org.junit.jupiter.api.DisplayName;
@@ -36,9 +37,10 @@ import static org.mockito.Mockito.never;
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
   @InjectMocks
-  private CommentService commentService; // 💡 테스트 대상 (가짜 객체들을 주입받을 진짜 서비스)
+  private CommentService commentService;
 
   @Mock private CommentRepository commentRepository;
+  @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private ArticleRepository articleRepository;
   @Mock private UserRepository userRepository;
   @Mock private CommentMapper commentMapper;
@@ -144,10 +146,11 @@ class CommentServiceTest {
       Article mockArticle = mock(Article.class);
       Comment comment = new Comment(mockArticle, mockUser, "원래 내용"); // 실제 엔티티 사용 (내부 로직 검증용)
 
-      CommentDto expectedDto = new CommentDto(commentId, UUID.randomUUID(), userId, nickname, newContent, 0L, false, Instant.now());
+      CommentDto expectedDto = new CommentDto(commentId, UUID.randomUUID(), userId, nickname, newContent, 0L, true, Instant.now());
 
       // DB 조회 및 매퍼 모의 설정
       given(commentRepository.findByIdWithUser(commentId)).willReturn(Optional.of(comment));
+      given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
       given(commentMapper.toDto(any(Comment.class), anyString(), anyBoolean())).willReturn(expectedDto);
 
       // when
@@ -157,6 +160,7 @@ class CommentServiceTest {
       assertThat(result).isNotNull();
       assertThat(result.content()).isEqualTo(newContent);
       assertThat(comment.getContent()).isEqualTo(newContent); // 엔티티 내부 상태가 변했는지 검증
+      verify(commentLikeRepository).existsByCommentIdAndUserId(commentId, userId); // 좋아요 레포지토리가 정상적으로 호출되었는지 검증
     }
 
     @Test
@@ -245,6 +249,7 @@ class CommentServiceTest {
       commentService.hardDeleteComment(commentId);
 
       // then
+      verify(commentLikeRepository).deleteByCommentId(commentId); // 좋아요 데이터도 함께 삭제되었는지 검증
       // 일반 delete()가 아닌, deleteByIdHard()가 호출되었는지 검증
       verify(commentRepository).deleteByIdHard(commentId);
       verify(commentRepository, never()).delete(any());

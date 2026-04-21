@@ -27,6 +27,8 @@ public enum ErrorCode {
   COMMENT_CONTENT_BLANK("댓글 내용은 비어있을 수 없습니다."),
   COMMENT_CONTENT_TOO_LONG("댓글 내용은 500자를 초과할 수 없습니다."),
   COMMENT_NOT_FOUND("댓글 정보를 찾을 수 없습니다."),
+  COMMENT_LIKE_ALREADY_EXISTS("이미 좋아요를 누른 댓글입니다."),
+  COMMENT_LIKE_NOT_FOUND("좋아요 정보가 없습니다."),
 
   // Server 에러 코드
   INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),
