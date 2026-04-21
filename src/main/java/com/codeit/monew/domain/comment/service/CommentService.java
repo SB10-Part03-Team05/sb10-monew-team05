@@ -5,6 +5,7 @@ import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.comment.dto.CommentDto;
 import com.codeit.monew.domain.comment.entity.Comment;
 import com.codeit.monew.domain.comment.mapper.CommentMapper;
+import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class CommentService {
 
   private final CommentRepository commentRepository;
+  private final CommentLikeRepository commentLikeRepository;
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
@@ -63,7 +65,7 @@ public class CommentService {
     log.info("댓글 수정 완료: commentId= {}, requesterId= {}", commentId, requesterId);
 
     // 3. DTO 변환
-    boolean likedByMe = false; // 좋아요 기능 구현 전까지 고정값, TODO: 좋아요 기능 구현 후 수정
+    boolean likedByMe = commentLikeRepository.existsByCommentIdAndUserId(commentId, requesterId);
     return commentMapper.toDto(comment, comment.getUser().getNickname(), likedByMe);
   }
 
@@ -88,8 +90,7 @@ public class CommentService {
     }
 
     // 2. 연관 데이터 물리 삭제
-    // TODO: CommentLikeRepository 생성 후 적용 필요
-    // commentLikeRepository.deleteByCommentId(commentId);
+    commentLikeRepository.deleteByCommentId(commentId);
 
     // 3. 댓글 물리 삭제
     commentRepository.deleteByIdHard(commentId);
