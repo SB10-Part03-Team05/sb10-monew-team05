@@ -57,13 +57,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
 
     List<Interest> interestsWithKeywords = queryFactory
         .selectFrom(interest)
+        .distinct()
         .leftJoin(interest.keywords, keyword).fetchJoin()
         .where(interest.id.in(interestIds))
         .fetch();
 
     // 4. 원본 정렬 순서 유지
     Map<UUID, Interest> interestMap = interestsWithKeywords.stream()
-        .collect(Collectors.toMap(Interest::getId, Function.identity()));
+        .collect(Collectors.toMap(Interest::getId, Function.identity(), (a, b) -> a));
     List<Interest> orderedInterests = interestIds.stream()
         .map(interestMap::get)
         .toList();
