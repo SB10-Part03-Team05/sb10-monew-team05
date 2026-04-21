@@ -20,6 +20,11 @@ spring:
       hibernate:
         format_sql: true
 
+monew:
+  naver:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+
 logging:
   level:
     com.codeit.monew: debug # 애플리케이션 패키지에서 발생하는 로그

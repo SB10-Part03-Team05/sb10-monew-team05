@@ -36,6 +36,8 @@ services:
     depends_on:
       - db # RDS 전환 시 주석 처리 또는 삭제하세요.
       - mongodb
+    volumes:
+      - ./.logs:/app/.logs
     networks:
       - monew-network
 
