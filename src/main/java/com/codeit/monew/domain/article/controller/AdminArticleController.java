@@ -1,7 +1,7 @@
 package com.codeit.monew.domain.article.controller;
 
-import com.codeit.monew.domain.article.dto.ArticleScrapeRequest;
-import com.codeit.monew.domain.article.dto.ArticleScrapeResponse;
+import com.codeit.monew.domain.article.dto.request.ArticleScrapeRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleScrapeResponse;
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.swagger.v3.oas.annotations.Operation;
