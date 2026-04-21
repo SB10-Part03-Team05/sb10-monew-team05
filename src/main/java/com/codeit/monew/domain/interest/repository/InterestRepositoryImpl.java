@@ -137,7 +137,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
           : interest.name.lt(cursor)
               .or(interest.name.eq(cursor).and(interest.createdAt.lt(after)));
     } else {
-      long cursorValue = Long.parseLong(cursor);
+      long cursorValue;
+      try {
+        cursorValue = Long.parseLong(cursor);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("subscriberCount 정렬 시 cursor는 숫자여야 합니다: " + cursor);
+      }
       return isAsc
           ? interest.subscriberCount.gt(cursorValue)
           .or(interest.subscriberCount.eq(cursorValue).and(interest.createdAt.gt(after)))
