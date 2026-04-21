@@ -19,6 +19,7 @@ import org.springframework.data.mongodb.core.mapping.FieldType;
 @NoArgsConstructor
 @Document
 public class UserActivity {
+
   @Id
   private String id;
   private String email;
@@ -38,7 +39,8 @@ public class UserActivity {
 
   @Getter
   @Setter
-  private static class SubscriptionInfo {
+  public static class SubscriptionInfo {
+
     private String id;
     private String interestId;
     private String interestName;
@@ -49,7 +51,8 @@ public class UserActivity {
 
   @Getter
   @Setter
-  private static class CommentInfo {
+  public static class CommentInfo {
+
     private String id;
     private String articleId;
     private String articleTitle;
@@ -62,7 +65,8 @@ public class UserActivity {
 
   @Getter
   @Setter
-  private static class CommentLikeInfo {
+  public static class CommentLikeInfo {
+
     private String id;
     private Instant createdAt;
     private String articleId;
@@ -76,7 +80,8 @@ public class UserActivity {
 
   @Getter
   @Setter
-  private static class ArticleViewInfo {
+  public static class ArticleViewInfo {
+
     private String id;
     private String viewedBy;
     private Instant createdAt;
