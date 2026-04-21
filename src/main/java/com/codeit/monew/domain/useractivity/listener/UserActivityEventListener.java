@@ -1,9 +1,11 @@
 package com.codeit.monew.domain.useractivity.listener;
 
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
+import com.codeit.monew.domain.useractivity.entity.UserActivity.CommentInfo;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.SubscriptionInfo;
 import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
+import com.codeit.monew.global.event.CommentCreatedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
@@ -46,11 +48,11 @@ public class UserActivityEventListener {
 
     Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
 
-    SubscriptionInfo newSubscription = userActivityMapper.toSubscriptionInfo(event);
+    SubscriptionInfo newSubscriptionInfo = userActivityMapper.toSubscriptionInfo(event);
 
     Update update = new Update()
         .push("subscriptions")
-        .each(newSubscription);
+        .each(newSubscriptionInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
 
@@ -58,6 +60,25 @@ public class UserActivityEventListener {
   }
 
   //todo handleCommentCreatedEvent() 댓글 등록 이벤트
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleCommentCreatedEvent(CommentCreatedEvent event) {
+    log.debug("[USER_ACTIVITY] 댓글 등록 이벤트 수신: userId={}, commentId={}", event.userId(),
+        event.commentId());
+
+    Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
+
+    CommentInfo newCommentInfo = userActivityMapper.toCommentInfo(event);
+
+    Update update = new Update()
+        .push("comments")
+        .slice(-10)
+        .each(newCommentInfo);
+
+    mongoTemplate.updateFirst(query, update, UserActivity.class);
+
+    log.info("[USER_ACTIVITY] 댓글 목록 업데이트 완료");
+  }
 
   //todo handleCommentLikedEvent() 댓글 좋아요 등록 이벤트
 
