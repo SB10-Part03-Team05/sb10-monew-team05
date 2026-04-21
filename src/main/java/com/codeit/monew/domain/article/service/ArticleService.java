@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,8 +120,23 @@ public class ArticleService {
     ArticleViewHistory articleViewHistory = articleViewHistoryRepository
         .findByArticleIdAndUserId(articleId, requestUserId).orElse(null);
 
+    // view가 없다면 새로 생성
     if (articleViewHistory == null) {
-      articleViewHistory = articleViewHistoryRepository.save(new ArticleViewHistory(user, article));
+      try {
+        // `save` 만 사용하면 JPA가 바로 `INSERT` 하지 않고, `flush`/`commit` 시점에 SQL을 보낼 수 있음
+        // 이 경우 `DataIntegrityViolationException` 가 `save` 에서 발생하지 않고, 트랜잭션 `commit` 시점에 발생 가능
+        // 작성한 `try-catch` 가 제대로 동작 하지 않게됨
+        // 그래서 `saveAndFlush`를 사용해 영속성 컨텍스트에 쌓여있는 SQL을 DB로 보냄 (단, `flush` != `commit` 이 아님. 트랜잭션 롤백 시 취소됨)
+        articleViewHistory = articleViewHistoryRepository
+            .saveAndFlush(new ArticleViewHistory(user, article));
+      } catch (DataIntegrityViolationException e) {
+        // 같은(또는 다른) 사용자가 짧은 시간 내에 2번 연속 클릭 등으로 동시성 문제가 발생할 경우
+        // `DataIntegrityViolationException` 문제 발생
+        // 지금의 로직에서는 해당 예외가 발생할 경우 다시 조회해서 기존 이력 반환
+        articleViewHistory = articleViewHistoryRepository
+            .findByArticleIdAndUserId(articleId, requestUserId)
+            .orElseThrow(() -> e);
+      }
     }
 
     // 댓글 수
