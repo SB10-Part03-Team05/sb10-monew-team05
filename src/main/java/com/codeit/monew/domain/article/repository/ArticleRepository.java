@@ -25,6 +25,6 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, Article
   // `@SQLRestriction`로 조회 시 deletedAt이 null인 데이터만 가져오도록 필터링하기 때문에
   // `void` 가 아닌 `int` 로 값을 반환해 id가 존재하는 기사인지 검증도 같이함
   @Modifying // 조회 쿼리가 아님을 JPA에게 명시
-  @Query("DELETE FROM Article AS a WHERE a.id = :articleId")
+  @Query(value = "DELETE FROM articles AS a WHERE a.id = :articleId", nativeQuery = true)
   int hardDelete(@Param("articleId") UUID articleId);
 }

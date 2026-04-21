@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -83,8 +83,8 @@ public class ArticleController {
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {
     String keyword = request.getKeyword();
-    Instant publishDateFrom = request.getPublishDateFrom();
-    Instant publishDateTo = request.getPublishDateTo();
+    LocalDateTime publishDateFrom = request.getPublishDateFrom();
+    LocalDateTime publishDateTo = request.getPublishDateTo();
 
     // keyword 정규화
     // `strip` 이 `trim` 보다 `\n`(줄바꿈) `\t`(탭) 같은 유니코드 공백까지 잘 처리. 단, java 11이상
