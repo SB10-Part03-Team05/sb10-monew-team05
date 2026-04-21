@@ -7,17 +7,21 @@ import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.UserRegisteredEvent;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
 import com.codeit.monew.global.exception.user.PasswordMismatchException;
 import com.codeit.monew.global.exception.user.UserAccessDeniedException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +33,7 @@ public class UserService {
 
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   public UserDto register(UserRegisterRequest request) {
     log.debug("[USER_CREATE] 유저 회원가입 요청: email={}, nickname={}", request.email(), request.nickname());
@@ -40,6 +45,13 @@ public class UserService {
         request.password()
     );
     userRepository.save(user);
+
+    eventPublisher.publishEvent(new UserRegisteredEvent(
+        user.getId(),
+        user.getEmail(),
+        user.getNickname(),
+        user.getCreatedAt() != null ? user.getCreatedAt() : Instant.now()
+    ));
 
     log.info("[USER_CREATE] 유저 생성 완료: userId={}", user.getId());
 
