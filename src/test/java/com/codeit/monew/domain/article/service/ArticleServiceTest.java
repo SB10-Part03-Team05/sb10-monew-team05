@@ -366,7 +366,7 @@ class ArticleServiceTest {
       given(articleViewHistoryRepository.findByArticleIdAndUserId(articleId,
           requestUserId)).willReturn(Optional.empty());
 
-      given(articleViewHistoryRepository.save(any(ArticleViewHistory.class))).willReturn(
+      given(articleViewHistoryRepository.saveAndFlush(any(ArticleViewHistory.class))).willReturn(
           articleViewHistory);
       given(commentRepository.countByArticleIdAndDeletedAtIsNull(articleId)).willReturn(3L);
       given(articleViewHistoryRepository.countByArticleId(articleId)).willReturn(5L);
@@ -382,7 +382,7 @@ class ArticleServiceTest {
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).findByArticleIdAndUserId(articleId, requestUserId);
-      verify(articleViewHistoryRepository).save(any(ArticleViewHistory.class));
+      verify(articleViewHistoryRepository).saveAndFlush(any(ArticleViewHistory.class));
       verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).countByArticleId(articleId);
       verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
@@ -421,7 +421,7 @@ class ArticleServiceTest {
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).findByArticleIdAndUserId(articleId, requestUserId);
-      verify(articleViewHistoryRepository, never()).save(articleViewHistory);
+      verify(articleViewHistoryRepository, never()).saveAndFlush(articleViewHistory);
       verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).countByArticleId(articleId);
       verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
@@ -443,7 +443,7 @@ class ArticleServiceTest {
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(articleRepository, never()).findByIdAndDeletedAtIsNull(any());
       verify(articleViewHistoryRepository, never()).findByArticleIdAndUserId(any(), any());
-      verify(articleViewHistoryRepository, never()).save(any(ArticleViewHistory.class));
+      verify(articleViewHistoryRepository, never()).saveAndFlush(any(ArticleViewHistory.class));
       verify(commentRepository, never()).countByArticleIdAndDeletedAtIsNull(any());
       verify(articleViewHistoryRepository, never()).countByArticleId(any());
       verify(articleViewMapper, never()).toDto(any(ArticleViewHistory.class), any(Article.class),
@@ -469,7 +469,7 @@ class ArticleServiceTest {
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository, never()).findByArticleIdAndUserId(any(), any());
-      verify(articleViewHistoryRepository, never()).save(any(ArticleViewHistory.class));
+      verify(articleViewHistoryRepository, never()).saveAndFlush(any(ArticleViewHistory.class));
       verify(commentRepository, never()).countByArticleIdAndDeletedAtIsNull(any());
       verify(articleViewHistoryRepository, never()).countByArticleId(any());
       verify(articleViewMapper, never()).toDto(any(ArticleViewHistory.class), any(Article.class),
