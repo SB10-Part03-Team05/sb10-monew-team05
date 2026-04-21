@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.article.entity.Article;
@@ -127,7 +128,7 @@ class CommentLikeServiceTest {
     void success_cancelLike() {
       // given
       given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
-      given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
+      given(commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId)).willReturn(1);
 
       // when
       commentLikeService.cancelLike(commentId, userId);
@@ -142,11 +143,12 @@ class CommentLikeServiceTest {
     void fail_like_NotFound() {
       // given
       given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
-      given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false); // 좋아요 데이터 없음!
+      given(commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId)).willReturn(0);
 
       // when & then
       assertThatThrownBy(() -> commentLikeService.cancelLike(commentId, userId))
           .isInstanceOf(CommentLikeNotFoundException.class);
+      verify(comment, never()).decreaseLikeCount(); // 좋아요가 없으면 감소 메서드가 호출되면 안 됨을 검증
     }
 
     @Test

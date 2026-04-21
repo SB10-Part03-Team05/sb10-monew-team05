@@ -13,6 +13,7 @@ import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,26 +44,31 @@ public class CommentLikeService {
       throw new CommentLikeAlreadyExistsException(commentId, userId);
     }
 
-    // 4. 좋아요 수 증가 (엔티티의 @Version을 통해 낙관적 락 발동)
-    comment.increaseLikeCount();
+    try {
+      // 4. 좋아요 카운트 증가 및 저장
+      comment.increaseLikeCount();
+      CommentLike savedLike = commentLikeRepository.save(new CommentLike(comment, user));
+      commentLikeRepository.flush(); // 즉시 반영하여 유니크 제약 검사 유도
 
-    // 5. 좋아요 교차 테이블 데이터 저장
-    CommentLike savedLike = commentLikeRepository.save(new CommentLike(comment, user));
-    log.info("댓글 좋아요 등록: commentId={}, userId={}", commentId, userId);
+      log.info("댓글 좋아요 등록: commentId={}, userId={}", commentId, userId);
 
-    // 6. DTO 변환
-    return new CommentLikeDto(
-        savedLike.getId(),
-        user.getId(),
-        savedLike.getCreatedAt(),
-        comment.getId(),
-        comment.getArticle().getId(),
-        comment.getUser().getId(),
-        comment.getUser().getNickname(),
-        comment.getContent(),
-        comment.getLikeCount(),
-        comment.getCreatedAt()
-    );
+      return new CommentLikeDto(
+          savedLike.getId(),
+          user.getId(),
+          savedLike.getCreatedAt(),
+          comment.getId(),
+          comment.getArticle().getId(),
+          comment.getUser().getId(),
+          comment.getUser().getNickname(),
+          comment.getContent(),
+          comment.getLikeCount(),
+          comment.getCreatedAt()
+      );
+    } catch (DataIntegrityViolationException e) {
+      // 동시 요청으로 인해 DB 유니크 제약 조건 위반 시 예외 처리
+      log.warn("좋아요 중복 등록 시도 감지: userId={}, commentId={}", userId, commentId);
+      throw new CommentLikeAlreadyExistsException(commentId, userId);
+    }
   }
 
   // 댓글 좋아요 취소
@@ -72,16 +78,17 @@ public class CommentLikeService {
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
 
-    // 2. 좋아요 존재 여부 확인
-    if (!commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+    // 2. 일단 삭제를 시도하고 삭제된 행 개수를 가져옴 (중복 좋아요가 없거나 이미 취소된 경우 0이 됨)
+    int deletedCount = commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+
+    if (deletedCount == 0) {
+      // 삭제된 게 없다면 이미 누가 삭제했거나 존재하지 않는 것
       throw new CommentLikeNotFoundException(commentId, userId);
     }
 
-    // 3. 좋아요 수 감소
+    // 3. DB에서 실제로 삭제가 성공했을 때 좋아요 수 감소
     comment.decreaseLikeCount();
 
-    // 4. 좋아요 데이터 삭제
-    commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
     log.info("댓글 좋아요 취소: commentId={}, userId={}", commentId, userId);
   }
 }
