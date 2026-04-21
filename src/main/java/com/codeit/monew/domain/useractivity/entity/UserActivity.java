@@ -69,6 +69,7 @@ public class UserActivity {
 
     private String id;
     private Instant createdAt;
+    private String commentId;
     private String articleId;
     private String articleTitle;
     private String commentUserId;
