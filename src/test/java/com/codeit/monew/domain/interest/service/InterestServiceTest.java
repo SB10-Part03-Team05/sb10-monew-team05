@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
 import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
+import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
@@ -19,6 +20,7 @@ import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.Interest.SubscriptionNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -173,6 +175,108 @@ class InterestServiceTest {
 
   // 4. 관심사 목록 조회
 
-  // 5. 관심사 구독/구독 취소
+  // 5. 관심사 구독
+  @Nested
+  @DisplayName("관심사 구독 테스트")
+  class subscribe {
+    @Test
+    @DisplayName("관심사를 구독할 수 있다.")
+    void success_subscribe_interest() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      Interest interest = createInterest(interestId, "스포츠");
+      User user = new User("test@email.com", "testNickname", "testPassword");
+      ReflectionTestUtils.setField(user, "id", userId);
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(userRepository.findById(userId)).willReturn(Optional.of(user));
+      given(subscriptionRepository.save(any())).willAnswer(i -> i.getArgument(0));
+
+      // when
+      SubscriptionDto result = interestService.subscribe(interestId, userId);
+
+      // then
+      assertNotNull(result);
+      assertEquals(interestId, result.interestId());
+      verify(subscriptionRepository).save(any());
+      verify(interestRepository).incrementSubscriberCount(interestId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 관심사를 구독하면 실패한다.")
+    void fail_subscribe_when_interest_not_found() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+      // when, then
+      assertThrows(InterestNotFoundException.class,
+          () -> interestService.subscribe(interestId, userId));
+
+      verify(subscriptionRepository, never()).save(any());
+    }
+  }
+
+  // 6. 관심사 구독 취소
+  @Nested
+  @DisplayName("관심사 구독 취소 테스트")
+  class unsubscribe {
+    @Test
+    @DisplayName("관심사 구독을 취소할 수 있다.")
+    void success_unsubscribe_interest() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      Interest interest = createInterest(interestId, "스포츠");
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(1L);
+
+      // when
+      interestService.unsubscribe(interestId, userId);
+
+      // then
+      verify(subscriptionRepository).deleteByUserIdAndInterestId(userId, interestId);
+      verify(interestRepository).decrementSubscriberCount(interestId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 관심사를 구독 취소하면 실패한다.")
+    void fail_unsubscribe_when_interest_not_found() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+      // when, then
+      assertThrows(InterestNotFoundException.class,
+          () -> interestService.unsubscribe(interestId, userId));
+
+      verify(subscriptionRepository, never()).deleteByUserIdAndInterestId(any(), any());
+    }
+
+    @Test
+    @DisplayName("구독 중이지 않은 구독 취소하면 실패한다.")
+    void fail_unsubscribe_when_not_subscribed() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      Interest interest = createInterest(interestId, "스포츠");
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(0L);
+
+      // when, then
+      assertThrows(SubscriptionNotFoundException.class,
+          () -> interestService.unsubscribe(interestId, userId));
+
+      verify(interestRepository, never()).decrementSubscriberCount(any());
+    }
+
+  }
 
 }
