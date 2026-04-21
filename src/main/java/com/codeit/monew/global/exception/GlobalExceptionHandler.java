@@ -142,6 +142,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
   }
 
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+    log.warn("[EXCEPTION] 잘못된 요청: message={}", e.getMessage());
+    ErrorResponse errorResponse = new ErrorResponse(e, HttpStatus.BAD_REQUEST.value());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+
   private HttpStatus determineHttpStatus(MonewException exception) {
     ErrorCode errorCode = exception.getErrorCode();
     return switch (errorCode) {
