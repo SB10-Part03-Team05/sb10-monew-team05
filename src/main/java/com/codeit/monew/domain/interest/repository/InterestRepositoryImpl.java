@@ -92,8 +92,8 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if (hasNext && !interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
       nextCursor = "name".equals(orderBy)
-          ? last.getName()
-          : String.valueOf(last.getSubscriberCount());
+          ? last.getName() + "::" + last.getId()
+          : last.getSubscriberCount() + "::" + last.getId();
       nextAfter = last.getCreatedAt();
     }
 
@@ -138,26 +138,44 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       throw new IllegalArgumentException("cursor와 after는 함께 전달되어야 합니다.");
     }
     if (cursor == null) return null;
+
+    // cursor 파싱
+    String[] parts = cursor.split("::", 2);
+    String cursorValue = parts[0];
+    UUID cursorId = parts.length > 1 ? UUID.fromString(parts[1]) : null;
+
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
 
     if ("name".equals(orderBy)) {
       return isAsc
-          ? interest.name.gt(cursor)
-          .or(interest.name.eq(cursor).and(interest.createdAt.gt(after)))
-          : interest.name.lt(cursor)
-              .or(interest.name.eq(cursor).and(interest.createdAt.lt(after)));
+          ? interest.name.gt(cursorValue)
+          .or(interest.name.eq(cursorValue).and(interest.createdAt.gt(after)))
+          .or(interest.name.eq(cursorValue)
+              .and(interest.createdAt.eq(after))
+              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+          : interest.name.lt(cursorValue)
+              .or(interest.name.eq(cursorValue).and(interest.createdAt.lt(after)))
+              .or(interest.name.eq(cursorValue)
+                  .and(interest.createdAt.eq(after))
+                  .and(cursorId != null ? interest.id.lt(cursorId) : null));
     } else {
-      long cursorValue;
+      long cursorLong;
       try {
-        cursorValue = Long.parseLong(cursor);
+        cursorLong = Long.parseLong(cursorValue);
       } catch (NumberFormatException e) {
-        throw new IllegalArgumentException("subscriberCount 정렬 시 cursor는 숫자여야 합니다: " + cursor);
+        throw new IllegalArgumentException("subscriberCount 정렬 시 cursor는 숫자여야 합니다: " + cursorValue);
       }
       return isAsc
-          ? interest.subscriberCount.gt(cursorValue)
-          .or(interest.subscriberCount.eq(cursorValue).and(interest.createdAt.gt(after)))
-          : interest.subscriberCount.lt(cursorValue)
-              .or(interest.subscriberCount.eq(cursorValue).and(interest.createdAt.lt(after)));
+          ? interest.subscriberCount.gt(cursorLong)
+          .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.gt(after)))
+          .or(interest.subscriberCount.eq(cursorLong)
+              .and(interest.createdAt.eq(after))
+              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+          : interest.subscriberCount.lt(cursorLong)
+              .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.lt(after)))
+              .or(interest.subscriberCount.eq(cursorLong)
+                  .and(interest.createdAt.eq(after))
+                  .and(cursorId != null ? interest.id.lt(cursorId) : null));
     }
   }
 
@@ -172,12 +190,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if ("name".equals(orderBy)) {
       return new OrderSpecifier[]{
           isAsc ? interest.name.asc() : interest.name.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc()
+          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
+          interest.id.asc()  // tie-breaker
       };
     } else {
       return new OrderSpecifier[]{
           isAsc ? interest.subscriberCount.asc() : interest.subscriberCount.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc()
+          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
+          interest.id.asc()  // tie-breaker
       };
     }
   }
