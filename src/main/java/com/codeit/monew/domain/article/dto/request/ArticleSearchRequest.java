@@ -18,6 +18,7 @@ import lombok.Setter;
 public class ArticleSearchRequest {
 
   @Parameter(description = "검색어(제목, 요약)")
+  @Pattern(regexp = "^$|.*\\S.*", message = "keyword는 공백으로만 구성될 수 없습니다.")
   private String keyword;
 
   @Parameter(description = "관심사 ID")
