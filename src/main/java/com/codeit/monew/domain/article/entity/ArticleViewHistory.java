@@ -27,4 +27,9 @@ public class ArticleViewHistory extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "article_id", nullable = false)
   private Article article;
+
+  public ArticleViewHistory(User user, Article article) {
+    this.user = user;
+    this.article = article;
+  }
 }

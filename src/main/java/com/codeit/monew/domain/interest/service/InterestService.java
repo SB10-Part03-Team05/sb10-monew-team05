@@ -2,6 +2,7 @@ package com.codeit.monew.domain.interest.service;
 
 import com.codeit.monew.domain.interest.dto.request.InterestRegisterRequest;
 import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
+import com.codeit.monew.domain.interest.dto.response.CursorPageResponseInterestDto;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
 import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.entity.Interest;
@@ -110,6 +111,19 @@ public class InterestService {
   }
 
   // 4. 관심사 목록 조회
+  public CursorPageResponseInterestDto getList(
+      String searchKeyword,
+      String orderBy,
+      String direction,
+      String cursor,
+      Instant after,
+      int limit,
+      UUID userId
+  ) {
+    return interestRepository.findInterests(
+        searchKeyword, orderBy, direction, cursor, after, limit, userId
+    );
+  }
 
   // 5. 관심사 구독
   @Transactional
