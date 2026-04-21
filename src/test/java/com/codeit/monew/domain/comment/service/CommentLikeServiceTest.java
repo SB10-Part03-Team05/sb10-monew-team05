@@ -106,7 +106,7 @@ class CommentLikeServiceTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 댓글일 경우, CommentNotFoundException 예외가 발생한다/")
+    @DisplayName("존재하지 않는 댓글일 경우, CommentNotFoundException 예외가 발생한다.")
     void fail_CommentNotFound() {
       // given
       given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(user));

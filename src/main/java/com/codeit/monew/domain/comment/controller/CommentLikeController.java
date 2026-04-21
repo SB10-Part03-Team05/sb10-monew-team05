@@ -23,7 +23,7 @@ public class CommentLikeController {
   @Operation(summary = "댓글 좋아요 등록", description = "댓글에 좋아요를 등록합니다.")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "댓글 좋아요 성공"),
-      @ApiResponse(responseCode = "404", description = "댓글 정보 없음"),
+      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
       @ApiResponse(responseCode = "409", description = "이미 좋아요를 누른 상태 (중복 요청)"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
