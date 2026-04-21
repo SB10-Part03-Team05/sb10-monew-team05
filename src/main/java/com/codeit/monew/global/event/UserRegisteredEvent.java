@@ -9,4 +9,5 @@ public record UserRegisteredEvent(
     String nickname,
     Instant createdAt
 ) {
+
 }
