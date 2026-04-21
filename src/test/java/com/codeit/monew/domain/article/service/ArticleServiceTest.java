@@ -11,12 +11,15 @@ import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
+import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.domain.article.entity.ArticleViewHistory;
 import com.codeit.monew.domain.article.entity.type.ArticleDirection;
 import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
+import com.codeit.monew.domain.article.mapper.ArticleViewMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
@@ -62,6 +65,9 @@ class ArticleServiceTest {
   @Mock
   private ArticleMapper articleMapper;
 
+  @Mock
+  private ArticleViewMapper articleViewMapper;
+
   @InjectMocks
   private ArticleService articleService;
 
@@ -83,6 +89,29 @@ class ArticleServiceTest {
     return new ArticleDto(article.getId(), article.getSource(), article.getSourceUrl(),
         article.getTitle(), article.getPublishDate(), article.getSummary(), commentCount, viewCount,
         viewedByMe);
+  }
+
+  private ArticleViewHistory createArticleViewHistory(UUID articleHistoryId, User user,
+      Article article) {
+
+    ArticleViewHistory articleViewHistory = new ArticleViewHistory(user, article);
+
+    if (articleHistoryId == null) {
+      ReflectionTestUtils.setField(articleViewHistory, "id", UUID.randomUUID());
+    } else {
+      ReflectionTestUtils.setField(articleViewHistory, "id", articleHistoryId);
+    }
+
+    return articleViewHistory;
+  }
+
+  private ArticleViewDto createArticleViewDto(ArticleViewHistory articleViewHistory,
+      UUID requestUserId,
+      Article article, long commentCount, long viewCount) {
+
+    return new ArticleViewDto(articleViewHistory.getId(), requestUserId, article.getCreatedAt(),
+        article.getId(), article.getSource(), article.getSourceUrl(), article.getTitle(),
+        article.getPublishDate(), article.getSummary(), commentCount, viewCount);
   }
 
   private User createUser(UUID userId, String email, String nickname, String password) {
@@ -310,6 +339,141 @@ class ArticleServiceTest {
       verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
       verify(interestRepository).findById(any());
       verify(articleRepository, never()).searchArticleList(any(ArticleSearchRequest.class), any());
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 view 등록 테스트")
+  class view {
+
+    @Test
+    @DisplayName("기존 조회 이력이 없을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view를 등록할 수 있다.")
+    void success_post_article_view_by_articleId_and_userId_when_view_not_exist() {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com", "title",
+          Instant.now(), "summary");
+      ArticleViewHistory articleViewHistory = createArticleViewHistory(null, user, article);
+      ArticleViewDto expectedArticleViewDto = createArticleViewDto(articleViewHistory,
+          requestUserId, article, 3, 5);
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.of(user));
+      given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(
+          Optional.of(article));
+      given(articleViewHistoryRepository.findByArticleIdAndUserId(articleId,
+          requestUserId)).willReturn(Optional.empty());
+
+      given(articleViewHistoryRepository.save(any(ArticleViewHistory.class))).willReturn(
+          articleViewHistory);
+      given(commentRepository.countByArticleIdAndDeletedAtIsNull(articleId)).willReturn(3L);
+      given(articleViewHistoryRepository.countByArticleId(articleId)).willReturn(5L);
+      given(articleViewMapper.toDto(articleViewHistory, article, user, 3, 5)).willReturn(
+          expectedArticleViewDto);
+
+      // when(실행)
+      ArticleViewDto result = articleService.view(articleId, requestUserId);
+
+      // then(검증)
+      assertEquals(expectedArticleViewDto, result);
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
+      verify(articleViewHistoryRepository).findByArticleIdAndUserId(articleId, requestUserId);
+      verify(articleViewHistoryRepository).save(any(ArticleViewHistory.class));
+      verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
+      verify(articleViewHistoryRepository).countByArticleId(articleId);
+      verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
+    }
+
+    @Test
+    @DisplayName("기존 조회 이력이 있을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view를 등록할 수 있다.")
+    void success_post_article_view_by_articleId_and_userId_when_view_already_exist() {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com", "title",
+          Instant.now(), "summary");
+      ArticleViewHistory articleViewHistory = createArticleViewHistory(null, user, article);
+      ArticleViewDto expectedArticleViewDto = createArticleViewDto(articleViewHistory,
+          requestUserId, article, 3, 5);
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.of(user));
+      given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(
+          Optional.of(article));
+      given(articleViewHistoryRepository.findByArticleIdAndUserId(articleId,
+          requestUserId)).willReturn(Optional.of(articleViewHistory));
+      given(commentRepository.countByArticleIdAndDeletedAtIsNull(articleId)).willReturn(3L);
+      given(articleViewHistoryRepository.countByArticleId(articleId)).willReturn(5L);
+      given(articleViewMapper.toDto(articleViewHistory, article, user, 3, 5)).willReturn(
+          expectedArticleViewDto);
+
+      // when(실행)
+      ArticleViewDto result = articleService.view(articleId, requestUserId);
+
+      // then(검증)
+      assertEquals(expectedArticleViewDto, result);
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
+      verify(articleViewHistoryRepository).findByArticleIdAndUserId(articleId, requestUserId);
+      verify(articleViewHistoryRepository, never()).save(articleViewHistory);
+      verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
+      verify(articleViewHistoryRepository).countByArticleId(articleId);
+      verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
+    }
+
+    @Test
+    @DisplayName("존재하지 않거나 논리 삭제된 사용자 ID가 조회되면 404 상태코드와 UserNotFound 예외가 발생한다.")
+    void fail_post_article_view_by_articleId_and_userId_when_user_not_found() {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.empty());
+
+      // when(실행), then(검증)
+      assertThrows(UserNotFoundException.class,
+          () -> articleService.view(articleId, requestUserId));
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(articleRepository, never()).findByIdAndDeletedAtIsNull(any());
+      verify(articleViewHistoryRepository, never()).findByArticleIdAndUserId(any(), any());
+      verify(articleViewHistoryRepository, never()).save(any(ArticleViewHistory.class));
+      verify(commentRepository, never()).countByArticleIdAndDeletedAtIsNull(any());
+      verify(articleViewHistoryRepository, never()).countByArticleId(any());
+      verify(articleViewMapper, never()).toDto(any(ArticleViewHistory.class), any(Article.class),
+          any(User.class), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("존재하지 않거나 논리 삭제된 뉴스 기사 ID가 조회되면 404 상태코드와 ArticleNotFound 예외가 발생한다.")
+    void fail_post_article_view_by_articleId_and_userId_when_article_not_found() {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      User user = createUser(requestUserId, "test@email.com", "testNickname", "testPassword");
+
+      given(userRepository.findByIdAndDeletedAtIsNull(requestUserId)).willReturn(Optional.of(user));
+      given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(Optional.empty());
+
+      // when(실행), then(검증)
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.view(articleId, requestUserId));
+
+      verify(userRepository).findByIdAndDeletedAtIsNull(requestUserId);
+      verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
+      verify(articleViewHistoryRepository, never()).findByArticleIdAndUserId(any(), any());
+      verify(articleViewHistoryRepository, never()).save(any(ArticleViewHistory.class));
+      verify(commentRepository, never()).countByArticleIdAndDeletedAtIsNull(any());
+      verify(articleViewHistoryRepository, never()).countByArticleId(any());
+      verify(articleViewMapper, never()).toDto(any(ArticleViewHistory.class), any(Article.class),
+          any(User.class), anyLong(), anyLong());
     }
   }
 }
