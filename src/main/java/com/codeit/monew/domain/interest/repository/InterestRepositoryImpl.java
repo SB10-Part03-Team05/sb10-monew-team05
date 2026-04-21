@@ -142,7 +142,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     // cursor 파싱
     String[] parts = cursor.split("::", 2);
     String cursorValue = parts[0];
-    UUID cursorId = parts.length > 1 ? UUID.fromString(parts[1]) : null;
+    UUID cursorId = null;
+    if (parts.length > 1) {
+      try {
+        cursorId = UUID.fromString(parts[1]);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("잘못된 cursor ID 형식입니다: " + parts[1]);
+      }
+    }
 
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
 
@@ -157,7 +164,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
               .or(interest.name.eq(cursorValue).and(interest.createdAt.lt(after)))
               .or(interest.name.eq(cursorValue)
                   .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.lt(cursorId) : null));
+                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
     } else {
       long cursorLong;
       try {
@@ -175,7 +182,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
               .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.lt(after)))
               .or(interest.subscriberCount.eq(cursorLong)
                   .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.lt(cursorId) : null));
+                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
     }
   }
 
