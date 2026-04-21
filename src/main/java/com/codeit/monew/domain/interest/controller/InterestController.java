@@ -7,6 +7,7 @@ import com.codeit.monew.domain.interest.dto.response.InterestDto;
 import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import com.codeit.monew.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,21 @@ public class InterestController {
   }
 
   // 4. 관심사 목록 조회
+  @GetMapping
+  public ResponseEntity<CursorPageResponseInterestDto> getList(
+      @RequestParam(required = false) String keyword,
+      @RequestParam String orderBy,
+      @RequestParam String direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) Instant after,
+      @RequestParam int limit,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    CursorPageResponseInterestDto response = interestService.getList(
+        keyword, orderBy, direction, cursor, after, limit, userId
+    );
+    return ResponseEntity.ok(response);
+  }
 
   // 5. 관심사 구독
   @PostMapping("/{interestId}/subscriptions")
