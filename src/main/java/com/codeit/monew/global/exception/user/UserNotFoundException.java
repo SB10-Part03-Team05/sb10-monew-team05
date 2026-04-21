@@ -9,4 +9,8 @@ public class UserNotFoundException extends UserException {
     super(ErrorCode.USER_NOT_FOUND, "userId", userId);
   }
 
+  public UserNotFoundException(String email) {
+    super(ErrorCode.USER_NOT_FOUND, "email", email);
+  }
+
 }
