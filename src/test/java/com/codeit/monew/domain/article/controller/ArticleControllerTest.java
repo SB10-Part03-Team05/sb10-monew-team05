@@ -264,14 +264,14 @@ class ArticleControllerTest {
     }
 
     @Test
-    @DisplayName("keyword가 공백일 경우 400 상태코드와 MethodArgumentNotValidException 예외 발생")
+    @DisplayName("keyword가 공백이 연속될 경우 400 상태코드와 MethodArgumentNotValidException 예외 발생")
     void fail_search_article_list_when_keyword_is_not_blank() throws Exception {
       // given(준비)
       UUID requestUserId = UUID.randomUUID();
 
       // when(시작), then(검증)
       mockMvc.perform(get("/api/articles")
-              .param("keyword", "")
+              .param("keyword", " ")
               .param("orderBy", ArticleOrderBy.publishDate.toString())
               .param("direction", ArticleDirection.DESC.toString())
               .param("limit", "5")
