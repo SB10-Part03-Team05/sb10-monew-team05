@@ -1,7 +1,9 @@
 package com.codeit.monew.domain.article.controller;
 
 import com.codeit.monew.domain.article.dto.request.ArticleScrapeRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleScrapeBatchRunResponse;
 import com.codeit.monew.domain.article.dto.response.ArticleScrapeResponse;
+import com.codeit.monew.domain.article.service.ArticleScrapeBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.batch.core.JobExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminArticleController {
 
   private final ArticleScrapeService articleScrapeService;
+  private final ArticleScrapeBatchRunner articleScrapeBatchRunner;
 
   @PostMapping("/scrape-test")
   @Operation(summary = "뉴스 기사 수집 테스트", description = "외부 RSS/네이버 API를 호출하여 기사를 수집하고 저장합니다.")
@@ -55,6 +59,27 @@ public class AdminArticleController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
+  @PostMapping("/scrape-batch/run")
+  @Operation(summary = "뉴스 수집 배치 수동 실행", description = "Spring Batch 뉴스 수집 Job을 즉시 실행하고 Step별 결과를 반환합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "배치 실행 완료",
+          content = @Content(schema = @Schema(implementation = ArticleScrapeBatchRunResponse.class))),
+      @ApiResponse(responseCode = "500", description = "배치 실행 중 서버 오류")
+  })
+  public ResponseEntity<?> runScrapeBatch() {
+    try {
+      ArticleScrapeBatchRunResponse response = articleScrapeBatchRunner.runNow();
+      return ResponseEntity.ok(response);
+    } catch (JobExecutionException e) {
+      Map<String, Object> body = new HashMap<>();
+      body.put("timestamp", Instant.now());
+      body.put("code", "BATCH_EXECUTION_FAILED");
+      body.put("message", "뉴스 수집 배치 실행에 실패했습니다.");
+      body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+  }
+
   private ResponseEntity<Map<String, Object>> badRequest(String message) {
     Map<String, Object> body = new HashMap<>();
     body.put("timestamp", Instant.now());
@@ -64,4 +89,3 @@ public class AdminArticleController {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
   }
 }
-

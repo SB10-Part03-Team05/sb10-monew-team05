@@ -30,7 +30,14 @@ public enum ErrorCode {
 
   // Server 에러 코드
   INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),
-  INVALID_REQUEST("잘못된 요청입니다.");
+  INVALID_REQUEST("잘못된 요청입니다."),
+
+  // External 관련 에러 코드
+  EXTERNAL_CLIENT_ERROR("외부 연동 요청 오류가 발생했습니다."),
+  EXTERNAL_RATE_LIMITED("외부 연동 요청 제한이 발생했습니다."),
+  EXTERNAL_SERVER_ERROR("외부 연동 서버 오류가 발생했습니다."),
+  EXTERNAL_EMPTY_RESPONSE("외부 연동 응답 본문이 비어 있습니다."),
+  EXTERNAL_NETWORK_ERROR("외부 연동 네트워크 오류가 발생했습니다.");
 
   private final String message;
 
