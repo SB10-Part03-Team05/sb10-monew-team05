@@ -477,4 +477,83 @@ class ArticleServiceTest {
           any(User.class), anyLong(), anyLong());
     }
   }
+
+  @Nested
+  @DisplayName("뉴스 기사 논리 삭제 테스트")
+  class delete {
+
+    @Test
+    @DisplayName("논리 삭제되지 않은 뉴스 기사 ID로 해당 뉴스 기사를 논리 삭제할 수 있다.")
+    void success_soft_delete_by_articleId() {
+      // give(준비)
+      UUID articleId = UUID.randomUUID();
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com", "title",
+          Instant.now(), "summary");
+
+      given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(
+          Optional.of(article));
+
+      // when(준비)
+      articleService.delete(articleId);
+
+      // then(검증)
+      verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
+      verify(articleRepository).delete(article);
+    }
+
+
+    @Test
+    @DisplayName("존재하지 않거나 논리 삭제된 뉴스 기사 ID가 조회되면 404 상태코드와 ArticleNotFoundException 예외가 발생한다.")
+    void fail_soft_delete_by_articleId_when_article_not_found() {
+      // give(준비)
+      UUID articleId = UUID.randomUUID();
+      Article article = createArticle(articleId, ArticleSource.NAVER, "https://naver.com", "title",
+          Instant.now(), "summary");
+
+      given(articleRepository.findByIdAndDeletedAtIsNull(articleId)).willReturn(Optional.empty());
+
+      // when(준비), then(검증)
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.delete(articleId));
+
+      verify(articleRepository).findByIdAndDeletedAtIsNull(articleId);
+      verify(articleRepository, never()).delete(article);
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 물리 삭제 테스트")
+  class hardDelete {
+
+    @Test
+    @DisplayName("뉴스 기사 ID로 해당 뉴스 기사를 물리 삭제할 수 있다.")
+    void success_hard_delete_by_articleId() {
+      // give(준비)
+      UUID articleId = UUID.randomUUID();
+
+      given(articleRepository.hardDelete(articleId)).willReturn(1);
+
+      // when(준비)
+      articleService.hardDelete(articleId);
+
+      // then(검증)
+      verify(articleRepository).hardDelete(articleId);
+    }
+
+
+    @Test
+    @DisplayName("존재하지 않은 뉴스 기사 ID가 조회되면 404 상태코드와 ArticleNotFoundException 예외가 발생한다.")
+    void fail_hard_delete_by_articleId_when_article_not_found() {
+      // give(준비)
+      UUID articleId = UUID.randomUUID();
+
+      given(articleRepository.hardDelete(articleId)).willReturn(0);
+
+      // when(준비), then(검증)
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.hardDelete(articleId));
+
+      verify(articleRepository).hardDelete(articleId);
+    }
+  }
 }
