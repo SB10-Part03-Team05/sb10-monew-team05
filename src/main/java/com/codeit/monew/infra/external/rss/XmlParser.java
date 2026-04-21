@@ -19,9 +19,10 @@ import org.springframework.util.StringUtils;
 public class XmlParser {
 
   public List<Article> parse(String xml, NewsSourceUrl source) {
-    // xml이 비어있다면 early return
+    // xml이 비어있다면 예외 발생
     if (xml == null || xml.isBlank()) {
-      return List.of();
+      // todo: 커스텀 예외로 전환
+      throw new IllegalArgumentException("XML 응답이 비어 있습니다. + source:" + source);
     }
 
     // XML 문법에 어긋나는 요소들을 정규표현식으로 미리 제거 (전처리)
