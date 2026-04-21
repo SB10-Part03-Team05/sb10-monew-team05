@@ -109,7 +109,8 @@ class ArticleServiceTest {
       UUID requestUserId,
       Article article, long commentCount, long viewCount) {
 
-    return new ArticleViewDto(articleViewHistory.getId(), requestUserId, article.getCreatedAt(),
+    return new ArticleViewDto(articleViewHistory.getId(), requestUserId,
+        articleViewHistory.getCreatedAt(),
         article.getId(), article.getSource(), article.getSourceUrl(), article.getTitle(),
         article.getPublishDate(), article.getSummary(), commentCount, viewCount);
   }
