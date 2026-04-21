@@ -10,8 +10,10 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,11 +72,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
         .toList();
 
     // 5. 구독 여부 조회
-    List<UUID> subscribedIds = queryFactory
+    Set<UUID> subscribedIds = new HashSet<>(queryFactory
         .select(subscription.interest.id)
         .from(subscription)
-        .where(subscription.user.id.eq(userId))
-        .fetch();
+        .where(
+            subscription.user.id.eq(userId),
+            subscription.interest.id.in(interestIds)
+        )
+        .fetch());
 
     // 6. InterestDto 변환
     List<InterestDto> content = orderedInterests.stream()
@@ -128,7 +133,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
    * cursor 또는 after가 없으면 null 반환 (첫 페이지)
    */
   private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor, Instant after) {
-    if (cursor == null || after == null) return null;
+    validateSortArgs(orderBy, direction);
+    if ((cursor == null) != (after == null)) {
+      throw new IllegalArgumentException("cursor와 after는 함께 전달되어야 합니다.");
+    }
+    if (cursor == null) return null;
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
 
     if ("name".equals(orderBy)) {
@@ -158,6 +167,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
    * 동일값 존재 시 createdAt을 보조 정렬 기준으로 사용
    */
   private OrderSpecifier<?>[] buildOrderSpecifiers(String orderBy, String direction) {
+    validateSortArgs(orderBy, direction);
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
     if ("name".equals(orderBy)) {
       return new OrderSpecifier[]{
@@ -171,4 +181,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       };
     }
   }
+
+  private void validateSortArgs(String orderBy, String direction) {
+    boolean validOrderBy = "name".equals(orderBy) || "subscriberCount".equals(orderBy);
+    boolean validDirection = "ASC".equalsIgnoreCase(direction) || "DESC".equalsIgnoreCase(direction);
+    if (!validOrderBy || !validDirection) {
+      throw new IllegalArgumentException("지원하지 않는 정렬 파라미터입니다. orderBy=name|subscriberCount, direction=ASC|DESC");
+      }
+    }
 }
