@@ -3,13 +3,17 @@ package com.codeit.monew.domain.article.service;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.domain.article.entity.ArticleViewHistory;
 import com.codeit.monew.domain.article.mapper.ArticleMapper;
+import com.codeit.monew.domain.article.mapper.ArticleViewMapper;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.repository.ArticleViewHistoryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
+import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -33,6 +37,7 @@ public class ArticleService {
   private final CommentRepository commentRepository;
   private final InterestRepository interestRepository;
   private final ArticleMapper articleMapper;
+  private final ArticleViewMapper articleViewMapper;
 
   // 뉴스 기사 단건 조회
   @Transactional(readOnly = true)
@@ -96,5 +101,36 @@ public class ArticleService {
         responseArticleDto.nextCursor(), responseArticleDto.nextAfter());
 
     return responseArticleDto;
+  }
+
+  // 뉴스 기사 view 등록
+  public ArticleViewDto view(UUID articleId, UUID requestUserId) {
+    log.debug("[ARTICLE_VIEW_POST] 뉴스 기사 조회 처리 시작: articleId={}", articleId);
+
+    // 사용자 존재 검증
+    User user = userRepository.findByIdAndDeletedAtIsNull(requestUserId)
+        .orElseThrow(() -> new UserNotFoundException(requestUserId));
+
+    // 뉴스 기사 존재 검증
+    Article article = articleRepository.findByIdAndDeletedAtIsNull(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
+
+    // 뉴스 기사 view 조회 후 없으면 null, 있으면 해당 뉴스 기사 view 정보 반환
+    ArticleViewHistory articleViewHistory = articleViewHistoryRepository
+        .findByArticleIdAndUserId(articleId, requestUserId).orElse(null);
+
+    if (articleViewHistory == null) {
+      articleViewHistory = articleViewHistoryRepository.save(new ArticleViewHistory(user, article));
+    }
+
+    // 댓글 수
+    long commentCount = commentRepository.countByArticleIdAndDeletedAtIsNull(articleId);
+    // 조회 수
+    long viewCount = articleViewHistoryRepository.countByArticleId(articleId);
+
+    log.info("[ARTICLE_VIEW_POST] 뉴스 기사 조회 처리 성공: id={}, viewedBy={}, createdAt={}, articleId={}",
+        articleViewHistory.getId(), user.getId(), articleViewHistory.getCreatedAt(),
+        article.getId());
+    return articleViewMapper.toDto(articleViewHistory, article, user, commentCount, viewCount);
   }
 }
