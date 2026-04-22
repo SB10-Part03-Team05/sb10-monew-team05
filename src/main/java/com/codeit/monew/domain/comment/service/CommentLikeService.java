@@ -60,7 +60,7 @@ public class CommentLikeService {
       // 활동 내역 댓글 좋아요 정보 갱신 로직
       eventPublisher.publishEvent(new CommentLikedEvent(
           savedLike.getId(),
-          savedLike.getCreatedAt(),
+          savedLike.getCreatedAt() != null ? comment.getCreatedAt() : Instant.now(),
           commentId,
           comment.getArticle().getId(),
           userId,

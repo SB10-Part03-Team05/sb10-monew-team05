@@ -2,6 +2,7 @@ package com.codeit.monew.domain.useractivity.mapper;
 
 import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
+import com.codeit.monew.global.event.ArticleViewedEvent;
 import com.codeit.monew.global.event.CommentCreatedEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
@@ -32,4 +33,7 @@ public interface UserActivityMapper {
 
   @Mapping(target = "id", source = "commentLikeId")
   UserActivity.CommentLikeInfo toCommentLikeInfo(CommentLikedEvent event);
+
+  @Mapping(target = "id", source = "articleId")
+  UserActivity.ArticleViewInfo toArticleViewInfo(ArticleViewedEvent event);
 }
