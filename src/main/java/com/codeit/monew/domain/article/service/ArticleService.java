@@ -157,7 +157,7 @@ public class ArticleService {
     eventPublisher.publishEvent(new ArticleViewedEvent(
         articleId,
         user.getId(),
-        article.getCreatedAt(),
+        Instant.now(),
         article.getSource(),
         article.getSourceUrl(),
         article.getTitle(),

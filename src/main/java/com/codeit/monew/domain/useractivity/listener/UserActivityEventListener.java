@@ -64,7 +64,7 @@ public class UserActivityEventListener {
         .slice(10)
         .each(newSubscriptionInfo);
 
-    mongoTemplate.updateFirst(query, update, UserActivity.class);
+    mongoTemplate.upsert(query, update, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 관심사 구독 목록 업데이트 완료");
   }
@@ -102,7 +102,7 @@ public class UserActivityEventListener {
         .slice(10)
         .each(newCommentInfo);
 
-    mongoTemplate.updateFirst(query, update, UserActivity.class);
+    mongoTemplate.upsert(query, update, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 댓글 목록 업데이트 완료");
   }
@@ -141,7 +141,7 @@ public class UserActivityEventListener {
         .slice(10)
         .each(newCommentLikeInfo);
 
-    mongoTemplate.updateFirst(query, update, UserActivity.class);
+    mongoTemplate.upsert(query, update, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
   }
@@ -176,7 +176,7 @@ public class UserActivityEventListener {
     );
     mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
 
-    // 새로운 기사 조회 이력을 배열 맨 뒤에 추가
+    // 새로운 기사 조회 이력을 배열 맨 앞에 추가
     ArticleViewInfo newArticleViewInfo = userActivityMapper.toArticleViewInfo(event);
 
     Update pushUpdate = new Update()
@@ -185,7 +185,7 @@ public class UserActivityEventListener {
         .slice(10)
         .each(newArticleViewInfo);
 
-    mongoTemplate.updateFirst(query, pushUpdate, UserActivity.class);
+    mongoTemplate.upsert(query, pushUpdate, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 기사 조회 목록 업데이트 완료");
   }

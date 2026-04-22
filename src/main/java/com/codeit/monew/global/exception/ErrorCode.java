@@ -12,7 +12,6 @@ public enum ErrorCode {
   DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
   USER_ACCESS_DENIED("사용자 수정, 삭제 권한이 없습니다."),
   PASSWORD_MISMATCH("비밀번호가 일치하지 않습니다."),
-  USER_ACTIVITY_NOT_FOUND("사용자 활동 내역을 찾을 수 없습니다."),
 
   // Article 관련 에러 코드
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),

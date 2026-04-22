@@ -4,7 +4,7 @@ import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
 import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
-import com.codeit.monew.global.exception.user.UserActivityNotFoundException;
+import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class UserActivityService {
   @Transactional(readOnly = true)
   public UserActivityDto getUserActivity(UUID userId) {
     UserActivity userActivity = userActivityRepository.findById(userId.toString())
-        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+        .orElseThrow(() -> new UserNotFoundException(userId));
 
     return userActivityMapper.toDto(userActivity);
   }

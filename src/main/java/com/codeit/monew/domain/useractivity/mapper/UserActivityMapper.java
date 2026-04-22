@@ -7,10 +7,11 @@ import com.codeit.monew.global.event.CommentCreatedEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
+import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED)
 public interface UserActivityMapper {
   UserActivityDto toDto(UserActivity userActivity);
 

@@ -65,8 +65,8 @@ public class CommentLikeService {
           commentId,
           comment.getArticle().getId(),
           comment.getArticle().getTitle(),
-          userId,
-          user.getNickname(),
+          comment.getUser().getId(),
+          comment.getUser().getNickname(),
           comment.getContent(),
           comment.getLikeCount(),
           comment.getCreatedAt()

@@ -67,6 +67,7 @@ public class CommentService {
     // 활동 내역 댓글 정보 갱신 로직
     eventPublisher.publishEvent(new CommentCreatedEvent(
         comment.getId(),
+        articleId,
         article.getTitle(),
         userId,
         user.getNickname(),

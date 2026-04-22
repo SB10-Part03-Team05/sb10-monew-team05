@@ -15,15 +15,18 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.FieldType;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @Document(collection = "user-activities")
 public class UserActivity {
 
   @Id
+  @Setter
   private String id;
+  @Setter
   private String email;
+  @Setter
   private String nickname;
+  @Setter
   private Instant createdAt;
   // 구독 중인 관심사
   private List<SubscriptionInfo> subscriptions = new ArrayList<>();
@@ -36,6 +39,31 @@ public class UserActivity {
 
   // 최근 본 뉴스 기사 (최대 10건)
   private List<ArticleViewInfo> articleViews = new ArrayList<>();
+
+  public void addComment(CommentInfo comment) {
+    this.comments.add(0, comment);
+    if (this.comments.size() > 10) {
+      this.comments.remove(this.comments.size() - 1);
+    }
+  }
+
+  public void addCommentLike(CommentLikeInfo commentLike) {
+    this.commentLikes.add(0, commentLike);
+    if (this.commentLikes.size() > 10) {
+      this.commentLikes.remove(this.commentLikes.size() - 1);
+    }
+  }
+
+  public void addArticleView(ArticleViewInfo articleView) {
+    this.articleViews.add(0, articleView);
+    if (this.articleViews.size() > 10) {
+      this.articleViews.remove(this.articleViews.size() - 1);
+    }
+  }
+
+  public void addSubscription(SubscriptionInfo subscription) {
+    this.subscriptions.add(0, subscription);
+  }
 
   @Getter
   @Setter
