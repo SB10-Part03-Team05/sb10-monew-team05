@@ -8,6 +8,7 @@ import com.codeit.monew.domain.interest.entity.QKeyword;
 import com.codeit.monew.domain.interest.entity.QSubscription;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 import java.util.HashSet;
@@ -32,14 +33,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
 
   @Override
   public CursorPageResponseInterestDto findInterests(String searchKeyword, String orderBy,
-      String direction, String cursor, Instant after, int limit, UUID userId) {
+      String direction, String cursor, int limit, UUID userId) {
     // 1. 검색 + 커서 조건으로 Interest 엔티티 조회
     List<Interest> interests = queryFactory
         .selectFrom(interest)
         .leftJoin(interest.keywords, keyword)
         .where(
             buildSearchCondition(searchKeyword),
-            buildCursorCondition(orderBy, direction, cursor, after)
+            buildCursorCondition(orderBy, direction, cursor)
         )
         .groupBy(interest.id)
         .orderBy(buildOrderSpecifiers(orderBy, direction))
@@ -86,15 +87,13 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
         .map(i -> InterestDto.from(i, subscribedIds.contains(i.getId())))
         .toList();
 
-    // 7. nextCursor, nextAfter 계산
+    // 7. nextCursor 계산
     String nextCursor = null;
-    Instant nextAfter = null;
     if (hasNext && !interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
       nextCursor = "name".equals(orderBy)
           ? last.getName() + "::" + last.getId()
           : last.getSubscriberCount() + "::" + last.getId();
-      nextAfter = last.getCreatedAt();
     }
 
     // 8. totalElements
@@ -108,7 +107,6 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     return new CursorPageResponseInterestDto(
         content,
         nextCursor,
-        nextAfter,
         content.size(),
         totalElements != null ? totalElements : 0L,
         hasNext
@@ -132,12 +130,10 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
    * 동일값 존재 시 createdAt으로 tie-breaking 처리
    * cursor 또는 after가 없으면 null 반환 (첫 페이지)
    */
-  private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor, Instant after) {
+  private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor) {
     validateSortArgs(orderBy, direction);
-    if ((cursor == null) != (after == null)) {
-      throw new IllegalArgumentException("cursor와 after는 함께 전달되어야 합니다.");
-    }
-    if (cursor == null) return null;
+    if (cursor == null)
+      return null;
 
     // cursor 파싱
     String[] parts = cursor.split("::", 2);
@@ -152,19 +148,20 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     }
 
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
+    UUID finalCursorId = cursorId;
 
     if ("name".equals(orderBy)) {
       return isAsc
           ? interest.name.gt(cursorValue)
-          .or(interest.name.eq(cursorValue).and(interest.createdAt.gt(after)))
           .or(interest.name.eq(cursorValue)
-              .and(interest.createdAt.eq(after))
-              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+              .and(finalCursorId != null ?
+                  Expressions.stringTemplate("cast({0} as text)", interest.id)
+                      .gt(finalCursorId.toString()) : null))
           : interest.name.lt(cursorValue)
-              .or(interest.name.eq(cursorValue).and(interest.createdAt.lt(after)))
               .or(interest.name.eq(cursorValue)
-                  .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
+                  .and(finalCursorId != null ?
+                      Expressions.stringTemplate("cast({0} as text)", interest.id)
+                          .lt(finalCursorId.toString()) : null));
     } else {
       long cursorLong;
       try {
@@ -174,15 +171,15 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       }
       return isAsc
           ? interest.subscriberCount.gt(cursorLong)
-          .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.gt(after)))
           .or(interest.subscriberCount.eq(cursorLong)
-              .and(interest.createdAt.eq(after))
-              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+              .and(finalCursorId != null ?
+                  Expressions.stringTemplate("cast({0} as text)", interest.id)
+                      .gt(finalCursorId.toString()) : null))
           : interest.subscriberCount.lt(cursorLong)
-              .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.lt(after)))
               .or(interest.subscriberCount.eq(cursorLong)
-                  .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
+                  .and(finalCursorId != null ?
+                      Expressions.stringTemplate("cast({0} as text)", interest.id)
+                          .lt(finalCursorId.toString()) : null));
     }
   }
 

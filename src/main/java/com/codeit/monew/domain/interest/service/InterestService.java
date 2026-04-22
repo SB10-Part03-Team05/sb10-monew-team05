@@ -114,12 +114,11 @@ public class InterestService {
       String orderBy,
       String direction,
       String cursor,
-      Instant after,
       int limit,
       UUID userId
   ) {
     return interestRepository.findInterests(
-        searchKeyword, orderBy, direction, cursor, after, limit, userId
+        searchKeyword, orderBy, direction, cursor, limit, userId
     );
   }
 
