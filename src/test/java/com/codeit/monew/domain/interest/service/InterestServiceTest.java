@@ -20,9 +20,11 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.Interest.SubscriptionNotFoundException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -292,6 +295,30 @@ class InterestServiceTest {
           () -> interestService.subscribe(interestId, userId));
 
       verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("이미 구독 중인 관심사를 구독하면 실패한다.")
+    void fail_subscribe_when_already_subscribed() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      Interest interest = createInterest(interestId, "스포츠");
+      User user = new User("test@email.com", "testNickname", "testPassword");
+      ReflectionTestUtils.setField(user, "id", userId);
+
+      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+      // DB UNIQUE 제약 위반 Mock
+      SQLException sqlException = new SQLException("중복 구독", "23505");
+      DataIntegrityViolationException exception =
+          new DataIntegrityViolationException("중복", sqlException);
+      given(subscriptionRepository.save(any())).willThrow(exception);
+
+      // when, then
+      assertThrows(AlreadySubscribedException.class,
+          () -> interestService.subscribe(interestId, userId));
     }
   }
 
