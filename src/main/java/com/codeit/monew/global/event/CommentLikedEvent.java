@@ -8,8 +8,10 @@ public record CommentLikedEvent(
     Instant createdAt,
     UUID commentId,
     UUID articleId,
+    String articleTitle,
     UUID commentUserId,
     String commentUserNickname,
+    String commentContent,
     Long commentLikeCount,
     Instant commentCreatedAt
 ) {

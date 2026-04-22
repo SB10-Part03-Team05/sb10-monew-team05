@@ -60,6 +60,8 @@ public class UserActivityEventListener {
 
     Update update = new Update()
         .push("subscriptions")
+        .atPosition(0)
+        .slice(10)
         .each(newSubscriptionInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
@@ -96,7 +98,8 @@ public class UserActivityEventListener {
 
     Update update = new Update()
         .push("comments")
-        .slice(-10)
+        .atPosition(0)
+        .slice(10)
         .each(newCommentInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
@@ -134,7 +137,8 @@ public class UserActivityEventListener {
 
     Update update = new Update()
         .push("commentLikes")
-        .slice(-10)
+        .atPosition(0)
+        .slice(10)
         .each(newCommentLikeInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
@@ -177,7 +181,8 @@ public class UserActivityEventListener {
 
     Update pushUpdate = new Update()
         .push("articleViews")
-        .slice(-10)
+        .atPosition(0)
+        .slice(10)
         .each(newArticleViewInfo);
 
     mongoTemplate.updateFirst(query, pushUpdate, UserActivity.class);
