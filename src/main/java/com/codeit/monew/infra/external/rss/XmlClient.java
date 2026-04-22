@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 @Slf4j
 @Component
@@ -68,8 +67,6 @@ public class XmlClient {
       throw new ExternalClientException(source, url, e.getStatusCode().value(), e);
     } catch (HttpServerErrorException e) {
       throw new ExternalServerException(source, url, e.getStatusCode().value(), e);
-    } catch (RestClientException e) {
-      throw new ExternalNetworkException(source, url, e);
     } catch (RuntimeException e) {
       throw new ExternalNetworkException(source, url, e);
     }
