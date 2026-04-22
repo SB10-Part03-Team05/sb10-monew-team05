@@ -192,14 +192,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if ("name".equals(orderBy)) {
       return new OrderSpecifier[]{
           isAsc ? interest.name.asc() : interest.name.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
-          interest.id.asc()  // tie-breaker
+          isAsc ? interest.id.asc() : interest.id.desc()
       };
     } else {
       return new OrderSpecifier[]{
           isAsc ? interest.subscriberCount.asc() : interest.subscriberCount.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
-          interest.id.asc()  // tie-breaker
+          isAsc ? interest.id.asc() : interest.id.desc()
       };
     }
   }
