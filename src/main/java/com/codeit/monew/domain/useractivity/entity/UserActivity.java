@@ -1,11 +1,9 @@
 package com.codeit.monew.domain.useractivity.entity;
 
 import com.codeit.monew.domain.article.ArticleSource;
-import java.lang.annotation.Documented;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

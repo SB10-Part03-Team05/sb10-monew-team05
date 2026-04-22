@@ -7,7 +7,6 @@ import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.event.CommentCreatedEvent;
 import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.exception.comment.CommentLikeAlreadyExistsException;
@@ -15,14 +14,13 @@ import com.codeit.monew.global.exception.comment.CommentLikeNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

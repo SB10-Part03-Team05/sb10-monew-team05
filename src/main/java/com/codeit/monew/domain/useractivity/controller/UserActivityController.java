@@ -1,7 +1,5 @@
 package com.codeit.monew.domain.useractivity.controller;
 
-import com.codeit.monew.domain.user.dto.UserDto;
-import com.codeit.monew.domain.user.service.UserService;
 import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.service.UserActivityService;
 import com.codeit.monew.global.exception.ErrorResponse;

@@ -21,14 +21,14 @@ import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.Interest.SubscriptionNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
-import java.util.UUID;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

@@ -1,8 +1,8 @@
 package com.codeit.monew.domain.article.service;
 
 import com.codeit.monew.domain.article.ArticleSource;
-import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
@@ -16,9 +16,8 @@ import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.event.ArticleViewedEvent;
-import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.List;

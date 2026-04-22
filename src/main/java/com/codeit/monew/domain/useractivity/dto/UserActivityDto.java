@@ -1,12 +1,8 @@
 package com.codeit.monew.domain.useractivity.dto;
 
-import com.codeit.monew.domain.comment.dto.CommentDto;
-import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
 
 public record UserActivityDto(
     @Schema(description = "사용자 ID")
