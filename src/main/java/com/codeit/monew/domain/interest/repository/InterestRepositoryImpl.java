@@ -10,6 +10,7 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,9 +91,10 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     String nextCursor = null;
     if (hasNext && !interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
-      nextCursor = "name".equals(orderBy)
+      String raw = "name".equals(orderBy)
           ? last.getName() + "::" + last.getId()
           : last.getSubscriberCount() + "::" + last.getId();
+      nextCursor = Base64.getEncoder().encodeToString(raw.getBytes());
     }
 
     // 8. totalElements
@@ -126,7 +128,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
   /**
    * 커서 기반 페이지네이션 조건 생성
    * 정렬 기준(name/subscriberCount)과 방향(ASC/DESC)에 따라 커서 조건 생성
-   * cursor는 'value::uuid' 형식이며 uuid로 tie-breaking 처리
+   * cursor는 Base64로 인코딩된 'value::uuid' 형식이며 uuid로 tie-breaking 처리
    * cursor가 없으면 null 반환 (첫 페이지)
    */
   private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor) {
@@ -135,7 +137,8 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       return null;
 
     // cursor 파싱
-    String[] parts = cursor.split("::", 2);
+    String decoded = new String(Base64.getDecoder().decode(cursor));
+    String[] parts = decoded.split("::", 2);
     if (parts.length != 2) {
       throw new IllegalArgumentException("잘못된 cursor 형식입니다. cursor는 'value::uuid' 형식이어야 합니다: " + cursor);
     }
