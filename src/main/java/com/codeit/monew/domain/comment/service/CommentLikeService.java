@@ -7,12 +7,16 @@ import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.exception.comment.CommentLikeAlreadyExistsException;
 import com.codeit.monew.global.exception.comment.CommentLikeNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,7 @@ public class CommentLikeService {
   private final CommentLikeRepository commentLikeRepository;
   private final CommentRepository commentRepository;
   private final UserRepository userRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   // 댓글 좋아요 등록
   @Transactional
@@ -51,6 +56,18 @@ public class CommentLikeService {
       commentLikeRepository.flush(); // 즉시 반영하여 유니크 제약 검사 유도
 
       log.info("댓글 좋아요 등록: commentId={}, userId={}", commentId, userId);
+
+      // 활동 내역 댓글 좋아요 정보 갱신 로직
+      eventPublisher.publishEvent(new CommentLikedEvent(
+          savedLike.getId(),
+          savedLike.getCreatedAt(),
+          commentId,
+          comment.getArticle().getId(),
+          userId,
+          user.getNickname(),
+          comment.getLikeCount(),
+          comment.getCreatedAt()
+      ));
 
       return new CommentLikeDto(
           savedLike.getId(),

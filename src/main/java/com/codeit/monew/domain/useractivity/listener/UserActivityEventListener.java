@@ -2,10 +2,12 @@ package com.codeit.monew.domain.useractivity.listener;
 
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.CommentInfo;
+import com.codeit.monew.domain.useractivity.entity.UserActivity.CommentLikeInfo;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.SubscriptionInfo;
 import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
 import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,7 @@ public class UserActivityEventListener {
 
     Update update = new Update()
         .push("subscriptions")
+        .slice(-10)
         .each(newSubscriptionInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
@@ -59,7 +62,6 @@ public class UserActivityEventListener {
     log.info("[USER_ACTIVITY] 관심사 구독 목록 업데이트 완료");
   }
 
-  //todo handleCommentCreatedEvent() 댓글 등록 이벤트
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentCreatedEvent(CommentCreatedEvent event) {
@@ -81,6 +83,26 @@ public class UserActivityEventListener {
   }
 
   //todo handleCommentLikedEvent() 댓글 좋아요 등록 이벤트
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleCommentLikedEvent(CommentLikedEvent event) {
+    log.debug("[USER_ACTIVITY] 댓글 좋아요 이벤트 수신: userId={}, commentLikeId={}", event.commentUserId(),
+        event.commentLikeId());
+
+    Query query = new Query(Criteria.where("_id").is(event.commentUserId().toString()));
+
+    CommentLikeInfo newCommentLikeInfo = userActivityMapper.toCommentLikeInfo(event);
+
+    Update update = new Update()
+        .push("commentLikes")
+        .slice(-10)
+        .each(newCommentLikeInfo);
+
+    mongoTemplate.updateFirst(query, update, UserActivity.class);
+
+    log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
+  }
+
 
   //todo handleArticleViewedEvent() 기사 조회 갱신 이벤트
 
