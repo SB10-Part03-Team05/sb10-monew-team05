@@ -13,6 +13,7 @@ import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentUpdatedEvent;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
@@ -92,6 +93,14 @@ public class CommentService {
 
     // 3. DTO 변환
     boolean likedByMe = commentLikeRepository.existsByCommentIdAndUserId(commentId, requesterId);
+
+    // 활동 내역 댓글 수정 정보 갱신 로직
+    eventPublisher.publishEvent(new CommentUpdatedEvent(
+        requesterId,
+        commentId,
+        content
+    ));
+
     return commentMapper.toDto(comment, comment.getUser().getNickname(), likedByMe);
   }
 

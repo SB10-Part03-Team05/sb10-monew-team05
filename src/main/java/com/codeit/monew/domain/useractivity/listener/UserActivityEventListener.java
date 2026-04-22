@@ -11,6 +11,7 @@ import com.codeit.monew.global.event.ArticleViewedEvent;
 import com.codeit.monew.global.event.CommentCreatedEvent;
 import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
+import com.codeit.monew.global.event.CommentUpdatedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
@@ -87,8 +88,23 @@ public class UserActivityEventListener {
     log.info("[USER_ACTIVITY] 댓글 목록 업데이트 완료");
   }
 
-  // todo 댓글 수정 이벤트
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleCommentUpdatedEvent(CommentUpdatedEvent event) {
+    log.debug("[USER_ACTIVITY] 댓글 수정 이벤트 수신: userId={}, commentId={}",
+        event.userId(), event.commentId());
 
+    Query query = new Query(
+        Criteria.where("_id").is(event.userId().toString())
+            .and("comments._id").is(event.commentId().toString())
+    );
+
+    Update update = new Update().set("comments.$.content", event.newContent());
+
+    mongoTemplate.updateFirst(query, update, UserActivity.class);
+
+    log.info("[USER_ACTIVITY] 댓글 내용 수정 완료");
+  }
 
   // todo 댓글 삭제 이벤트
 
@@ -126,7 +142,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
 
-    log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
+    log.info("[USER_ACTIVITY] 댓글 좋아요 취소 완료");
   }
 
   @Async
