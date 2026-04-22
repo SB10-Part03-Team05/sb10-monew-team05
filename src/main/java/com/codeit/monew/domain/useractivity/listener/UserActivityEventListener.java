@@ -9,7 +9,6 @@ import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
 import com.codeit.monew.global.event.ArticleViewedEvent;
 import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.event.CommentDeletedEvent;
 import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.CommentUpdatedEvent;
@@ -106,24 +105,6 @@ public class UserActivityEventListener {
 
     log.info("[USER_ACTIVITY] 댓글 내용 수정 완료");
   }
-
-  @Async
-  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void handleCommentDeletedEvent(CommentDeletedEvent event) {
-    log.debug("[USER_ACTIVITY] 댓글 삭제 이벤트 수신:  commentId={}", event.commentId());
-
-    Query query = new Query();
-
-    // 댓글과 연관된 댓글 좋아요를 활동 내역에서 제거
-    Update pullUpdate = new Update()
-        .pull("comments", new Document("_id", event.commentId().toString()))
-        .pull("commentLikes", new Document("commentId", event.commentId().toString()));
-
-    mongoTemplate.updateMulti(query, pullUpdate, UserActivity.class);
-
-    log.info("[USER_ACTIVITY] 댓글 내용 삭제 완료");
-  }
-
 
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

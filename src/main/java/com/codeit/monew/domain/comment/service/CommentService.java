@@ -13,7 +13,6 @@ import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.event.CommentDeletedEvent;
 import com.codeit.monew.global.event.CommentUpdatedEvent;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
@@ -116,11 +115,6 @@ public class CommentService {
     // 엔티티에 설정된 @SQLDelete 작동 -> deleted_at에 현재 시간 기록
     commentRepository.delete(comment);
     log.info("[COMMENT_DELETE] 댓글 논리 삭제 완료: commentId= {}", commentId);
-
-    // 활동 내역 댓글 삭제 정보 갱신 로직
-    eventPublisher.publishEvent(new CommentDeletedEvent(
-        commentId
-    ));
   }
 
   // 댓글 물리 삭제
