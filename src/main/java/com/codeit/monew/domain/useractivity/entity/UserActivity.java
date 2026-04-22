@@ -17,7 +17,7 @@ import org.springframework.data.mongodb.core.mapping.FieldType;
 @Getter
 @Setter
 @NoArgsConstructor
-@Document
+@Document(collation = "user-activities")
 public class UserActivity {
 
   @Id
