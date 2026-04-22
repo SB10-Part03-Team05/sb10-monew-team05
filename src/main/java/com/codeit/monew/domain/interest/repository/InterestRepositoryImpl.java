@@ -8,8 +8,9 @@ import com.codeit.monew.domain.interest.entity.QKeyword;
 import com.codeit.monew.domain.interest.entity.QSubscription;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.Instant;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +33,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
 
   @Override
   public CursorPageResponseInterestDto findInterests(String searchKeyword, String orderBy,
-      String direction, String cursor, Instant after, int limit, UUID userId) {
+      String direction, String cursor, int limit, UUID userId) {
     // 1. 검색 + 커서 조건으로 Interest 엔티티 조회
     List<Interest> interests = queryFactory
         .selectFrom(interest)
         .leftJoin(interest.keywords, keyword)
         .where(
             buildSearchCondition(searchKeyword),
-            buildCursorCondition(orderBy, direction, cursor, after)
+            buildCursorCondition(orderBy, direction, cursor)
         )
         .groupBy(interest.id)
         .orderBy(buildOrderSpecifiers(orderBy, direction))
@@ -86,15 +87,16 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
         .map(i -> InterestDto.from(i, subscribedIds.contains(i.getId())))
         .toList();
 
-    // 7. nextCursor, nextAfter 계산
+    // 7. nextCursor 계산
     String nextCursor = null;
-    Instant nextAfter = null;
     if (hasNext && !interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
-      nextCursor = "name".equals(orderBy)
-          ? last.getName() + "::" + last.getId()
-          : last.getSubscriberCount() + "::" + last.getId();
-      nextAfter = last.getCreatedAt();
+      String valueToken = "name".equals(orderBy)
+          ? Base64.getUrlEncoder().withoutPadding()
+          .encodeToString(last.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+          : String.valueOf(last.getSubscriberCount());
+      String raw = valueToken + "::" + last.getId();
+      nextCursor = Base64.getEncoder().encodeToString(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     // 8. totalElements
@@ -108,7 +110,6 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     return new CursorPageResponseInterestDto(
         content,
         nextCursor,
-        nextAfter,
         content.size(),
         totalElements != null ? totalElements : 0L,
         hasNext
@@ -129,26 +130,33 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
   /**
    * 커서 기반 페이지네이션 조건 생성
    * 정렬 기준(name/subscriberCount)과 방향(ASC/DESC)에 따라 커서 조건 생성
-   * 동일값 존재 시 createdAt으로 tie-breaking 처리
-   * cursor 또는 after가 없으면 null 반환 (첫 페이지)
+   * cursor는 Base64로 인코딩된 'value::uuid' 형식이며 uuid로 tie-breaking 처리
+   * cursor가 없으면 null 반환 (첫 페이지)
    */
-  private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor, Instant after) {
+  private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor) {
     validateSortArgs(orderBy, direction);
-    if ((cursor == null) != (after == null)) {
-      throw new IllegalArgumentException("cursor와 after는 함께 전달되어야 합니다.");
-    }
-    if (cursor == null) return null;
+    if (cursor == null)
+      return null;
 
     // cursor 파싱
-    String[] parts = cursor.split("::", 2);
-    String cursorValue = parts[0];
-    UUID cursorId = null;
-    if (parts.length > 1) {
-      try {
-        cursorId = UUID.fromString(parts[1]);
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException("잘못된 cursor ID 형식입니다: " + parts[1]);
-      }
+    String decoded;
+    try {
+      decoded = new String(Base64.getDecoder().decode(cursor), java.nio.charset.StandardCharsets.UTF_8);
+    } catch (IllegalArgumentException e) {
+       throw new IllegalArgumentException("잘못된 cursor 인코딩입니다: " + cursor);
+    }
+    String[] parts = decoded.split("::", 2);
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("잘못된 cursor 형식입니다. cursor는 'value::uuid' 형식이어야 합니다: " + cursor);
+    }
+    String cursorValue = "name".equals(orderBy)
+        ? new String(Base64.getUrlDecoder().decode(parts[0]), java.nio.charset.StandardCharsets.UTF_8)
+        : parts[0];
+    UUID cursorId;
+    try {
+      cursorId = UUID.fromString(parts[1]);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("잘못된 cursor ID 형식입니다: " + parts[1]);
     }
 
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
@@ -156,15 +164,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if ("name".equals(orderBy)) {
       return isAsc
           ? interest.name.gt(cursorValue)
-          .or(interest.name.eq(cursorValue).and(interest.createdAt.gt(after)))
           .or(interest.name.eq(cursorValue)
-              .and(interest.createdAt.eq(after))
-              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+              .and(interest.id.gt(cursorId)))
           : interest.name.lt(cursorValue)
-              .or(interest.name.eq(cursorValue).and(interest.createdAt.lt(after)))
               .or(interest.name.eq(cursorValue)
-                  .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
+                  .and(interest.id.lt(cursorId)));
     } else {
       long cursorLong;
       try {
@@ -174,22 +178,18 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       }
       return isAsc
           ? interest.subscriberCount.gt(cursorLong)
-          .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.gt(after)))
           .or(interest.subscriberCount.eq(cursorLong)
-              .and(interest.createdAt.eq(after))
-              .and(cursorId != null ? interest.id.gt(cursorId) : null))
+              .and(interest.id.gt(cursorId)))
           : interest.subscriberCount.lt(cursorLong)
-              .or(interest.subscriberCount.eq(cursorLong).and(interest.createdAt.lt(after)))
               .or(interest.subscriberCount.eq(cursorLong)
-                  .and(interest.createdAt.eq(after))
-                  .and(cursorId != null ? interest.id.gt(cursorId) : null));
+                  .and(interest.id.lt(cursorId)));
     }
   }
 
   /**
    * 정렬 조건 생성
    * 정렬 기준(name/subscriberCount)과 방향(ASC/DESC)에 따라 정렬 조건 생성
-   * 동일값 존재 시 createdAt을 보조 정렬 기준으로 사용
+   * 동일값 존재 시 id를 보조 정렬 기준으로 사용 (tie-breaking)
    */
   private OrderSpecifier<?>[] buildOrderSpecifiers(String orderBy, String direction) {
     validateSortArgs(orderBy, direction);
@@ -197,14 +197,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if ("name".equals(orderBy)) {
       return new OrderSpecifier[]{
           isAsc ? interest.name.asc() : interest.name.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
-          interest.id.asc()  // tie-breaker
+          isAsc ? interest.id.asc() : interest.id.desc()
       };
     } else {
       return new OrderSpecifier[]{
           isAsc ? interest.subscriberCount.asc() : interest.subscriberCount.desc(),
-          isAsc ? interest.createdAt.asc() : interest.createdAt.desc(),
-          interest.id.asc()  // tie-breaker
+          isAsc ? interest.id.asc() : interest.id.desc()
       };
     }
   }

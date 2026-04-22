@@ -20,7 +20,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   @Transactional
   @Modifying
   @Query("DELETE FROM Subscription s WHERE s.user.id = :userId AND s.interest.id = :interestId")
-  long deleteByUserIdAndInterestId(UUID userId, UUID interestId);
+  int deleteByUserIdAndInterestId(UUID userId, UUID interestId);
 
   List<Subscription> findByInterestIdIn(Collection<UUID> interestIds);
 
