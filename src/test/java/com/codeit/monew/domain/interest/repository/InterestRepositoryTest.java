@@ -138,6 +138,107 @@ class InterestRepositoryTest {
   }
 
   // 2. 정렬
+  @Nested
+  @DisplayName("관심사 정렬 테스트")
+  class sort {
+
+    @Test
+    @DisplayName("name이 ASC 정렬된다.")
+    void success_sort_by_name_asc() {
+      // given
+      createInterest("축구", List.of("공"));
+      createInterest("가나다", List.of("가"));
+      createInterest("마바사", List.of("마"));
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "name", "ASC", null, 10, userId
+      );
+
+      // then
+      assertThat(result.content()).extracting("name")
+          .containsExactly("가나다", "마바사", "축구");
+    }
+
+    @Test
+    @DisplayName("name이 DESC 정렬된다.")
+    void success_sort_by_name_desc() {
+      // given
+      createInterest("축구", List.of("공"));
+      createInterest("가나다", List.of("가"));
+      createInterest("마바사", List.of("마"));
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "name", "DESC", null, 10, userId
+      );
+
+      // then
+      assertThat(result.content()).extracting("name")
+          .containsExactly("축구", "마바사", "가나다");
+    }
+
+    @Test
+    @DisplayName("subscriberCount이 ASC 정렬된다.")
+    void success_sort_by_subscriber_count_asc() {
+      // given
+      Interest interest1 = createInterest("스포츠", List.of("축구"));
+      Interest interest2 = createInterest("경제", List.of("주식"));
+      Interest interest3 = createInterest("IT", List.of("개발"));
+
+      // subscriberCount 직접 설정
+      interestRepository.incrementSubscriberCount(interest1.getId());
+      interestRepository.incrementSubscriberCount(interest1.getId());
+      interestRepository.incrementSubscriberCount(interest2.getId());
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "subscriberCount", "ASC", null, 10, userId
+      );
+
+      // then
+      assertThat(result.content()).extracting("name")
+          .containsExactly("IT", "경제", "스포츠");
+    }
+
+    @Test
+    @DisplayName("subscriberCount이 DESC 정렬된다.")
+    void success_sort_by_subscriber_count_desc() {
+      // given
+      Interest interest1 = createInterest("스포츠", List.of("축구"));
+      Interest interest2 = createInterest("경제", List.of("주식"));
+      Interest interest3 = createInterest("IT", List.of("개발"));
+
+      interestRepository.incrementSubscriberCount(interest1.getId());
+      interestRepository.incrementSubscriberCount(interest1.getId());
+      interestRepository.incrementSubscriberCount(interest2.getId());
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "subscriberCount", "DESC", null, 10, userId
+      );
+
+      // then
+      assertThat(result.content()).extracting("name")
+          .containsExactly("스포츠", "경제", "IT");
+    }
+  }
   // 3. 커서 페이지네이션
   // 4. 구독
 
