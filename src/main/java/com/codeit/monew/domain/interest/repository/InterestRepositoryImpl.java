@@ -91,9 +91,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     String nextCursor = null;
     if (hasNext && !interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
-      String raw = "name".equals(orderBy)
-          ? last.getName() + "::" + last.getId()
-          : last.getSubscriberCount() + "::" + last.getId();
+      String valueToken = "name".equals(orderBy)
+          ? Base64.getUrlEncoder().withoutPadding()
+          .encodeToString(last.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+          : String.valueOf(last.getSubscriberCount());
+      String raw = valueToken + "::" + last.getId();
       nextCursor = Base64.getEncoder().encodeToString(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -147,7 +149,9 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
     if (parts.length != 2) {
       throw new IllegalArgumentException("잘못된 cursor 형식입니다. cursor는 'value::uuid' 형식이어야 합니다: " + cursor);
     }
-    String cursorValue = parts[0];
+    String cursorValue = "name".equals(orderBy)
+        ? new String(Base64.getUrlDecoder().decode(parts[0]), java.nio.charset.StandardCharsets.UTF_8)
+        : parts[0];
     UUID cursorId;
     try {
       cursorId = UUID.fromString(parts[1]);
