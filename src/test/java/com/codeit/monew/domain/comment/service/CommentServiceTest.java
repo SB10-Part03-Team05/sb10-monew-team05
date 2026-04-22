@@ -2,16 +2,21 @@ package com.codeit.monew.domain.comment.service;
 
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
+import com.codeit.monew.domain.comment.dto.CommentCursorRequest;
 import com.codeit.monew.domain.comment.dto.CommentDto;
+import com.codeit.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.codeit.monew.domain.comment.entity.Comment;
 import com.codeit.monew.domain.comment.mapper.CommentMapper;
 import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
+import com.codeit.monew.domain.comment.repository.CommentQueryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,12 +28,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -43,6 +51,7 @@ class CommentServiceTest {
   @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private ArticleRepository articleRepository;
   @Mock private UserRepository userRepository;
+  @Mock private CommentQueryRepository commentQueryRepository;
   @Mock private CommentMapper commentMapper;
 
   @Nested
@@ -87,7 +96,7 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("존재하지 않는 유저 ID가 들어오면 UserNotFoundException이 발생한다.")
-    void fail_comment_userNotFound() {
+    void fail_comment_UserNotFound() {
       // given
       UUID articleId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
@@ -106,7 +115,7 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("존재하지 않는 기사 ID가 들어오면 ArticleNotFoundException이 발생한다.")
-    void fail_comment_articleNotFound() {
+    void fail_comment_ArticleNotFound() {
       // given
       UUID articleId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
@@ -165,7 +174,7 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("DB에 존재하지 않는 댓글 ID로 요청하면 CommentNotFoundException이 발생한다.")
-    void fail_commentNotFound() {
+    void fail_comment_NotFound() {
       // given
       UUID commentId = UUID.randomUUID();
       UUID requesterId = UUID.randomUUID();
@@ -179,7 +188,7 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("댓글 작성자가 아닌 다른 유저가 수정을 요청하면 CommentUpdateForbiddenException이 발생한다.")
-    void fail_commentUpdateForbidden() {
+    void fail_comment_UpdateForbidden() {
       // given
       UUID commentId = UUID.randomUUID();
       UUID authorId = UUID.randomUUID(); // 작성자
@@ -267,6 +276,79 @@ class CommentServiceTest {
           .isInstanceOf(com.codeit.monew.global.exception.comment.CommentNotFoundException.class);
 
       verify(commentRepository, never()).deleteByIdHard(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 목록 조회 테스트")
+  class ReadCommentList {
+
+    @Test
+    @DisplayName("요청한 limit보다 조회된 데이터가 많으면 hasNext=true를 반환하고 마지막 데이터를 자른다.")
+    void success_read_comment_hasNext_true() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+      int limit = 2;
+      CommentCursorRequest request = new CommentCursorRequest(articleId, "createdAt", "DESC", null, null, limit);
+
+      given(articleRepository.existsById(articleId)).willReturn(true);
+
+      Article mockArticle = mock(Article.class);
+      User mockUser = mock(User.class);
+      given(mockUser.getNickname()).willReturn("테스트 닉네임");
+
+      List<Comment> mockComments = new ArrayList<>();
+      for (int i = 0; i < 3; i++) {
+        Comment comment = new Comment(mockArticle, mockUser, "테스트 내용 " + i);
+
+        ReflectionTestUtils.setField(comment, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(comment, "createdAt", Instant.now().minusSeconds(i));
+        ReflectionTestUtils.setField(comment, "likeCount", (long) i);
+
+        mockComments.add(comment);
+      }
+
+      given(commentQueryRepository.findCommentsByCursor(eq(articleId), any())).willReturn(mockComments);
+      given(commentLikeRepository.findLikedCommentIdsByUserAndComments(eq(requesterId), anyList()))
+          .willReturn(List.of(mockComments.get(0).getId()));
+      given(commentRepository.countByArticleIdAndDeletedAtIsNull(articleId)).willReturn(15L);
+
+      CommentDto mockDto = mock(CommentDto.class);
+      given(commentMapper.toDto(any(), anyString(), anyBoolean())).willReturn(mockDto);
+
+      // when
+      CursorPageResponseCommentDto response = commentService.getCommentList(articleId, requesterId, request);
+
+      // then
+      assertThat(response.hasNext()).isTrue();
+      assertThat(response.content()).hasSize(limit);
+      assertThat(response.totalElements()).isEqualTo(15L);
+
+      Comment lastIncludedComment = mockComments.get(1);
+      String expectedCompositeCursor = lastIncludedComment.getCreatedAt().toString() + "_" + lastIncludedComment.getId();
+
+      assertThat(response.nextCursor()).isEqualTo(expectedCompositeCursor);
+      assertThat(response.nextAfter()).isEqualTo(lastIncludedComment.getCreatedAt());
+
+      verify(commentLikeRepository).findLikedCommentIdsByUserAndComments(eq(requesterId), anyList()); // IN 쿼리가 1번 호출되었는지 검증
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 ID면 ArticleNotFoundException 발생한다.")
+    void fail_read_comment_ArticleNotFound() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      CommentCursorRequest request = new CommentCursorRequest(articleId, "createdAt", "DESC", null, null, 10);
+
+      given(articleRepository.existsById(articleId)).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> commentService.getCommentList(articleId, userId, request))
+          .isInstanceOf(ArticleNotFoundException.class);
+
+      verify(commentQueryRepository, never()).findCommentsByCursor(any(), any()); // 쿼리 레포지토리가 호출되지 않음을 검증
     }
   }
 }
