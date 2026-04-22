@@ -92,7 +92,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     Instant after = null;
     if (articleDtoSlice.hasNext() && lastArticleDto != null) {
       Instant createdAt = findCreatedAtById(article, lastArticleDto.id());
-      nextCursor = findNextCursor(lastArticleDto, request.getOrderBy(), createdAt);
+      nextCursor = findNextCursor(lastArticleDto, request.getOrderBy(), createdAt); // 복합 커서 조합
       after = createdAt;
     }
 
@@ -106,6 +106,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     );
   }
 
+  // 복합 커서용 내부 record(`publishDate`)
   private record PublishDateCursor(
       Instant publishDate,
       Instant createdAt,
@@ -114,6 +115,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
 
   }
 
+  // 복합 커서용 내부 record(`commentCount`, `viewCount`)
   private record CountCursor(
       Long count,
       Instant createdAt,
@@ -122,6 +124,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
 
   }
 
+  // `orderBy` 가 `publishDate` 일 때 복합 cursor 분리
   private PublishDateCursor parserPublishDateCursor(String cursor) {
     if (cursor == null) {
       return null;
@@ -143,6 +146,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     }
   }
 
+  // `orderBy` 가 `commentCount` 나 `viewCount` 일 때 복합 cursor 분리
   private CountCursor parserCountCursor(String cursor) {
     if (cursor == null) {
       return null;
@@ -164,6 +168,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     }
   }
 
+  // Instant 파싱
   private Instant parserInstant(String stringInstant) {
     if (stringInstant == null) {
       return null;
@@ -172,6 +177,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return Instant.parse(stringInstant);
   }
 
+  // UUID 파싱
   private UUID parserUUID(String stringId) {
     if (stringId == null) {
       return null;
@@ -180,6 +186,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return UUID.fromString(stringId);
   }
 
+  // Long 파싱
   private Long parserLong(String stringLong) {
     if (stringLong == null) {
       return null;
@@ -439,7 +446,7 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return new SliceImpl<>(content, pageable, hasNext);
   }
 
-  // nextCursor(다음 페이지 커서) 조합
+  // nextCursor(다음 페이지 커서) 조합 (복합 커서)
   private String findNextCursor(ArticleDto lastArticleDto, ArticleOrderBy orderBy,
       Instant createdAt) {
     UUID lastArticleId = lastArticleDto.id();
