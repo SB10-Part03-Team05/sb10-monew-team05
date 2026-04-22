@@ -4,6 +4,7 @@ import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.comment.entity.Comment;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.global.common.base.BaseUpdatableEntity;
+import com.codeit.monew.global.exception.article.InvalidArticleEntityException;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -81,23 +82,28 @@ public class Article extends BaseUpdatableEntity {
   private static void validateArticle(ArticleSource source, String sourceUrl, String title,
       Instant publishDate, String summary) {
     // 필수 값 검증
-    if (source == null || isTextEmpty(sourceUrl) || isTextEmpty(title) ||
-        publishDate == null || isTextEmpty(summary)) {
-      throw new IllegalArgumentException();
-      // todo: 커스텀 예외로 변경하기
-      //throw new BusinessException(ErrorCode.INVALID_ARTICLE_FORMAT);
+    if (source == null) {
+      throw new InvalidArticleEntityException("source", "null");
+    }
+    if (isTextEmpty(sourceUrl)) {
+      throw new InvalidArticleEntityException("sourceUrl", "blank");
+    }
+    if (isTextEmpty(title)) {
+      throw new InvalidArticleEntityException("title", "blank");
+    }
+    if (publishDate == null) {
+      throw new InvalidArticleEntityException("publishDate", "null");
+    }
+    if (isTextEmpty(summary)) {
+      throw new InvalidArticleEntityException("summary", "blank");
     }
 
     // 길이 제한 검증
     if (title.length() > 200) {
-      throw new IllegalArgumentException();
-      // todo: 커스텀 예외로 변경하기
-      //throw new BusinessException(ErrorCode.ARTICLE_TITLE_TOO_LONG);
+      throw new InvalidArticleEntityException("title", "too_long", 200, title.length());
     }
     if (sourceUrl.length() > 2048) {
-      throw new IllegalArgumentException();
-      // todo: 커스텀 예외로 변경하기
-      //throw new BusinessException(ErrorCode.ARTICLE_URL_TOO_LONG);
+      throw new InvalidArticleEntityException("sourceUrl", "too_long", 2048, sourceUrl.length());
     }
   }
 

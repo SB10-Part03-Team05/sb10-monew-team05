@@ -15,6 +15,7 @@ public enum ErrorCode {
 
   // Article 관련 에러 코드
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),
+  INVALID_ARTICLE_ENTITY("뉴스 기사 정보가 유효하지 않습니다."),
 
   // Interest 관련 에러 코드
   INTEREST_NOT_FOUND("관심사를 찾을 수 없습니다."),
