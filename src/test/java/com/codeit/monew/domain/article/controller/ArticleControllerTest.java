@@ -38,8 +38,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -264,14 +265,14 @@ class ArticleControllerTest {
     }
 
     @Test
-    @DisplayName("keyword가 공백일 경우 400 상태코드와 MethodArgumentNotValidException 예외 발생")
+    @DisplayName("keyword가 공백이 연속될 경우 400 상태코드와 MethodArgumentNotValidException 예외 발생")
     void fail_search_article_list_when_keyword_is_not_blank() throws Exception {
       // given(준비)
       UUID requestUserId = UUID.randomUUID();
 
       // when(시작), then(검증)
       mockMvc.perform(get("/api/articles")
-              .param("keyword", "")
+              .param("keyword", " ")
               .param("orderBy", ArticleOrderBy.publishDate.toString())
               .param("direction", ArticleDirection.DESC.toString())
               .param("limit", "5")
@@ -417,6 +418,77 @@ class ArticleControllerTest {
           .andExpect(
               jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()))
           .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 논리 삭제 API 테스트")
+  class delete {
+
+    @Test
+    @DisplayName("뉴스 기사 논리 삭제하면 204 상태코드를 반환한다.")
+    void success_soft_delete_article() throws Exception {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+
+      willDoNothing().given(articleService).delete(articleId);
+
+      // when(실행), then(검증)
+      mockMvc.perform(delete("/api/articles/{articleId}", articleId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("뉴스 기사 ID를 찾을 수 없을 경우 404 상태코드와 ArticleNotFoundException 예외 발생")
+    void fail_soft_delete_article_when_article_not_found() throws Exception {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+
+      willThrow(new ArticleNotFoundException(articleId)).given(articleService).delete(articleId);
+
+      // when(실행), then(검증)
+      mockMvc.perform(delete("/api/articles/{articleId}", articleId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value(ErrorCode.ARTICLE_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스 기사 물리 삭제 API 테스트")
+  class hardDelete {
+
+    @Test
+    @DisplayName("뉴스 기사 물리 삭제하면 204 상태코드를 반환한다.")
+    void success_hard_delete_article() throws Exception {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+
+      willDoNothing().given(articleService).hardDelete(articleId);
+
+      // when(실행), then(검증)
+      mockMvc.perform(delete("/api/articles/{articleId}/hard", articleId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("뉴스 기사 ID를 찾을 수 없을 경우 404 상태코드와 ArticleNotFoundException 예외 발생")
+    void fail_hard_delete_article_when_article_not_found() throws Exception {
+      // given(준비)
+      UUID articleId = UUID.randomUUID();
+
+      willThrow(new ArticleNotFoundException(articleId)).given(articleService)
+          .hardDelete(articleId);
+
+      // when(실행), then(검증)
+      mockMvc.perform(delete("/api/articles/{articleId}/hard", articleId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value(ErrorCode.ARTICLE_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()));
     }
   }
 }

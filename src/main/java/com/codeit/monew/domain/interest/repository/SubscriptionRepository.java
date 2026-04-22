@@ -2,6 +2,8 @@ package com.codeit.monew.domain.interest.repository;
 
 import com.codeit.monew.domain.interest.entity.Subscription;
 import jakarta.transaction.Transactional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,5 +21,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   @Modifying
   @Query("DELETE FROM Subscription s WHERE s.user.id = :userId AND s.interest.id = :interestId")
   long deleteByUserIdAndInterestId(UUID userId, UUID interestId);
+
+  List<Subscription> findByInterestIdIn(Collection<UUID> interestIds);
 
 }

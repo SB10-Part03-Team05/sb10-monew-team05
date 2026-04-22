@@ -162,8 +162,11 @@ public class GlobalExceptionHandler {
       case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS -> HttpStatus.CONFLICT;
       case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN;
       case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG -> HttpStatus.BAD_REQUEST;
-
-      default -> HttpStatus.INTERNAL_SERVER_ERROR; // 지금은 디버깅 에러 잡는 용도, 나중에 지워야 함
+      case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
+      case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
+      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR ->
+          HttpStatus.SERVICE_UNAVAILABLE; // 503
+      default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
     };
   }
 }

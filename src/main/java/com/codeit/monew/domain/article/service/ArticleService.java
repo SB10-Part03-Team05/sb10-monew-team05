@@ -149,4 +149,33 @@ public class ArticleService {
         article.getId());
     return articleViewMapper.toDto(articleViewHistory, article, user, commentCount, viewCount);
   }
+
+  // 뉴스 기사 논리 삭제
+  public void delete(UUID articleId) {
+    log.debug("[ARTICLE_SOFT_DELETE] 뉴스 기사 논리 삭제 시작: articleId={}", articleId);
+
+    // 뉴스 기사 존재 검증
+    Article article = articleRepository.findByIdAndDeletedAtIsNull(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
+
+    // 논리 삭제 (`@SQLDelete`로 인해 `delete` 사용 시 `deletedAt` 이 업데이트 됨)
+    articleRepository.delete(article);
+
+    log.info("[ARTICLE_SOFT_DELETE] 뉴스 기사 논리 삭제 완료: articleId={}", articleId);
+  }
+
+  // 뉴스 기사 물리 삭제
+  public void hardDelete(UUID articleId) {
+    log.debug("[ARTICLE_HARD_DELETE] 뉴스 기사 물리 삭제 시작: articleId={}", articleId);
+
+    // `@SQLDelete`로 인해 `delete` 사용 시 삭제가 아닌 `deletedAt` 이 업데이트 됨
+    // `@SQLRestriction`로 조회 시 deletedAt이 null인 데이터만 가져오도록 필터링하기 때문에
+    // `void` 가 아닌 `int` 로 값을 반환해 id가 존재하는 기사인지 검증도 같이함
+    int deletedCount = articleRepository.hardDelete(articleId);
+    if (deletedCount == 0) { // 뉴스 기사 존재 검증
+      throw new ArticleNotFoundException(articleId);
+    }
+
+    log.info("[ARTICLE_HARD_DELETE] 뉴스 기사 물리 삭제 완료: articleId={}", articleId);
+  }
 }

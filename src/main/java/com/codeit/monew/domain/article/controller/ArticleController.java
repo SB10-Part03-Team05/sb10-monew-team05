@@ -17,13 +17,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -82,8 +83,8 @@ public class ArticleController {
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requestUserId
   ) {
     String keyword = request.getKeyword();
-    Instant publishDateFrom = request.getPublishDateFrom();
-    Instant publishDateTo = request.getPublishDateTo();
+    LocalDateTime publishDateFrom = request.getPublishDateFrom();
+    LocalDateTime publishDateTo = request.getPublishDateTo();
 
     // keyword 정규화
     // `strip` 이 `trim` 보다 `\n`(줄바꿈) `\t`(탭) 같은 유니코드 공백까지 잘 처리. 단, java 11이상
@@ -124,5 +125,35 @@ public class ArticleController {
     ArticleViewDto response = articleService.view(articleId, requestUserId);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @DeleteMapping(value = "/{articleId}")
+  @Operation(summary = "뉴스 기사 논리 삭제", description = "뉴스 기사를 논리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "논리 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<Void> delete(
+      @Parameter(description = "뉴스 기사 ID") @PathVariable UUID articleId
+  ) {
+    articleService.delete(articleId);
+
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @DeleteMapping(value = "/{articleId}/hard")
+  @Operation(summary = "뉴스 기사 물리 삭제", description = "뉴스 기사를 물리적으로 삭제합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "204", description = "삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<Void> hardDelete(
+      @Parameter(description = "뉴스 기사 ID") @PathVariable UUID articleId
+  ) {
+    articleService.hardDelete(articleId);
+
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }
