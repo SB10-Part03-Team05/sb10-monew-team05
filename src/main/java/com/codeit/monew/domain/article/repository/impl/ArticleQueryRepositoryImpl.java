@@ -56,21 +56,24 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     // publishDate는 article table, viewCount는 article_histories table, commentCount는 comment table
     Slice<ArticleDto> articleDtoSlice =
         switch (request.getOrderBy()) {
-          case publishDate ->
-              searchArticleListByPublishDate(request, requestUserId, article, comment,
-                  articleViewAll, articleViewMe, articleInterest, pageable);
+          case publishDate -> {
+            PublishDateCursor cursor = parserPublishDateCursor(request.getCursor());
+
+            yield searchArticleListByPublishDate(request, requestUserId, article, comment,
+                articleViewAll, articleViewMe, articleInterest, cursor, pageable);
+          }
           case commentCount -> {
-            Long normalizedCursor =
-                request.getCursor() == null ? null : parserLong(request.getCursor());
+            CountCursor cursor = parserCountCursor(request.getCursor());
+
             yield searchArticleListByCommentCount(request, requestUserId, article, comment,
-                articleViewAll, articleViewMe, articleInterest, normalizedCursor,
+                articleViewAll, articleViewMe, articleInterest, cursor,
                 commentCountExpression, pageable);
           }
           case viewCount -> {
-            Long normalizedCursor =
-                request.getCursor() == null ? null : parserLong(request.getCursor());
+            CountCursor cursor = parserCountCursor(request.getCursor());
+
             yield searchArticleListByViewCount(request, requestUserId, article, comment,
-                articleViewAll, articleViewMe, articleInterest, normalizedCursor,
+                articleViewAll, articleViewMe, articleInterest, cursor,
                 viewCountExpression, pageable);
           }
         };
@@ -88,8 +91,9 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     String nextCursor = null;
     Instant after = null;
     if (articleDtoSlice.hasNext() && lastArticleDto != null) {
-      nextCursor = findNextCursor(lastArticleDto, request.getOrderBy());
-      after = findCreatedAtById(article, lastArticleDto.id());
+      Instant createdAt = findCreatedAtById(article, lastArticleDto.id());
+      nextCursor = findNextCursor(lastArticleDto, request.getOrderBy(), createdAt);
+      after = createdAt;
     }
 
     return new CursorPageResponseArticleDto(
@@ -102,16 +106,97 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     );
   }
 
+  private record PublishDateCursor(
+      Instant publishDate,
+      Instant createdAt,
+      UUID id
+  ) {
+
+  }
+
+  private record CountCursor(
+      Long count,
+      Instant createdAt,
+      UUID id
+  ) {
+
+  }
+
+  private PublishDateCursor parserPublishDateCursor(String cursor) {
+    if (cursor == null) {
+      return null;
+    }
+
+    String[] cursorParts = cursor.split("\\|", -1);
+    if (cursorParts.length != 3) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
+
+    try {
+      return new PublishDateCursor(
+          parserInstant(cursorParts[0]),
+          parserInstant(cursorParts[1]),
+          parserUUID(cursorParts[2])
+      );
+    } catch (DateTimeParseException | IllegalArgumentException e) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
+  }
+
+  private CountCursor parserCountCursor(String cursor) {
+    if (cursor == null) {
+      return null;
+    }
+
+    String[] cursorParts = cursor.split("\\|", -1);
+    if (cursorParts.length != 3) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
+
+    try {
+      return new CountCursor(
+          parserLong(cursorParts[0]),
+          parserInstant(cursorParts[1]),
+          parserUUID(cursorParts[2])
+      );
+    } catch (DateTimeParseException | IllegalArgumentException e) {
+      throw new InvalidParameterException("cursor", cursor);
+    }
+  }
+
+  private Instant parserInstant(String stringInstant) {
+    if (stringInstant == null) {
+      return null;
+    }
+
+    return Instant.parse(stringInstant);
+  }
+
+  private UUID parserUUID(String stringId) {
+    if (stringId == null) {
+      return null;
+    }
+
+    return UUID.fromString(stringId);
+  }
+
+  private Long parserLong(String stringLong) {
+    if (stringLong == null) {
+      return null;
+    }
+
+    return Long.parseLong(stringLong);
+  }
+
   // orderBy가 publishDate일 때
   private Slice<ArticleDto> searchArticleListByPublishDate(ArticleSearchRequest request,
       UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Pageable pageable) {
-
-    Instant normalizedCursor =
-        request.getCursor() == null ? null : parserInstant(request.getCursor());
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
+      ArticleQueryRepositoryImpl.PublishDateCursor cursor,
+      Pageable pageable) {
 
     List<ArticleDto> content = searchQueryByPublishDate(request, requestUserId, article, comment,
-        articleViewAll, articleViewMe, articleInterest, normalizedCursor);
+        articleViewAll, articleViewMe, articleInterest, cursor);
 
     // Slice 생성
     return toSlice(content, pageable);
@@ -120,11 +205,11 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   // orderBy가 commentCount일 때
   private Slice<ArticleDto> searchArticleListByCommentCount(ArticleSearchRequest request,
       UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Long normalizedCursor,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, CountCursor cursor,
       NumberExpression<Long> commentCountExpression, Pageable pageable) {
 
     List<ArticleDto> content = searchQueryByCount(request, requestUserId, article, comment,
-        articleViewAll, articleViewMe, articleInterest, normalizedCursor, commentCountExpression);
+        articleViewAll, articleViewMe, articleInterest, cursor, commentCountExpression);
 
     // Slice 생성
     return toSlice(content, pageable);
@@ -134,11 +219,11 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   // orderBy가 viewCount일 때
   private Slice<ArticleDto> searchArticleListByViewCount(ArticleSearchRequest request,
       UUID requestUserId, QArticle article, QComment comment, QArticleViewHistory articleViewAll,
-      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, Long normalizedCursor,
+      QArticleViewHistory articleViewMe, QArticleInterest articleInterest, CountCursor cursor,
       NumberExpression<Long> viewCountExpression, Pageable pageable) {
 
     List<ArticleDto> content = searchQueryByCount(request, requestUserId, article, comment,
-        articleViewAll, articleViewMe, articleInterest, normalizedCursor, viewCountExpression);
+        articleViewAll, articleViewMe, articleInterest, cursor, viewCountExpression);
 
     // Slice 생성
     return toSlice(content, pageable);
@@ -148,12 +233,12 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   List<ArticleDto> searchQueryByPublishDate(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
-      Instant normalizedCursor) {
+      PublishDateCursor cursor) {
 
     return baseQuery(request, requestUserId, article, comment, articleViewAll, articleViewMe,
         articleInterest)
         .where(
-            publishDateCursorCondition(article, request.getDirection(), normalizedCursor,
+            publishDateCursorCondition(article, request.getDirection(), cursor,
                 request.getAfter())
         )
         .orderBy(
@@ -175,12 +260,12 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   List<ArticleDto> searchQueryByCount(ArticleSearchRequest request, UUID requestUserId,
       QArticle article, QComment comment, QArticleViewHistory articleViewAll,
       QArticleViewHistory articleViewMe, QArticleInterest articleInterest,
-      Long normalizedCursor, NumberExpression<Long> countExpression) {
+      CountCursor cursor, NumberExpression<Long> countExpression) {
 
     return baseQuery(request, requestUserId, article, comment, articleViewAll, articleViewMe,
         articleInterest)
         .having(
-            countCursorCondition(article, request.getDirection(), normalizedCursor,
+            countCursorCondition(article, request.getDirection(), cursor,
                 request.getAfter(), countExpression)
         )
         .orderBy(
@@ -260,30 +345,6 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     };
   }
 
-  private Instant parserInstant(String cursor) {
-    if (cursor == null) {
-      return null;
-    }
-
-    try {
-      return Instant.parse(cursor);
-    } catch (DateTimeParseException e) {
-      throw new InvalidParameterException("cursor", cursor);
-    }
-  }
-
-  private Long parserLong(String cursor) {
-    if (cursor == null) {
-      return null;
-    }
-
-    try {
-      return Long.parseLong(cursor);
-    } catch (NumberFormatException e) {
-      throw new InvalidParameterException("cursor", cursor);
-    }
-  }
-
   private BooleanExpression keywordContains(QArticle article, String keyword) {
     // ""일 경우를 `null` 을 가지게 하기 위해 `isBlank()` 조건 추가
     return keyword != null && !keyword.isBlank()
@@ -315,41 +376,56 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
 
   // orderBy가 publishDate일 때 커서 조건
   private BooleanExpression publishDateCursorCondition(QArticle article, ArticleDirection direction,
-      Instant cursor, Instant after) {
+      PublishDateCursor cursor, Instant after) {
 
-    if (cursor == null || after == null) {
+    if (cursor == null) {
       return null;
     }
 
     // `lt` -> `<` 미만
     if (direction == ArticleDirection.DESC) {
-      return article.publishDate.lt(cursor)
-          .or(article.publishDate.eq(cursor).and(article.createdAt.lt(after)));
+      return article.publishDate.lt(cursor.publishDate())
+          .or(article.publishDate.eq(cursor.publishDate())
+              .and(article.createdAt.lt(cursor.createdAt())))
+          .or(article.publishDate.eq(cursor.publishDate())
+              .and(article.createdAt.eq(cursor.createdAt()))
+              .and(article.id.lt(cursor.id())));
     }
 
     // `gt` -> `>` 초과
-    return article.publishDate.gt(cursor)
-        .or(article.publishDate.eq(cursor).and(article.createdAt.gt(after)));
+    return article.publishDate.gt(cursor.publishDate())
+        .or(article.publishDate.eq(cursor.publishDate())
+            .and(article.createdAt.gt(cursor.createdAt())))
+        .or(article.publishDate.eq(cursor.publishDate())
+            .and(article.createdAt.eq(cursor.createdAt()))
+            .and(article.id.gt(cursor.id())));
   }
 
   // orderBy가 commentCount/viewCount일 때 커서 조건
-  private BooleanExpression countCursorCondition(QArticle article,
-      ArticleDirection direction, Long cursor, Instant after,
-      NumberExpression<Long> countExpression) {
+  private BooleanExpression countCursorCondition(QArticle article, ArticleDirection direction,
+      CountCursor cursor, Instant after, NumberExpression<Long> countExpression) {
 
-    if (cursor == null || after == null) {
+    if (cursor == null) {
       return null;
     }
 
     // `lt` -> `<` 미만
     if (direction == ArticleDirection.DESC) {
-      return countExpression.lt(cursor)
-          .or(countExpression.eq(cursor).and(article.createdAt.lt(after)));
+      return countExpression.lt(cursor.count())
+          .or(countExpression.eq(cursor.count())
+              .and(article.createdAt.lt(cursor.createdAt())))
+          .or(countExpression.eq(cursor.count())
+              .and(article.createdAt.eq(cursor.createdAt()))
+              .and(article.id.lt(cursor.id())));
     }
 
     // `gt` -> `>` 초과
-    return countExpression.gt(cursor)
-        .or(countExpression.eq(cursor).and(article.createdAt.gt(after)));
+    return countExpression.gt(cursor.count())
+        .or(countExpression.eq(cursor.count())
+            .and(article.createdAt.gt(cursor.createdAt())))
+        .or(countExpression.eq(cursor.count())
+            .and(article.createdAt.eq(cursor.createdAt()))
+            .and(article.id.gt(cursor.id())));
   }
 
   // Slice 생성 메서드
@@ -363,12 +439,33 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
     return new SliceImpl<>(content, pageable, hasNext);
   }
 
-  // nextCursor(다음 페이지 커서) 찾기
-  private String findNextCursor(ArticleDto lastArticleDto, ArticleOrderBy orderBy) {
+  // nextCursor(다음 페이지 커서) 조합
+  private String findNextCursor(ArticleDto lastArticleDto, ArticleOrderBy orderBy,
+      Instant createdAt) {
+    UUID lastArticleId = lastArticleDto.id();
+
     return switch (orderBy) {
-      case publishDate -> lastArticleDto.publishDate().toString();
-      case commentCount -> String.valueOf(lastArticleDto.commentCount());
-      case viewCount -> String.valueOf(lastArticleDto.viewCount());
+      // "publishDate|createdAt|articleId"
+      case publishDate -> String.join(
+          "|",
+          lastArticleDto.publishDate().toString(),
+          createdAt.toString(),
+          lastArticleId.toString()
+      );
+      // "commentCount|createdAt|articleId"
+      case commentCount -> String.join(
+          "|",
+          String.valueOf(lastArticleDto.commentCount()),
+          createdAt.toString(),
+          lastArticleId.toString()
+      );
+      // "viewCount|createdAt|articleId"
+      case viewCount -> String.join(
+          "|",
+          String.valueOf(lastArticleDto.viewCount()),
+          createdAt.toString(),
+          lastArticleId.toString()
+      );
     };
   }
 
