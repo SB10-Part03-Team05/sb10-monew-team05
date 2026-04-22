@@ -15,7 +15,11 @@ jobs: # 실행할 작업(job)들을 정의
   # Codecov로 테스트 커버리지 report 업로드
   codecov: # "codecov"라는 이름의 job
     runs-on: ubuntu-latest  # 실행 환경 설졍(job이 이 환경에서 실행됨)
+    env:
+      NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+      NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
 
+    
     steps: # job 안에시 실행될 단계
       # 1) 현재 repo에서 code를 checkout(가져옴)
       - name: Checkout
@@ -41,5 +45,5 @@ jobs: # 실행할 작업(job)들을 정의
       - name: Codecov로 테스트 커버리지 report 업로드
         uses: codecov/codecov-action@v5
         with:
-          token:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: build/reports/jacoco/test/jacocoTestReport.xml  # 지정 파일만 업로드
