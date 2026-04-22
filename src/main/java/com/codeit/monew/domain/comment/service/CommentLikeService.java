@@ -8,6 +8,7 @@ import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.exception.comment.CommentLikeAlreadyExistsException;
 import com.codeit.monew.global.exception.comment.CommentLikeNotFoundException;
@@ -105,6 +106,12 @@ public class CommentLikeService {
 
     // 3. DB에서 실제로 삭제가 성공했을 때 좋아요 수 감소
     comment.decreaseLikeCount();
+
+    // 활동 내역 댓글 좋아요 정보 갱신 로직
+    eventPublisher.publishEvent(new CommentLikedCancelEvent(
+        userId,
+        commentId
+    ));
 
     log.info("댓글 좋아요 취소: commentId={}, userId={}", commentId, userId);
   }

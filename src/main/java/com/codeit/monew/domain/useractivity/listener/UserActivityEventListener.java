@@ -9,6 +9,7 @@ import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
 import com.codeit.monew.global.event.ArticleViewedEvent;
 import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
@@ -64,6 +65,8 @@ public class UserActivityEventListener {
     log.info("[USER_ACTIVITY] 관심사 구독 목록 업데이트 완료");
   }
 
+  // todo 관심사 구독 취소 이벤트
+
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentCreatedEvent(CommentCreatedEvent event) {
@@ -84,6 +87,12 @@ public class UserActivityEventListener {
     log.info("[USER_ACTIVITY] 댓글 목록 업데이트 완료");
   }
 
+  // todo 댓글 수정 이벤트
+
+
+  // todo 댓글 삭제 이벤트
+
+
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentLikedEvent(CommentLikedEvent event) {
@@ -100,6 +109,22 @@ public class UserActivityEventListener {
         .each(newCommentLikeInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
+
+    log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
+  }
+
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleCommentLikedCancelEvent(CommentLikedCancelEvent event) {
+    log.debug("[USER_ACTIVITY] 댓글 좋아요 취소 이벤트 수신: userId={}", event.userId());
+
+    Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
+
+    Update pullUpdate = new Update().pull("commentLikes",
+        new Document("commentId", event.commentId().toString())
+    );
+
+    mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
   }
