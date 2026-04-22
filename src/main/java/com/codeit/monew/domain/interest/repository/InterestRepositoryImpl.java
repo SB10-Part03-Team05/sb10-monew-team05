@@ -189,7 +189,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
   /**
    * 정렬 조건 생성
    * 정렬 기준(name/subscriberCount)과 방향(ASC/DESC)에 따라 정렬 조건 생성
-   * 동일값 존재 시 createdAt을 보조 정렬 기준으로 사용
+   * 동일값 존재 시 id를 보조 정렬 기준으로 사용 (tie-breaking)
    */
   private OrderSpecifier<?>[] buildOrderSpecifiers(String orderBy, String direction) {
     validateSortArgs(orderBy, direction);
