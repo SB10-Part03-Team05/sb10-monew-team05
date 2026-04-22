@@ -142,7 +142,7 @@ public class UserActivityEventListener {
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentLikedEvent(CommentLikedEvent event) {
-    log.debug("[USER_ACTIVITY] 댓글 좋아요 이벤트 수신: userId={}, commentLikeId={}", event.commentUserId(),
+    log.debug("[USER_ACTIVITY] 댓글 좋아요 이벤트 수신: userId={}, commentLikeId={}", event.userId(),
         event.commentLikeId());
 
     Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
