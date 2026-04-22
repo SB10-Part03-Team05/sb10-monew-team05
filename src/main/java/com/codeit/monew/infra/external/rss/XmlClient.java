@@ -70,6 +70,8 @@ public class XmlClient {
       throw new ExternalServerException(source, url, e.getStatusCode().value(), e);
     } catch (RestClientException e) {
       throw new ExternalNetworkException(source, url, e);
+    } catch (RuntimeException e) {
+      throw new ExternalNetworkException(source, url, e);
     }
   }
 }

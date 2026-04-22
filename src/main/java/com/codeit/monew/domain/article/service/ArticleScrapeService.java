@@ -64,7 +64,8 @@ public class ArticleScrapeService {
     }
 
     // 사용자들이 등록한 모든 키워드와 그에 연결된 관심사 정보를 DB에서 로드
-    List<Keyword> keywords = runStage("load_keywords", source, query, this::loadKeywordsWithInterest);
+    List<Keyword> keywords = runStage("load_keywords", source, query,
+        this::loadKeywordsWithInterest);
 
     // 새 기사들의 텍스트를 분석해 키워드와 매칭하고 기사와 관심사를 연결한 map 생성
     Map<Article, Set<Interest>> articleInterestMap = runStage("map_interests", source, query,
@@ -134,7 +135,6 @@ public class ArticleScrapeService {
         .map(Keyword::getInterest)
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
-
 
   //
   private int saveAndNotify(Map<Article, Set<Interest>> articleInterestMap, NewsSourceUrl source) {
