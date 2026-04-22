@@ -161,12 +161,10 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       return isAsc
           ? interest.name.gt(cursorValue)
           .or(interest.name.eq(cursorValue)
-              .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
-                  .gt(cursorId.toString())))
+              .and(interest.id.gt(cursorId)))
           : interest.name.lt(cursorValue)
               .or(interest.name.eq(cursorValue)
-                  .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
-                      .lt(cursorId.toString())));
+                  .and(interest.id.lt(cursorId)));
     } else {
       long cursorLong;
       try {
@@ -177,12 +175,10 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       return isAsc
           ? interest.subscriberCount.gt(cursorLong)
           .or(interest.subscriberCount.eq(cursorLong)
-              .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
-                  .gt(cursorId.toString())))
+              .and(interest.id.gt(cursorId)))
           : interest.subscriberCount.lt(cursorLong)
               .or(interest.subscriberCount.eq(cursorLong)
-                  .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
-                      .lt(cursorId.toString())));
+                  .and(interest.id.lt(cursorId)));
     }
   }
 
