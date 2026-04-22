@@ -335,7 +335,7 @@ class InterestServiceTest {
       Interest interest = createInterest(interestId, "스포츠");
 
       given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
-      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(1L);
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(1);
 
       // when
       interestService.unsubscribe(interestId, userId);
@@ -370,7 +370,7 @@ class InterestServiceTest {
       Interest interest = createInterest(interestId, "스포츠");
 
       given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
-      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(0L);
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(0);
 
       // when, then
       assertThrows(SubscriptionNotFoundException.class,

@@ -3,6 +3,7 @@ package com.codeit.monew.domain.interest.repository;
 import com.codeit.monew.domain.interest.entity.Interest;
 import jakarta.persistence.LockModeType;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -25,4 +26,8 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>, Inter
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id AND i.subscriberCount > 0")
   int decrementSubscriberCount(@Param("id") UUID id);
+
+  // 구독 응답 키워드 포함을 위해 키워드 fetch join으로 함께 조회
+  @Query("SELECT i FROM Interest i LEFT JOIN FETCH i.keywords WHERE i.id = :id")
+  Optional<Interest> findByIdWithKeywords(@Param("id") UUID id);
 }

@@ -82,6 +82,7 @@ public class InterestService {
 
     // 기존 키워드 전체 삭제
     keywordRepository.deleteAllByInterestId(interestId);
+    keywordRepository.flush();  // 삭제 먼저 DB에 반영
 
     // 새 키워드 저장
     List<Keyword> keywords = request.keywords().stream()
@@ -127,7 +128,7 @@ public class InterestService {
   public SubscriptionDto subscribe(UUID interestId, UUID userId) {
 
     // 관심사 존재 여부 확인
-    Interest interest = interestRepository.findById(interestId)
+    Interest interest = interestRepository.findByIdWithKeywords(interestId)
         .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 사용자 존재 여부 확인
@@ -170,7 +171,7 @@ public class InterestService {
         .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 구독 여부 확인 및 구독 취소
-    long deleted = subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
+    int deleted = subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId);
     if (deleted == 0) {
       throw new SubscriptionNotFoundException(userId, interestId);
     }
