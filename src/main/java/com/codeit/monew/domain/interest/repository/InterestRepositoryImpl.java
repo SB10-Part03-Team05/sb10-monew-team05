@@ -94,7 +94,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       String raw = "name".equals(orderBy)
           ? last.getName() + "::" + last.getId()
           : last.getSubscriberCount() + "::" + last.getId();
-      nextCursor = Base64.getEncoder().encodeToString(raw.getBytes());
+      nextCursor = Base64.getEncoder().encodeToString(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     // 8. totalElements
@@ -137,7 +137,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       return null;
 
     // cursor 파싱
-    String decoded = new String(Base64.getDecoder().decode(cursor));
+    String decoded;
+    try {
+      decoded = new String(Base64.getDecoder().decode(cursor), java.nio.charset.StandardCharsets.UTF_8);
+    } catch (IllegalArgumentException e) {
+       throw new IllegalArgumentException("잘못된 cursor 인코딩입니다: " + cursor);
+    }
     String[] parts = decoded.split("::", 2);
     if (parts.length != 2) {
       throw new IllegalArgumentException("잘못된 cursor 형식입니다. cursor는 'value::uuid' 형식이어야 합니다: " + cursor);
