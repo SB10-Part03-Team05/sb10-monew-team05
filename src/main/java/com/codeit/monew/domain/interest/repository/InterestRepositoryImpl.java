@@ -10,7 +10,6 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -127,8 +126,8 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
   /**
    * 커서 기반 페이지네이션 조건 생성
    * 정렬 기준(name/subscriberCount)과 방향(ASC/DESC)에 따라 커서 조건 생성
-   * 동일값 존재 시 createdAt으로 tie-breaking 처리
-   * cursor 또는 after가 없으면 null 반환 (첫 페이지)
+   * cursor는 'value::uuid' 형식이며 uuid로 tie-breaking 처리
+   * cursor가 없으면 null 반환 (첫 페이지)
    */
   private BooleanExpression buildCursorCondition(String orderBy, String direction, String cursor) {
     validateSortArgs(orderBy, direction);
@@ -137,31 +136,29 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
 
     // cursor 파싱
     String[] parts = cursor.split("::", 2);
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("잘못된 cursor 형식입니다. cursor는 'value::uuid' 형식이어야 합니다: " + cursor);
+    }
     String cursorValue = parts[0];
-    UUID cursorId = null;
-    if (parts.length > 1) {
-      try {
-        cursorId = UUID.fromString(parts[1]);
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException("잘못된 cursor ID 형식입니다: " + parts[1]);
-      }
+    UUID cursorId;
+    try {
+      cursorId = UUID.fromString(parts[1]);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("잘못된 cursor ID 형식입니다: " + parts[1]);
     }
 
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
-    UUID finalCursorId = cursorId;
 
     if ("name".equals(orderBy)) {
       return isAsc
           ? interest.name.gt(cursorValue)
           .or(interest.name.eq(cursorValue)
-              .and(finalCursorId != null ?
-                  Expressions.stringTemplate("cast({0} as text)", interest.id)
-                      .gt(finalCursorId.toString()) : null))
+              .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
+                  .gt(cursorId.toString())))
           : interest.name.lt(cursorValue)
               .or(interest.name.eq(cursorValue)
-                  .and(finalCursorId != null ?
-                      Expressions.stringTemplate("cast({0} as text)", interest.id)
-                          .lt(finalCursorId.toString()) : null));
+                  .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
+                      .lt(cursorId.toString())));
     } else {
       long cursorLong;
       try {
@@ -172,14 +169,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom{
       return isAsc
           ? interest.subscriberCount.gt(cursorLong)
           .or(interest.subscriberCount.eq(cursorLong)
-              .and(finalCursorId != null ?
-                  Expressions.stringTemplate("cast({0} as text)", interest.id)
-                      .gt(finalCursorId.toString()) : null))
+              .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
+                  .gt(cursorId.toString())))
           : interest.subscriberCount.lt(cursorLong)
               .or(interest.subscriberCount.eq(cursorLong)
-                  .and(finalCursorId != null ?
-                      Expressions.stringTemplate("cast({0} as text)", interest.id)
-                          .lt(finalCursorId.toString()) : null));
+                  .and(Expressions.stringTemplate("cast({0} as text)", interest.id)
+                      .lt(cursorId.toString())));
     }
   }
 
