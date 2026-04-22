@@ -1,4 +1,4 @@
-package com.codeit.monew.domain.article.dto;
+package com.codeit.monew.domain.article.dto.response;
 
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,5 +13,6 @@ public record ArticleScrapeResponse(
     @Schema(description = "이번 호출에서 저장된 기사 수")
     int savedCount
 ) {
+
 }
 

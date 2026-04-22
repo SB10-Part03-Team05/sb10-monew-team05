@@ -9,6 +9,7 @@ import com.codeit.monew.global.config.JpaAuditingConfig;
 import com.codeit.monew.global.config.QueryDslConfig;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,5 +64,36 @@ class ArticleRepositoryTest {
 
     // then(검증)
     assertThat(result).containsExactly(ArticleSource.CHOSUN, ArticleSource.NAVER);
+  }
+
+  @Test
+  @DisplayName("저장된 뉴스 기사를 삭제하면 정수 1을 반환한다.")
+  void hardDelete() {
+    // given(준비)
+    Article article = createArticle(ArticleSource.NAVER, "https://naver.com", "title",
+        Instant.now(), "summary");
+
+    // 영속성 해제
+    testEntityManager.flush();
+    testEntityManager.clear();
+
+    // when(실행)
+    int result = articleRepository.hardDelete(article.getId());
+
+    // then(검증)
+    assertThat(result).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("저장되지 않은 뉴스 기사에 대한 삭제 시도 시 정수 0을 반환한다.")
+  void hardDelete_when_article_not_found() {
+    // given(준비)
+    UUID articleId = UUID.randomUUID();
+
+    // when(실행)
+    int result = articleRepository.hardDelete(articleId);
+
+    // then(검증)
+    assertThat(result).isEqualTo(0);
   }
 }

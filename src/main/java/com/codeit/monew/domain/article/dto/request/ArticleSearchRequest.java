@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
@@ -28,10 +29,10 @@ public class ArticleSearchRequest {
   private List<ArticleSource> sourceIn;
 
   @Parameter(description = "날짜 시작(범위)")
-  private Instant publishDateFrom;
+  private LocalDateTime publishDateFrom;
 
   @Parameter(description = "날짜 끝(범위)")
-  private Instant publishDateTo;
+  private LocalDateTime publishDateTo;
 
   @Parameter(description = "정렬 속성 이름", required = true)
   @NotNull(message = "정렬 속성은 필수입니다.")

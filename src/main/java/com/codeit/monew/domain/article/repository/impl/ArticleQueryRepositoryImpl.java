@@ -19,6 +19,8 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
@@ -236,13 +238,25 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   private BooleanExpression[] commonWhere(ArticleSearchRequest request, QArticle article,
       QArticleInterest articleInterest) {
 
+    ZoneId zoneId = ZoneId.of("Asia/Seoul");
+
+    LocalDateTime publishDateFrom = request.getPublishDateFrom();
+    LocalDateTime publishDateTo = request.getPublishDateTo();
+
+    Instant fromInstant = publishDateFrom != null
+        ? publishDateFrom.atZone(zoneId).toInstant()
+        : null;
+    Instant toInstant = publishDateTo != null
+        ? publishDateTo.atZone(zoneId).toInstant()
+        : null;
+
     return new BooleanExpression[]{
         article.deletedAt.isNull(),
         keywordContains(article, request.getKeyword()),
         interestIdEq(articleInterest, request.getInterestId()),
         sourceIn(article, request.getSourceIn()),
-        publishDateGoe(article, request.getPublishDateFrom()),
-        publishDateLoe(article, request.getPublishDateTo())
+        publishDateGoe(article, fromInstant),
+        publishDateLoe(article, toInstant)
     };
   }
 
