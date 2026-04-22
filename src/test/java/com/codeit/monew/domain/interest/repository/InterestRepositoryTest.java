@@ -239,7 +239,64 @@ class InterestRepositoryTest {
           .containsExactly("스포츠", "경제", "IT");
     }
   }
+
   // 3. 커서 페이지네이션
+  @Nested
+  @DisplayName("커서 페이지네이션 테스트")
+  class cursorPagination {
+
+    @Test
+    @DisplayName("첫 페이지 조회 시 hasNext가 true이고 nextCursor가 반환된다.")
+    void success_first_page() {
+      // given
+      createInterest("가나다", List.of("가"));
+      createInterest("마바사", List.of("마"));
+      createInterest("아자차", List.of("아"));
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "name", "ASC", null, 2, userId
+      );
+
+      // then
+      assertThat(result.content()).hasSize(2);
+      assertThat(result.hasNext()).isTrue();        // 다음 페이지가 있을 때 hasNet = true 확인
+      assertThat(result.nextCursor()).isNotNull();  // nextCursor = not null 확인
+    }
+
+    @Test
+    @DisplayName("두 번째 페이지 조회 시 올바른 데이터가 반환된다.")
+    void success_second_page() {
+      // given
+      createInterest("가나다", List.of("가"));
+      createInterest("마바사", List.of("마"));
+      createInterest("아자차", List.of("아"));
+      UUID userId = createUser("test@email.com").getId();
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // 첫 페이지 조회
+      CursorPageResponseInterestDto firstPage = interestRepository.findInterests(
+          null, "name", "ASC", null, 2, userId
+      );
+
+      // when - 두 번째 페이지 조회
+      CursorPageResponseInterestDto secondPage = interestRepository.findInterests(
+          null, "name", "ASC", firstPage.nextCursor(), 2, userId
+      );
+
+      // then
+      assertThat(secondPage.content()).hasSize(1);
+      assertThat(secondPage.content().get(0).name()).isEqualTo("아자차");
+      assertThat(secondPage.hasNext()).isFalse();     // 마지막 페이지일 때 hasNet = false 확인
+      assertThat(secondPage.nextCursor()).isNull();   // nextCursor = null 확인
+    }
+  }
   // 4. 구독
 
 
