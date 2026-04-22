@@ -1,13 +1,16 @@
 package com.codeit.monew.domain.comment.controller;
 
+import com.codeit.monew.domain.comment.dto.CommentCursorRequest;
 import com.codeit.monew.domain.comment.dto.CommentDto;
 import com.codeit.monew.domain.comment.dto.CommentRegisterRequest;
 import com.codeit.monew.domain.comment.dto.CommentUpdateRequest;
+import com.codeit.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.codeit.monew.domain.comment.service.CommentService;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentUpdateForbiddenException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,8 +27,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -271,6 +276,94 @@ class CommentControllerTest {
           .andDo(print())
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"));
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 목록 조회 API 테스트")
+  class GetCommentListApiTest {
+
+    @Test
+    @DisplayName("올바른 파라미터로 요청하면 200 OK와 함께 페이징 데이터를 반환한다.")
+    void success_getCommentList() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+      Instant now = Instant.now();
+
+      CommentDto mockComment = new CommentDto(
+          UUID.randomUUID(), articleId, UUID.randomUUID(), "테스트 닉네임",
+          "테스트 댓글", 10L, true, now
+      );
+
+      CursorPageResponseCommentDto responseDto = new CursorPageResponseCommentDto(
+          List.of(mockComment), "10", now, 1, 15L, true
+      );
+
+      given(commentService.getCommentList(eq(articleId), eq(requesterId), any(CommentCursorRequest.class)))
+          .willReturn(responseDto);
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header("Monew-Request-User-ID", requesterId.toString())
+              .param("articleId", articleId.toString())
+              .param("orderBy", "likeCount")
+              .param("direction", "DESC")
+              .param("limit", "10"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content[0].content").value("테스트 댓글"))
+          .andExpect(jsonPath("$.nextCursor").value("10"))
+          .andExpect(jsonPath("$.hasNext").value(true))
+          .andExpect(jsonPath("$.totalElements").value(15));
+    }
+
+    @Test
+    @DisplayName("limit가 최대 허용치(100)를 초과하면 400 Bad Request를 반환한다.")
+    void fail_limit_exceeded() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header("Monew-Request-User-ID", requesterId.toString())
+              .param("articleId", articleId.toString())
+              .param("limit", "101"))
+          .andExpect(status().isBadRequest());
+
+      verify(commentService, never()).getCommentList(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("올바르지 않은 정렬 기준(orderBy)이 들어오면 400 Bad Request를 반환한다.")
+    void fail_invalid_orderBy() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header("Monew-Request-User-ID", requesterId.toString())
+              .param("articleId", articleId.toString())
+              .param("orderBy", "weirdCondition"))
+          .andExpect(status().isBadRequest());
+
+      verify(commentService, never()).getCommentList(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("필수 파라미터인 articleId가 누락되면 400 Bad Request를 반환한다.")
+    void fail_missing_articleId() throws Exception {
+      // given
+      UUID requesterId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header("Monew-Request-User-ID", requesterId.toString())
+              .param("limit", "10"))
+          .andExpect(status().isBadRequest());
+
+      verify(commentService, never()).getCommentList(any(), any(), any());
     }
   }
 }

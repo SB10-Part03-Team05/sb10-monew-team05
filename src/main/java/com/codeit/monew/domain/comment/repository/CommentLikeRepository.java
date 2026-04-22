@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.comment.repository;
 
 import com.codeit.monew.domain.comment.entity.CommentLike;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,4 +22,8 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
   @Modifying
   @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId")
   void deleteByCommentId(@Param("commentId") UUID commentId);
+
+  // 댓글 목록 조회 시 특정 유저가 좋아요를 누른 댓글 ID들만 한 번에 추출
+  @Query("SELECT cl.comment.id FROM CommentLike cl WHERE cl.user.id = :userId AND cl.comment.id IN :commentIds")
+  List<UUID> findLikedCommentIdsByUserAndComments(@Param("userId") UUID userId, @Param("commentIds") List<UUID> commentIds);
 }
