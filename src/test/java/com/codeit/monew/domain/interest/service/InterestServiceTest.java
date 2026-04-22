@@ -197,19 +197,18 @@ class InterestServiceTest {
       CursorPageResponseInterestDto expected = new CursorPageResponseInterestDto(
           List.of(interestDto),
           null,
-          null,
           1,
           1L,
           false
       );
 
       given(interestRepository.findInterests(
-          null, "name", "ASC", null, null, 10, userId
+          null, "name", "ASC", null, 10, userId
       )).willReturn(expected);
 
       // when
       CursorPageResponseInterestDto result = interestService.getList(
-          null, "name", "ASC", null, null, 10, userId
+          null, "name", "ASC", null, 10, userId
       );
 
       // then
@@ -218,7 +217,7 @@ class InterestServiceTest {
       assertEquals("스포츠", result.content().get(0).name());
       assertFalse(result.hasNext());
       verify(interestRepository).findInterests(
-          null, "name", "ASC", null, null, 10, userId
+          null, "name", "ASC", null, 10, userId
       );
     }
 
@@ -231,19 +230,18 @@ class InterestServiceTest {
       CursorPageResponseInterestDto expected = new CursorPageResponseInterestDto(
           List.of(),
           null,
-          null,
           0,
           0L,
           false
       );
 
       given(interestRepository.findInterests(
-          "없는검색어", "name", "ASC", null, null, 10, userId
+          "없는검색어", "name", "ASC", null, 10, userId
       )).willReturn(expected);
 
       // when
       CursorPageResponseInterestDto result = interestService.getList(
-          "없는검색어", "name", "ASC", null, null, 10, userId
+          "없는검색어", "name", "ASC", null, 10, userId
       );
 
       // then
@@ -267,7 +265,7 @@ class InterestServiceTest {
       User user = new User("test@email.com", "testNickname", "testPassword");
       ReflectionTestUtils.setField(user, "id", userId);
 
-      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
       given(subscriptionRepository.save(any())).willAnswer(i -> i.getArgument(0));
 
@@ -288,7 +286,7 @@ class InterestServiceTest {
       UUID interestId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
 
-      given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+      given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.empty());
 
       // when, then
       assertThrows(InterestNotFoundException.class,
@@ -307,7 +305,7 @@ class InterestServiceTest {
       User user = new User("test@email.com", "testNickname", "testPassword");
       ReflectionTestUtils.setField(user, "id", userId);
 
-      given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+      given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
       // DB UNIQUE 제약 위반 Mock
@@ -335,7 +333,7 @@ class InterestServiceTest {
       Interest interest = createInterest(interestId, "스포츠");
 
       given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
-      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(1L);
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(1);
 
       // when
       interestService.unsubscribe(interestId, userId);
@@ -370,7 +368,7 @@ class InterestServiceTest {
       Interest interest = createInterest(interestId, "스포츠");
 
       given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
-      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(0L);
+      given(subscriptionRepository.deleteByUserIdAndInterestId(userId, interestId)).willReturn(0);
 
       // when, then
       assertThrows(SubscriptionNotFoundException.class,
