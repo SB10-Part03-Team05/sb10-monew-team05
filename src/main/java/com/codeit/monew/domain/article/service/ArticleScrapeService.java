@@ -5,6 +5,8 @@ import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
+import com.codeit.monew.global.exception.MonewException;
+import com.codeit.monew.global.exception.article.ArticleScrapeException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +42,8 @@ public class ArticleScrapeService {
 
   public int scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
-    List<Article> parsedArticles = xmlParser.parse(fetchXml(source, query), source);
+    List<Article> parsedArticles = runStage("fetch_parse", source, query,
+        () -> xmlParser.parse(fetchXml(source, query), source));
 
     // 수집된 기사가 하나도 없다면(네이버 검색 결과 없음) 0을 반환하고 종료
     if (parsedArticles.isEmpty()) {
@@ -47,10 +51,12 @@ public class ArticleScrapeService {
     }
 
     // 수집된 리스트 내에서 URL이 중복되는 기사들을 제거 (메모리 상 중복 제거)
-    List<Article> distinctArticles = deduplicateByUrl(parsedArticles);
+    List<Article> distinctArticles = runStage("deduplicate", source, query,
+        () -> deduplicateByUrl(parsedArticles));
 
     // DB를 조회하여 이미 저장된 URL은 제외하고 새로운 기사만 남김
-    List<Article> newArticles = filterNewArticles(distinctArticles);
+    List<Article> newArticles = runStage("filter_new", source, query,
+        () -> filterNewArticles(distinctArticles));
 
     // 필터링 후 남은 새 기사가 없다면 0을 반환하고 종료
     if (newArticles.isEmpty()) {
@@ -58,13 +64,14 @@ public class ArticleScrapeService {
     }
 
     // 사용자들이 등록한 모든 키워드와 그에 연결된 관심사 정보를 DB에서 로드
-    List<Keyword> keywords = loadKeywordsWithInterest();
+    List<Keyword> keywords = runStage("load_keywords", source, query, this::loadKeywordsWithInterest);
 
     // 새 기사들의 텍스트를 분석해 키워드와 매칭하고 기사와 관심사를 연결한 map 생성
-    Map<Article, Set<Interest>> articleInterestMap = mapArticlesToInterests(newArticles, keywords);
+    Map<Article, Set<Interest>> articleInterestMap = runStage("map_interests", source, query,
+        () -> mapArticlesToInterests(newArticles, keywords));
 
     // 최종적으로 관심사를 가진 기사들을 DB에 저장하고 알림을 보낸 뒤 저장된 개수를 반환
-    return saveAndNotify(articleInterestMap, source);
+    return runStage("save", source, query, () -> saveAndNotify(articleInterestMap, source));
   }
 
   private List<Article> deduplicateByUrl(List<Article> articles) {
@@ -144,5 +151,15 @@ public class ArticleScrapeService {
   private String fetchXml(NewsSourceUrl source, String query) {
     return (source == NewsSourceUrl.NAVER) ?
         xmlClient.fetchNaverXml(query) : xmlClient.fetchRssXml(source);
+  }
+
+  private <T> T runStage(String stage, NewsSourceUrl source, String query, Supplier<T> supplier) {
+    try {
+      return supplier.get();
+    } catch (MonewException e) {
+      throw e;
+    } catch (RuntimeException e) {
+      throw new ArticleScrapeException(source, query, stage, e);
+    }
   }
 }

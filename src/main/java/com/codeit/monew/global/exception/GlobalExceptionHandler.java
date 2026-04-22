@@ -160,8 +160,10 @@ public class GlobalExceptionHandler {
           HttpStatus.BAD_REQUEST;
       case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
       case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
-      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR ->
+      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR,
+           EXTERNAL_INVALID_XML ->
           HttpStatus.SERVICE_UNAVAILABLE; // 503
+      case ARTICLE_SCRAPE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
       default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
     };
   }
