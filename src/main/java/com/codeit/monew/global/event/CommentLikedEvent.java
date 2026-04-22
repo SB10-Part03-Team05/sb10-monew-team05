@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record CommentLikedEvent(
+    UUID userId,
     UUID commentLikeId,
     Instant createdAt,
     UUID commentId,

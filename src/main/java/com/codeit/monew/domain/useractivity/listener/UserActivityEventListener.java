@@ -41,9 +41,14 @@ public class UserActivityEventListener {
   public void handleUserRegisteredEvent(UserRegisteredEvent event) {
     log.debug("[USER_ACTIVITY] 새로운 유저 도큐먼트 생성 시작: userId={}", event.userId());
 
-    UserActivity userActivity = userActivityMapper.toUserActivity(event);
+    Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
 
-    userActivityRepository.save(userActivity);
+    Update update = new Update()
+        .set("email", event.email())
+        .set("nickname", event.nickname())
+        .set("createdAt", event.createdAt());
+
+    mongoTemplate.upsert(query, update, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 새로운 유저 도큐먼트 생성 완료");
   }
@@ -140,7 +145,7 @@ public class UserActivityEventListener {
     log.debug("[USER_ACTIVITY] 댓글 좋아요 이벤트 수신: userId={}, commentLikeId={}", event.commentUserId(),
         event.commentLikeId());
 
-    Query query = new Query(Criteria.where("_id").is(event.commentUserId().toString()));
+    Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
 
     CommentLikeInfo newCommentLikeInfo = userActivityMapper.toCommentLikeInfo(event);
 
