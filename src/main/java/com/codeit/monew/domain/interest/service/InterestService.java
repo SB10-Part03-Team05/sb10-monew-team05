@@ -14,6 +14,7 @@ import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
+import com.codeit.monew.global.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -191,6 +192,11 @@ public class InterestService {
     if (deleted == 0) {
       throw new SubscriptionNotFoundException(userId, interestId);
     }
+
+    eventPublisher.publishEvent(new InterestUnSubscribedEvent(
+        userId,
+        interestId
+    ));
 
     // 구독자 수 감소
     interestRepository.decrementSubscriberCount(interestId);

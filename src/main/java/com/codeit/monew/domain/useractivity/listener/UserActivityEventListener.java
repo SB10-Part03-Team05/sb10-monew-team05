@@ -13,6 +13,7 @@ import com.codeit.monew.global.event.CommentLikedCancelEvent;
 import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.event.CommentUpdatedEvent;
 import com.codeit.monew.global.event.InterestSubscribedEvent;
+import com.codeit.monew.global.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +67,22 @@ public class UserActivityEventListener {
     log.info("[USER_ACTIVITY] 관심사 구독 목록 업데이트 완료");
   }
 
-  // todo 관심사 구독 취소 이벤트
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleInterestUnSubscribedEvent(InterestUnSubscribedEvent event) {
+    log.debug("[USER_ACTIVITY] 관심사 구독 취소 이벤트 수신: userId={}, interestId={}", event.userId(),
+        event.interestId());
+
+    Query query = new Query(Criteria.where("_id").is(event.userId().toString()));
+
+    Update pullUpdate = new Update().pull("subscriptions",
+        new Document("interestId", event.interestId().toString())
+    );
+
+    mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
+
+    log.info("[USER_ACTIVITY] 관심사 구독 취소 완료");
+  }
 
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
