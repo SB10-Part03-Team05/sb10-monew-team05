@@ -57,7 +57,6 @@ public class UserActivityEventListener {
 
     Update update = new Update()
         .push("subscriptions")
-        .slice(-10)
         .each(newSubscriptionInfo);
 
     mongoTemplate.updateFirst(query, update, UserActivity.class);
