@@ -325,6 +325,12 @@ class CommentServiceTest {
       assertThat(response.content()).hasSize(limit);
       assertThat(response.totalElements()).isEqualTo(15L);
 
+      Comment lastIncludedComment = mockComments.get(1);
+      String expectedCompositeCursor = lastIncludedComment.getCreatedAt().toString() + "_" + lastIncludedComment.getId();
+
+      assertThat(response.nextCursor()).isEqualTo(expectedCompositeCursor);
+      assertThat(response.nextAfter()).isEqualTo(lastIncludedComment.getCreatedAt());
+
       verify(commentLikeRepository).findLikedCommentIdsByUserAndComments(eq(requesterId), anyList()); // IN 쿼리가 1번 호출되었는지 검증
     }
 

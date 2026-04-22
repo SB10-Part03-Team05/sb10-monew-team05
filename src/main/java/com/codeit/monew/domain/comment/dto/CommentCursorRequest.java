@@ -14,21 +14,21 @@ public record CommentCursorRequest(
     @NotNull(message = "기사 ID는 필수입니다.")
     UUID articleId,
 
-    @Parameter(description = "정렬 기준 (createdAt: 최신순, likeCount: 좋아요순)", example = "createdAt")
+    @Parameter(description = "정렬 기준 (createdAt: 최신순, likeCount: 좋아요순)")
     @Pattern(regexp = "^(createdAt|likeCount)$", message = "정렬 기준은 createdAt 또는 likeCount여야 합니다.")
     String orderBy,
 
-    @Parameter(description = "정렬 방향 (ASC: 오름차순, DESC: 내림차순)", example = "DESC")
+    @Parameter(description = "정렬 방향 (ASC: 오름차순, DESC: 내림차순)")
     @Pattern(regexp = "^(ASC|DESC)$", message = "정렬 방향은 ASC 또는 DESC여야 합니다.")
     String direction,
 
-    @Parameter(description = "커서 값 (주 정렬 기준의 마지막 값)", example = "10")
+    @Parameter(description = "커서 값 (주 정렬 기준의 마지막 값)")
     String cursor,
 
-    @Parameter(description = "보조 커서 값 (createdAt, 동점자 처리용)", example = "2026-04-21T05:56:10.574Z")
+    @Parameter(description = "보조 커서 값 (createdAt, 동점자 처리용)")
     Instant after,
 
-    @Parameter(description = "한 페이지에 불러올 개수 (최대 100)", example = "10")
+    @Parameter(description = "한 페이지에 불러올 개수 (최대 100)")
     @Min(value = 1, message = "최소 1개 이상 조회해야 합니다.")
     @Max(value = 100, message = "최대 100개까지 조회 가능합니다.")
     Integer limit

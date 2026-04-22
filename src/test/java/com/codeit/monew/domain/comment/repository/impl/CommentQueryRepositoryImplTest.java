@@ -90,8 +90,11 @@ class CommentQueryRepositoryImplTest {
     @DisplayName("createdAt 커서 조회 시, 이전 페이지의 마지막 작성일자 이후의 데이터를 조회한다.")
     void findCommentsByCursor_createdAt_desc() {
       // given
-      Instant cursorAfter = comments.get(3).getCreatedAt(); // "댓글 4"의 정확한 DB 작성 시간
-      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "createdAt", "DESC", null, cursorAfter, 2);
+      Comment lastComment = comments.get(3); // 댓글 4
+      Instant cursorAfter = lastComment.getCreatedAt();
+      String compositeCursor = cursorAfter.toString() + "_" + lastComment.getId();
+
+      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "createdAt", "DESC", compositeCursor, cursorAfter, 2);
 
       // when
       List<Comment> result = commentQueryRepository.findCommentsByCursor(testArticle.getId(), request);
@@ -106,9 +109,11 @@ class CommentQueryRepositoryImplTest {
     @DisplayName("likeCount 복합 커서 조회 시, 좋아요 수가 같을 때 작성일자로 동점자를 가려낸다.")
     void findCommentsByCursor_likeCount_desc_tieBreaker() {
       // given
-      String cursorLikeCount = "10";
-      Instant cursorAfter = comments.get(1).getCreatedAt(); // "댓글 2"의 정확한 DB 작성 시간
-      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "likeCount", "DESC", cursorLikeCount, cursorAfter, 3);
+      Comment lastComment = comments.get(1); // 댓글 2
+      Instant cursorAfter = lastComment.getCreatedAt();
+      String compositeCursor = lastComment.getLikeCount() + "_" + lastComment.getId();
+
+      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "likeCount", "DESC", compositeCursor, cursorAfter, 3);
 
       // when
       List<Comment> result = commentQueryRepository.findCommentsByCursor(testArticle.getId(), request);
@@ -124,10 +129,12 @@ class CommentQueryRepositoryImplTest {
     @Test
     @DisplayName("좋아요순 조건문의 반대 분기(오름차순(ASC))도 정상 동작한다.")
     void findCommentsByCursor_likeCount_asc() {
-      // given: 오름차순(ASC)으로 커서 요청 (3번 댓글 커서 기준)
-      String cursorLikeCount = "5";
-      Instant cursorAfter = comments.get(2).getCreatedAt();
-      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "likeCount", "ASC", cursorLikeCount, cursorAfter, 2);
+      // given
+      Comment lastComment = comments.get(2); // "댓글 3" (좋아요 5)
+      Instant cursorAfter = lastComment.getCreatedAt();
+      String compositeCursor = lastComment.getLikeCount() + "_" + lastComment.getId();
+
+      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "likeCount", "ASC", compositeCursor, cursorAfter, 2);
 
       // when
       List<Comment> result = commentQueryRepository.findCommentsByCursor(testArticle.getId(), request);
@@ -141,9 +148,12 @@ class CommentQueryRepositoryImplTest {
     @Test
     @DisplayName("createdAt순 조건문의 반대 분기(오름차순(ASC))도 정상 동작한다.")
     void findCommentsByCursor_createdAt_asc() {
-      // given: 오름차순(ASC)으로 커서 요청 (3번 댓글 커서 기준)
-      Instant cursorAfter = comments.get(2).getCreatedAt();
-      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "createdAt", "ASC", null, cursorAfter, 2);
+      // given
+      Comment lastComment = comments.get(2); // 댓글 3
+      Instant cursorAfter = lastComment.getCreatedAt();
+      String compositeCursor = cursorAfter.toString() + "_" + lastComment.getId();
+
+      CommentCursorRequest request = new CommentCursorRequest(testArticle.getId(), "createdAt", "ASC", compositeCursor, cursorAfter, 2);
 
       // when
       List<Comment> result = commentQueryRepository.findCommentsByCursor(testArticle.getId(), request);

@@ -159,9 +159,9 @@ public class CommentService {
       nextAfter = lastComment.getCreatedAt(); // 보조 커서는 작성일자
 
       if ("likeCount".equals(request.orderBy())) {
-        nextCursor = String.valueOf(lastComment.getLikeCount());
+        nextCursor = lastComment.getLikeCount() + "_" + lastComment.getId(); // nextCursor 필드 기준값에 UUID를 추가하여 중복 방지
       } else {
-        nextCursor = lastComment.getCreatedAt().toString();
+        nextCursor = lastComment.getCreatedAt().toString() + "_" + lastComment.getId();
       }
     }
 
