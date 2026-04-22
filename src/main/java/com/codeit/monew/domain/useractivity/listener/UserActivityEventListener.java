@@ -113,14 +113,23 @@ public class UserActivityEventListener {
     log.debug("[USER_ACTIVITY] 댓글 수정 이벤트 수신: userId={}, commentId={}",
         event.userId(), event.commentId());
 
-    Query query = new Query(
+    Query commentQuery = new Query(
         Criteria.where("_id").is(event.userId().toString())
-            .and("comments._id").is(event.commentId().toString())
+            .and("comments.id").is(event.commentId().toString())
     );
 
-    Update update = new Update().set("comments.$.content", event.newContent());
+    // 댓글 수정
+    Update commentUpdate = new Update().set("comments.$.content", event.newContent());
+    mongoTemplate.updateFirst(commentQuery, commentUpdate, UserActivity.class);
 
-    mongoTemplate.updateFirst(query, update, UserActivity.class);
+    Query likeQuery = new Query(
+        Criteria.where("commentLikes.commentId").is(event.commentId().toString())
+    );
+
+    // 댓글 좋아요 활동 내역에도 모두 반영
+    Update likeUpdate = new Update().set("commentLikes.$.commentContent", event.newContent());
+
+    mongoTemplate.updateMulti(likeQuery, likeUpdate, UserActivity.class);
 
     log.info("[USER_ACTIVITY] 댓글 내용 수정 완료");
   }
