@@ -1,8 +1,10 @@
 package com.codeit.monew.domain.comment.controller;
 
+import com.codeit.monew.domain.comment.dto.CommentCursorRequest;
 import com.codeit.monew.domain.comment.dto.CommentDto;
 import com.codeit.monew.domain.comment.dto.CommentRegisterRequest;
 import com.codeit.monew.domain.comment.dto.CommentUpdateRequest;
+import com.codeit.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.codeit.monew.domain.comment.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,15 +47,11 @@ public class CommentController {
   public ResponseEntity<CommentDto> registerComment(
       @Valid @RequestBody CommentRegisterRequest request) {
 
-    log.debug("댓글 등록 요청 수신");
-
     CommentDto response = commentService.registerComment(
         request.articleId(),
         request.userId(),
         request.content()
     );
-
-    log.info("댓글 등록 성공: 생성된 commentId= {}", response.id());
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
@@ -70,11 +70,7 @@ public class CommentController {
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID requesterId,
       @Valid @RequestBody CommentUpdateRequest request) {
 
-    log.debug("댓글 수정 요청 수신");
-
     CommentDto response = commentService.updateComment(commentId, requesterId, request.content());
-
-    log.info("댓글 수정 성공: 수정된 commentId= {}", response.id());
 
     return ResponseEntity.ok(response);
   }
@@ -87,8 +83,6 @@ public class CommentController {
   })
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId) {
-
-    log.debug("댓글 논리 삭제 요청: commentId={}", commentId);
 
     commentService.deleteComment(commentId);
     return ResponseEntity.noContent().build();
@@ -103,9 +97,29 @@ public class CommentController {
   @DeleteMapping("/{commentId}/hard")
   public ResponseEntity<Void> hardDeleteComment(@PathVariable UUID commentId) {
 
-    log.debug("댓글 물리 삭제 요청: commentId={}", commentId);
-
     commentService.hardDeleteComment(commentId);
     return ResponseEntity.noContent().build();
+  }
+
+  @Operation(summary = "댓글 목록 조회", description = "조건에 맞는 댓글 목록을 조회합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "조회 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (정렬 기준 오류, 페이지네이션 파라미터 오류 등)"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @GetMapping
+  public ResponseEntity<CursorPageResponseCommentDto> getComments(
+      @Parameter(description = "요청자 ID", required = true)
+      @RequestHeader("Monew-Request-User-ID") UUID requesterId,
+
+      @Valid @ModelAttribute CommentCursorRequest request) {
+
+    CursorPageResponseCommentDto response = commentService.getCommentList(
+        request.articleId(),
+        requesterId,
+        request
+    );
+
+    return ResponseEntity.ok(response);
   }
 }
