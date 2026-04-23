@@ -1,6 +1,8 @@
 package com.codeit.monew.domain.article.scheduler;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -13,12 +15,14 @@ import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +33,7 @@ class NaverArticleBatchJobTest {
   @Mock
   private KeywordRepository keywordRepository;
 
+  @Spy
   @InjectMocks
   private NaverArticleBatchJob naverArticleBatchJob;
 
@@ -49,6 +54,11 @@ class NaverArticleBatchJobTest {
   private ExternalNetworkException networkError() {
     return new ExternalNetworkException(
         NewsSourceUrl.NAVER, "https://x", new RuntimeException("network"));
+  }
+
+  @BeforeEach
+  void setUp() {
+    lenient().doNothing().when(naverArticleBatchJob).sleep(anyLong());
   }
 
   @Nested
