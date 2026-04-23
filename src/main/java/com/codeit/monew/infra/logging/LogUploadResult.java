@@ -13,6 +13,7 @@ public record LogUploadResult(
   public enum Status {
     UPLOADED_TO_S3,
     SKIPPED_FILE_NOT_FOUND,
+    SKIPPED_ALREADY_EXISTS,
     UPLOAD_FAILED
   }
 }

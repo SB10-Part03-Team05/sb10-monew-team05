@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.BDDMockito.given;
 
 import com.codeit.monew.global.config.AwsProperties;
@@ -21,8 +22,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @ExtendWith(MockitoExtension.class)
 class LogUploadServiceTest {
@@ -50,6 +54,9 @@ class LogUploadServiceTest {
     logUploadProperties.setRetryDelayMs(0);
 
     logUploadService = new LogUploadService(s3Client, awsProperties, logUploadProperties);
+
+    lenient().when(s3Client.headObject(any(HeadObjectRequest.class)))
+        .thenThrow(S3Exception.builder().statusCode(404).build());
   }
 
   @Test
@@ -106,6 +113,24 @@ class LogUploadServiceTest {
     assertThat(result.status()).isEqualTo(LogUploadResult.Status.UPLOADED_TO_S3);
     assertThat(result.sourcePath()).isEqualTo(sourceFile.toString());
     assertThat(result.s3Key()).isEqualTo("logs/application.2026-04-22.log");
+  }
+
+  @Test
+  @DisplayName("S3에 이미 존재하는 로그는 업로드를 건너뛴다")
+  void should_skip_upload_when_s3_object_already_exists() throws IOException {
+    // given
+    LocalDate targetDate = LocalDate.of(2026, 4, 22);
+    Files.createFile(tempDir.resolve("application.2026-04-22.log"));
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
+        .willReturn(HeadObjectResponse.builder().build());
+
+    // when
+    LogUploadResult result = logUploadService.uploadDailyLog(targetDate);
+
+    // then
+    assertThat(result.status()).isEqualTo(LogUploadResult.Status.SKIPPED_ALREADY_EXISTS);
+    assertThat(result.s3Key()).isEqualTo("logs/application.2026-04-22.log");
+    verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(Path.class));
   }
 
   @Test

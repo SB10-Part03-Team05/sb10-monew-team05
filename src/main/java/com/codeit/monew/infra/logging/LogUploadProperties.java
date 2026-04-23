@@ -18,6 +18,7 @@ public class LogUploadProperties {
   private String filePrefix;
   private String s3Prefix;
 
+  private int lookbackDays;
   private int maxRetries;
   private long retryDelayMs;
 }
