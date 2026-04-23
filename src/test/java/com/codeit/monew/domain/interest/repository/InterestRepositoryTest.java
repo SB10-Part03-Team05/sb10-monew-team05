@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.codeit.monew.domain.interest.dto.response.CursorPageResponseInterestDto;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
+import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.config.JpaAuditingConfig;
@@ -297,7 +298,54 @@ class InterestRepositoryTest {
       assertThat(secondPage.nextCursor()).isNull();   // nextCursor = null 확인
     }
   }
-  // 4. 구독
 
+  // 4. subscribedByMe
+  @Nested
+  @DisplayName("subscribedByMe 테스트")
+  class subscribedByMe {
+
+    @Test
+    @DisplayName("구독한 관심사는 subscribedByMe가 true다.")
+    void success_subscribed_by_me_true() {
+      // given
+      Interest interest = createInterest("스포츠", List.of("축구"));
+      User user = createUser("test@email.com");
+
+      Subscription subscription = Subscription.create(user, interest);
+      subscriptionRepository.save(subscription);
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "name", "ASC", null, 10, user.getId()
+      );
+
+      // then
+      assertThat(result.content()).hasSize(1);
+      assertThat(result.content().get(0).subscribedByMe()).isTrue();
+    }
+
+    @Test
+    @DisplayName("구독하지 않은 관심사는 subscribedByMe가 false다.")
+    void success_subscribed_by_me_false() {
+      // given
+      createInterest("스포츠", List.of("축구"));
+      User user = createUser("test@email.com");
+
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      CursorPageResponseInterestDto result = interestRepository.findInterests(
+          null, "name", "ASC", null, 10, user.getId()
+      );
+
+      // then
+      assertThat(result.content()).hasSize(1);
+      assertThat(result.content().get(0).subscribedByMe()).isFalse();
+    }
+  }
 
 }
