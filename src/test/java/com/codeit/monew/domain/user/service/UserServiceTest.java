@@ -13,6 +13,7 @@ import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.UserRegisteredEvent;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
 import com.codeit.monew.global.exception.user.PasswordMismatchException;
@@ -25,9 +26,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +41,9 @@ class UserServiceTest {
 
   @Mock
   private UserMapper userMapper;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private UserService userService;
@@ -83,6 +89,7 @@ class UserServiceTest {
       verify(userRepository).existsByEmail(request.email());
       verify(userRepository).save(any(User.class));
       verify(userMapper).toDto(any(User.class));
+      verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test
