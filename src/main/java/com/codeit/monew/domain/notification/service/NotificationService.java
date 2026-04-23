@@ -13,6 +13,7 @@ import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +38,20 @@ public class NotificationService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void createInterestNotifications(BulkArticleRegisteredEvent event) {
     if (event.interestCounts() == null || event.interestCounts().isEmpty()) return;
+
+    // 이벤트 페이로드에 중복된 관심사 ID가 있더라도 개수를 합산하여 멱등성 보장
+    Map<UUID, BulkArticleRegisteredEvent.InterestArticleCount> mergedCountsMap = event.interestCounts().stream()
+        .collect(Collectors.toMap(
+            BulkArticleRegisteredEvent.InterestArticleCount::interestId,
+            countInfo -> countInfo,
+            // 중복된 ID가 발견되면, 이전 값과 현재 값의 기사 개수를 더해 새로운 객체 생성
+            (prev, curr) -> new BulkArticleRegisteredEvent.InterestArticleCount(
+                prev.interestId(),
+                prev.interestName(),
+                prev.articleCount() + curr.articleCount()
+            ),
+            LinkedHashMap::new // 순서 보장
+        ));
 
     // 1. 이벤트로 넘어온 관심사 ID 목록 추출
     List<UUID> targetInterestIds = event.interestCounts().stream()
