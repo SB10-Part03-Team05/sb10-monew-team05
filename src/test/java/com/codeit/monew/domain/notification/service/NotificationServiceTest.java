@@ -58,12 +58,14 @@ class NotificationServiceTest {
 
     @Test
     @DisplayName("이벤트 데이터가 null이거나 비어있으면 조기 종료된다.")
-    void returnEarlyWhenEventDataIsNullOrEmpty() {
+    void fail_create_notification_event_is_null_or_empty() {
       // given
       BulkArticleRegisteredEvent emptyEvent = new BulkArticleRegisteredEvent(Collections.emptyList());
+      BulkArticleRegisteredEvent nullEvent = new BulkArticleRegisteredEvent(null);
 
       // when
       notificationService.createInterestNotifications(emptyEvent);
+      notificationService.createInterestNotifications(nullEvent);
 
       // then
       verify(subscriptionRepository, never()).findAllByInterestIdInWithUserAndInterest(anyList());
@@ -72,7 +74,7 @@ class NotificationServiceTest {
 
     @Test
     @DisplayName("구독자가 한 명도 없으면 조기 종료된다.")
-    void returnEarlyWhenNoSubscribersFound() {
+    void fail_create_notification_no_subscribers() {
       // given
       UUID interestId = UUID.randomUUID();
       BulkArticleRegisteredEvent event = new BulkArticleRegisteredEvent(
@@ -91,7 +93,7 @@ class NotificationServiceTest {
 
     @Test
     @DisplayName("구독자가 존재하면 알림을 대량 생성하여 저장한다.")
-    void successfullyCreateAndSaveBulkNotifications() {
+    void success_create_article_notifications() {
       // given
       UUID interestId1 = UUID.randomUUID();
       UUID interestId2 = UUID.randomUUID(); // 구독자가 없는 관심사
@@ -131,7 +133,7 @@ class NotificationServiceTest {
 
     @Test
     @DisplayName("유저를 찾을 수 없으면 UserNotFoundException이 발생한다.")
-    void throwExceptionWhenUserNotFound() {
+    void fail_create_notification_UserNotFound() {
       // given
       UUID commentId = UUID.randomUUID();
       UUID readerId = UUID.randomUUID();
@@ -145,7 +147,7 @@ class NotificationServiceTest {
 
     @Test
     @DisplayName("댓글을 찾을 수 없으면 CommentNotFoundException이 발생한다.")
-    void throwExceptionWhenCommentNotFound() {
+    void fail_create_notification_CommentNotFound() {
       // given
       UUID commentId = UUID.randomUUID();
       UUID readerId = UUID.randomUUID();
@@ -161,15 +163,46 @@ class NotificationServiceTest {
     }
 
     @Test
+    @DisplayName("댓글 작성자와 알림 수신자가 일치하지 않으면 IllegalStateException이 발생한다.")
+    void fail_create_notification_ReceiverMismatch() {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID readerId = UUID.randomUUID();
+      UUID realOwnerId = UUID.randomUUID(); // 실제 작성자의 다른 ID
+
+      User mockReader = mock(User.class);
+      given(mockReader.getId()).willReturn(readerId); // 수신자 ID
+
+      User mockOwner = mock(User.class);
+      given(mockOwner.getId()).willReturn(realOwnerId); // 실제 작성자 ID
+
+      Comment mockComment = mock(Comment.class);
+      given(mockComment.getUser()).willReturn(mockOwner);
+
+      given(userRepository.findByIdAndDeletedAtIsNull(readerId)).willReturn(Optional.of(mockReader));
+      given(commentRepository.findById(commentId)).willReturn(Optional.of(mockComment));
+
+      // when & then
+      assertThatThrownBy(() -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("댓글 작성자와 알림을 받을 사용자의 ID값이 일치하지 않습니다.");
+
+      verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("정상적으로 댓글 좋아요 알림을 생성하고 저장한다.")
-    void successfullyCreateAndSaveCommentNotification() {
+    void success_create_comment_notifications() {
       // given
       UUID commentId = UUID.randomUUID();
       UUID readerId = UUID.randomUUID();
       String likerNickname = "테스트 닉네임";
 
       User mockUser = mock(User.class);
+      given(mockUser.getId()).willReturn(readerId);
+
       Comment mockComment = mock(Comment.class);
+      given(mockComment.getUser()).willReturn(mockUser);
 
       given(userRepository.findByIdAndDeletedAtIsNull(readerId)).willReturn(Optional.of(mockUser));
       given(commentRepository.findById(commentId)).willReturn(Optional.of(mockComment));

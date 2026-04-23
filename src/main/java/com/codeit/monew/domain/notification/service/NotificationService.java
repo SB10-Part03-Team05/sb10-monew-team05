@@ -95,6 +95,13 @@ public class NotificationService {
           return new CommentNotFoundException(commentId);
         });
 
+    // 2-1. 이벤트로 넘어온 readerId가 실제 댓글 작성자가 맞는지 교차 검증
+    if (comment.getUser() == null || !comment.getUser().getId().equals(reader.getId())) {
+      log.warn("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 실패 - 수신자 불일치: commentId={}, readerId={}, commentOwnerId={}",
+          commentId, readerId, comment.getUser() == null ? null : comment.getUser().getId());
+      throw new IllegalStateException("댓글 작성자와 알림을 받을 사용자의 ID값이 일치하지 않습니다.");
+    }
+
     // 3. 알림 내용 생성
     String content = String.format("[%s]님이 나의 댓글을 좋아합니다.", likerNickname);
     CommentNotification notification = CommentNotification.create(reader, content, comment);
