@@ -3,7 +3,7 @@ package com.codeit.monew.global.exception;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,8 +11,6 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.View;
 
@@ -152,20 +150,20 @@ public class GlobalExceptionHandler {
   private HttpStatus determineHttpStatus(MonewException exception) {
     ErrorCode errorCode = exception.getErrorCode();
     return switch (errorCode) {
-//            case  -> HttpStatus.CONFLICT;
-//            case  -> HttpStatus.UNAUTHORIZED;
-//            case  -> HttpStatus.BAD_REQUEST;
-//            case  -> HttpStatus.INTERNAL_SERVER_ERROR;
-
-      case USER_NOT_FOUND, ARTICLE_NOT_FOUND, COMMENT_NOT_FOUND, INTEREST_NOT_FOUND, SUBSCRIPTION_NOT_FOUND, COMMENT_LIKE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case USER_NOT_FOUND, ARTICLE_NOT_FOUND, COMMENT_NOT_FOUND, INTEREST_NOT_FOUND,
+           SUBSCRIPTION_NOT_FOUND, COMMENT_LIKE_NOT_FOUND -> HttpStatus.NOT_FOUND;
       case PASSWORD_MISMATCH -> HttpStatus.UNAUTHORIZED;
-      case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS -> HttpStatus.CONFLICT;
+      case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS ->
+          HttpStatus.CONFLICT;
       case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN -> HttpStatus.FORBIDDEN;
-      case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG -> HttpStatus.BAD_REQUEST;
+      case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG, INVALID_ARTICLE_ENTITY ->
+          HttpStatus.BAD_REQUEST;
       case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
       case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
-      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR ->
+      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR,
+           EXTERNAL_INVALID_XML ->
           HttpStatus.SERVICE_UNAVAILABLE; // 503
+      case ARTICLE_SCRAPE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
       default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
     };
   }

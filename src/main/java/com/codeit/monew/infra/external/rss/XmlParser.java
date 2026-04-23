@@ -2,6 +2,8 @@ package com.codeit.monew.infra.external.rss;
 
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.global.exception.article.InvalidArticleEntityException;
+import com.codeit.monew.global.exception.external.ExternalInvalidXmlException;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
@@ -21,8 +23,11 @@ public class XmlParser {
   public List<Article> parse(String xml, NewsSourceUrl source) {
     // xml이 비어있다면 예외 발생
     if (xml == null || xml.isBlank()) {
-      // todo: 커스텀 예외로 전환
-      throw new IllegalArgumentException("XML 응답이 비어 있습니다. + source:" + source);
+      throw new ExternalInvalidXmlException(
+          source,
+          "empty_or_blank_xml",
+          xml == null ? null : xml.length()
+      );
     }
 
     // XML 문법에 어긋나는 요소들을 정규표현식으로 미리 제거 (전처리)
@@ -33,6 +38,8 @@ public class XmlParser {
       // ROME 라이브러리를 사용하여 문자열 XML을 SyndFeed(RSS 표준 객체)로 변환
       SyndFeed feed = new SyndFeedInput().build(new StringReader(sanitizedXml));
       List<Article> articles = new ArrayList<>();
+      int skippedInvalid = 0;
+      int skippedUnexpected = 0;
 
       // 피드 안의 개별 기사 항목(SyndEntry)을 하나씩 순회
       for (SyndEntry entry : feed.getEntries()) {
@@ -45,16 +52,24 @@ public class XmlParser {
                   : entry.getPublishedDate().toInstant(),
               extractSummary(entry)
           ));
-        } catch (IllegalArgumentException e) {
-          // 파싱 중간에 잘못된 값이 필터링 되지 않은 경우 스킵하고 남은 기사 항목(SyndEntry) 파싱 진행
-          log.warn("[{}] entry parse skipped: {}", source, e.getMessage());
+        } catch (InvalidArticleEntityException e) { // 특정 엔트리의 엔티티 무결성이 잘못된 경우 해당 엔트리 스킵
+          skippedInvalid++;
+          log.warn("[{}] entry parse skipped(invalid): title={}, link={}, details={}",
+              source, entry.getTitle(), entry.getLink(), e.getDetails());
+        } catch (Exception e) { // 알 수 없는 예외로 특정 엔트리의 파싱이 실패한 경우 해당 엔트리 스킵
+          skippedUnexpected++;
+          log.error(
+              "[{}] entry parse skipped(unexpected): title={}, link={}, errorType={}, message={}",
+              source, entry.getTitle(), entry.getLink(), e.getClass().getSimpleName(),
+              e.getMessage(), e);
         }
       }
 
+      log.info("[{}] parse finished. total={}, parsed={}, skippedInvalid={}, skippedUnexpected={}",
+          source, feed.getEntries().size(), articles.size(), skippedInvalid, skippedUnexpected);
       return articles;
     } catch (FeedException e) {
-      log.error("[{}] XML parse failed: {}", source, e.getMessage());
-      return List.of();
+      throw new ExternalInvalidXmlException(source, "feed_parse_failed", e);
     }
   }
 
@@ -100,4 +115,3 @@ public class XmlParser {
     };
   }
 }
-

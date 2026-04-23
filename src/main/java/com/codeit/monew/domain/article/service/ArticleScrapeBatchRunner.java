@@ -5,6 +5,7 @@ import com.codeit.monew.domain.article.dto.response.ArticleScrapeBatchRunRespons
 import com.codeit.monew.domain.article.scheduler.ArticleScrapeBatchConfig;
 import java.util.Comparator;
 import java.util.List;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionException;
@@ -35,6 +36,12 @@ public class ArticleScrapeBatchRunner {
         .toJobParameters();
 
     JobExecution execution = jobLauncher.run(articleScrapeBatchJob, params);
+    if (execution.getStatus() == BatchStatus.FAILED || execution.getStatus() == BatchStatus.STOPPED) {
+      throw new JobExecutionException(
+          "Article scrape batch failed. jobExecutionId=" + execution.getId()
+              + ", status=" + execution.getStatus()
+      );
+    }
     return toResponse(execution);
   }
 
