@@ -14,6 +14,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.codeit.monew.global.exception.external.ExternalClientException;
+import com.codeit.monew.global.exception.external.ExternalEmptyResponseException;
 import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
@@ -102,8 +103,8 @@ class XmlClientRestSliceTest {
       server.expect(requestTo(NewsSourceUrl.CHOSUN.resolveRssUrl()))
           .andRespond(withSuccess("", MediaType.APPLICATION_XML));
 
-      // when & then: 빈 응답일 경우 ExternalNetworkException(혹은 매핑된 빈 응답 예외)이 발생하는지 검증
-      assertThrows(ExternalNetworkException.class,
+      // when & then: 빈 응답일 경우 ExternalEmptyResponseException이 발생하는지 검증
+      assertThrows(ExternalEmptyResponseException.class,
           () -> xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN));
     }
 
