@@ -10,4 +10,9 @@ public abstract class ArticleException extends MonewException {
     addDetail(key, value);
   }
 
+  protected ArticleException(ErrorCode errorCode, String key, Object value, Throwable cause) {
+    super(errorCode, cause);
+    addDetail(key, value);
+  }
+
 }
