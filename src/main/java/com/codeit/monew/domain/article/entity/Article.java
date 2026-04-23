@@ -1,7 +1,6 @@
 package com.codeit.monew.domain.article.entity;
 
 import com.codeit.monew.domain.article.ArticleSource;
-import com.codeit.monew.domain.comment.entity.Comment;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.global.common.base.BaseUpdatableEntity;
 import com.codeit.monew.global.exception.article.InvalidArticleEntityException;
@@ -59,11 +58,7 @@ public class Article extends BaseUpdatableEntity {
   @Column(name = "summary", nullable = false, columnDefinition = "TEXT")
   private String summary; // 요약
 
-  // 2. One-To-Many 매핑 (댓글, 관심사 중간 엔티티)
-  @Builder.Default
-  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Comment> comments = new ArrayList<>(); // 댓글
-
+  // 2. One-To-Many 매핑 (관심사 중간 엔티티)
   @Builder.Default
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ArticleInterest> articleInterests = new ArrayList<>(); // 관심사
@@ -125,30 +120,7 @@ public class Article extends BaseUpdatableEntity {
         .build();
   }
 
-  // 업데이트 메서드
-  public void update(ArticleSource source, String sourceUrl, String title, Instant publishDate,
-      String summary) {
-    validateArticle(source, sourceUrl, title, publishDate, summary);
-    this.source = source;
-    this.sourceUrl = sourceUrl;
-    this.title = title;
-    this.publishDate = publishDate;
-    this.summary = summary;
-  }
-
   // 연관관계 편의 메서드
-  public void addComment(Comment comment) {
-    if (this.comments.contains(comment) || comment == null) {
-      return;
-    }
-
-    this.comments.add(comment);
-
-//    if (comment.getArticle() != this) {
-//      comment.setArticle(this);
-//    }
-  }
-
   public void addInterest(Interest interest) {
     if (interest == null) {
       return;
