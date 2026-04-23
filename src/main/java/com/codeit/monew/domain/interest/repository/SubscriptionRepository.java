@@ -24,4 +24,11 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
   List<Subscription> findByInterestIdIn(Collection<UUID> interestIds);
 
+  // 구독한 관심사 관련 기사 알림 생성용
+  @Query("SELECT s FROM Subscription s " +
+      "JOIN FETCH s.user " +
+      "JOIN FETCH s.interest " +
+      "WHERE s.interest.id IN :interestIds")
+  List<Subscription> findAllByInterestIdInWithUserAndInterest(@Param("interestIds") List<UUID> interestIds);
+
 }

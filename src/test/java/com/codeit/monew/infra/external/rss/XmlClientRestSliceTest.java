@@ -10,6 +10,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withNoContent;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -97,13 +98,25 @@ class XmlClientRestSliceTest {
   class ErrorCases {
 
     @Test
-    @DisplayName("빈/null 응답은 ExternalEmptyResponseException")
+    @DisplayName("빈 응답은 ExternalEmptyResponseException")
     void throw_when_empty_response() {
       // given: 외부 API가 빈 문자열(내용 없음)로 성공 응답을 반환하도록 모킹
       server.expect(requestTo(NewsSourceUrl.CHOSUN.resolveRssUrl()))
           .andRespond(withSuccess("", MediaType.APPLICATION_XML));
 
       // when & then: 빈 응답일 경우 ExternalEmptyResponseException이 발생하는지 검증
+      assertThrows(ExternalEmptyResponseException.class,
+          () -> xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN));
+    }
+
+    @Test
+    @DisplayName("null 응답은 ExternalEmptyResponseException")
+    void throw_when_null_response() {
+      // given: 외부 API가 null로 성공 응답을 반환하도록 모킹
+      server.expect(requestTo(NewsSourceUrl.CHOSUN.resolveRssUrl()))
+          .andRespond(withNoContent());
+
+      // when & then: null 응답일 경우 ExternalEmptyResponseException이 발생하는지 검증
       assertThrows(ExternalEmptyResponseException.class,
           () -> xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN));
     }

@@ -13,6 +13,8 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.InterestSubscribedEvent;
+import com.codeit.monew.global.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -26,7 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -38,6 +43,7 @@ public class InterestService {
   private final KeywordRepository keywordRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserRepository userRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   // 1. 관심사 등록
   @Transactional
@@ -160,6 +166,19 @@ public class InterestService {
       throw e;
     }
 
+    // 활동 내역 구독 정보 갱신 로직
+    eventPublisher.publishEvent(new InterestSubscribedEvent(
+        userId,
+        subscription.getId(),
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords().stream()
+            .map(Keyword::getName)
+            .toList(), // List<String>으로 변환
+        interest.getSubscriberCount() + 1, // DB 락과 별개로 메모리상에서 +1 한 최신값 전달
+        subscription.getCreatedAt() != null ? subscription.getCreatedAt() : Instant.now()
+    ));
+
     // 구독자 수 증가
     interestRepository.incrementSubscriberCount(interestId);
 
@@ -190,6 +209,11 @@ public class InterestService {
     if (deleted == 0) {
       throw new SubscriptionNotFoundException(userId, interestId);
     }
+
+    eventPublisher.publishEvent(new InterestUnSubscribedEvent(
+        userId,
+        interestId
+    ));
 
     // 구독자 수 감소
     interestRepository.decrementSubscriberCount(interestId);
