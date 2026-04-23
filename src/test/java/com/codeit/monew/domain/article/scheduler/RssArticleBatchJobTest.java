@@ -1,6 +1,6 @@
 package com.codeit.monew.domain.article.scheduler;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -90,61 +90,52 @@ class RssArticleBatchJobTest {
     @Test
     @DisplayName("server error 재시도 후 성공")
     void retry_and_success_on_server_error() {
-      // given: 서버 에러(500) 발생 시 잡 내부의 재시도 로직(Thread.sleep 등)이 동작함.
-      // 무한정 기다리는 것을 방지하기 위해 스레드를 인터럽트(interrupt) 시키면서 에러를 던지도록 모킹
+      // given: 1회차는 서버 에러, 2회차는 성공
       given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
-          .willAnswer(inv -> {
-            Thread.currentThread().interrupt();
-            throw serverError();
-          });
+          .willThrow(serverError())
+          .willReturn(1);
 
-      try {
-        // when & then: 배치 잡 실행 시 인터럽트로 인해 대기가 깨지며 IllegalStateException이 발생하는지 검증
-        assertThrows(IllegalStateException.class,
-            () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
-      } finally {
-        // 상태 초기화
-        Thread.interrupted();
-      }
+      // when
+      rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
 
-      // then: 예외 발생 시점까지 프로세서가 1회 호출(재시도 로직 진입)되었음을 검증
-      verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+      // then
+      verify(rssSourceTxProcessor, times(2)).processOneSource(NewsSourceUrl.CHOSUN);
     }
 
     @Test
     @DisplayName("network error 재시도 후 성공")
     void retry_and_success_on_network_error() {
-      // given: 네트워크 에러 발생 시 재시도 로직 대기를 피하고자 인터럽트 시키면서 예외를 던지도록 모킹
+      // given: 1회차는 네트워크 에러, 2회차는 성공
       given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
-          .willAnswer(inv -> {
-            Thread.currentThread().interrupt();
-            throw networkError();
-          });
+          .willThrow(networkError())
+          .willReturn(1);
 
-      try {
-        // when & then: 배치 잡 실행 시 대기 중단에 의한 IllegalStateException이 발생하는지 검증
-        assertThrows(IllegalStateException.class,
-            () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
-      } finally {
-        // 상태 초기화
-        Thread.interrupted();
-      }
+      // when
+      rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
 
-      // then: 예외 발생 시점까지 프로세서가 1회 호출되었음을 검증
-      verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+      // then
+      verify(rssSourceTxProcessor, times(2)).processOneSource(NewsSourceUrl.CHOSUN);
     }
 
     @Test
     @DisplayName("server/network 재시도 소진 후 종료")
     void stop_after_retry_exhausted() {
-      // given: 재시도 횟수 소진(혹은 단발성 종료 예외) 상황을 모킹
-      given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN)).willThrow(rateLimit());
+      // given: transient 에러(server/network)가 계속 발생해서 최대 재시도 소진
+      given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
+          .willThrow(serverError())   // attempt 1 -> sleep 10s
+          .willThrow(networkError())  // attempt 2 -> sleep 20s
+          .willThrow(serverError())   // attempt 3 -> sleep 30s
+          .willThrow(networkError()); // attempt 4 -> 종료(추가 sleep 없음)
 
-      // when: 배치 잡 실행
-      rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
+      long start = System.currentTimeMillis();
 
-      // then: 정해진 횟수 초과 또는 예외 종류로 인해 더 이상 호출되지 않고 1회 호출 후 종료되었음을 검증
-      verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+      // when
+      assertDoesNotThrow(() -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
+
+      long elapsed = System.currentTimeMillis() - start;
+
+      // then: 최대 재시도 소진 후 정상 종료
+      verify(rssSourceTxProcessor, times(4)).processOneSource(NewsSourceUrl.CHOSUN);
     }
 
     @Test

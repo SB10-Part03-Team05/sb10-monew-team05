@@ -117,17 +117,37 @@ class NaverArticleBatchJobTest {
     }
 
     @Test
-    @DisplayName("server/network 재시도 소진 시 종료")
-    void stop_when_server_retry_exhausted() {
-      // given: 재시도 대상 예외가 지속적으로 발생하도록 모킹 (테스트 구현상 rateLimit 사용됨)
+    @DisplayName("server/network error 재시도 후 성공")
+    void retry_and_success_on_server_error() {
+      // given: "삼성" 키워드 처리 시 1, 2회차는 서버/네트워크 에러가 발생하고, 3회차에 성공하도록 모킹
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(kw("삼성")));
-      given(naverKeywordTxProcessor.processOneKeyword("삼성")).willThrow(rateLimit());
+      given(naverKeywordTxProcessor.processOneKeyword("삼성"))
+          .willThrow(serverError())
+          .willThrow(networkError())
+          .willReturn(1);
 
       // when: 배치 잡 실행
       naverArticleBatchJob.run();
 
-      // then: 역시 최대 재시도 횟수(총 6회)를 모두 소진한 뒤 처리를 포기하고 종료됨을 검증
-      verify(naverKeywordTxProcessor, times(6)).processOneKeyword("삼성");
+      // then: 총 3회(실패 2회 + 성공 1회) 호출되었음을 검증
+      verify(naverKeywordTxProcessor, times(3)).processOneKeyword("삼성");
+    }
+
+    @Test
+    @DisplayName("server/network 재시도 소진 시 종료")
+    void stop_when_server_retry_exhausted() {
+      // given: 서버 에러가 지속적으로 발생하도록 모킹
+      given(keywordRepository.findAllWithInterest()).willReturn(List.of(kw("삼성")));
+      given(naverKeywordTxProcessor.processOneKeyword("삼성"))
+          .willThrow(serverError())
+          .willThrow(networkError())
+          .willThrow(serverError());
+
+      // when: 배치 잡 실행
+      naverArticleBatchJob.run();
+
+      // then: 서버 에러 최대 재시도 횟수(최초 1회 + 재시도 3회 = 총 4회)를 소진한 뒤 종료됨을 검증
+      verify(naverKeywordTxProcessor, times(4)).processOneKeyword("삼성");
     }
 
     @Test
