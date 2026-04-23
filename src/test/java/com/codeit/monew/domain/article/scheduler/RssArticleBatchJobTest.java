@@ -1,7 +1,9 @@
 package com.codeit.monew.domain.article.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -10,12 +12,14 @@ import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +28,7 @@ class RssArticleBatchJobTest {
   @Mock
   private RssSourceTxProcessor rssSourceTxProcessor;
 
+  @Spy
   @InjectMocks
   private RssArticleBatchJob rssArticleBatchJob;
 
@@ -40,6 +45,11 @@ class RssArticleBatchJobTest {
   private ExternalNetworkException networkError() {
     return new ExternalNetworkException(
         NewsSourceUrl.CHOSUN, "https://x", new RuntimeException("network"));
+  }
+
+  @BeforeEach
+  void setUp() {
+    lenient().doNothing().when(rssArticleBatchJob).sleep(anyLong());
   }
 
   @Nested
@@ -88,10 +98,11 @@ class RssArticleBatchJobTest {
     }
 
     @Test
-    @DisplayName("server error 재시도 후 성공")
-    void retry_and_success_on_server_error() {
-      // given: 1회차는 서버 에러, 2회차는 성공
+    @DisplayName("network error/server error 재시도 후 성공")
+    void retry_and_success_on_network_error() {
+      // given: 1회차는 네트워크 에러, 2회차는 서버 에러, 3회차는 성공
       given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
+          .willThrow(networkError())
           .willThrow(serverError())
           .willReturn(1);
 
@@ -99,22 +110,7 @@ class RssArticleBatchJobTest {
       rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
 
       // then
-      verify(rssSourceTxProcessor, times(2)).processOneSource(NewsSourceUrl.CHOSUN);
-    }
-
-    @Test
-    @DisplayName("network error 재시도 후 성공")
-    void retry_and_success_on_network_error() {
-      // given: 1회차는 네트워크 에러, 2회차는 성공
-      given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
-          .willThrow(networkError())
-          .willReturn(1);
-
-      // when
-      rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
-
-      // then
-      verify(rssSourceTxProcessor, times(2)).processOneSource(NewsSourceUrl.CHOSUN);
+      verify(rssSourceTxProcessor, times(3)).processOneSource(NewsSourceUrl.CHOSUN);
     }
 
     @Test
