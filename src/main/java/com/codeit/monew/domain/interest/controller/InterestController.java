@@ -9,8 +9,6 @@ import com.codeit.monew.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -70,12 +68,11 @@ public class InterestController {
       @RequestParam String orderBy,
       @RequestParam String direction,
       @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) Instant after,
       @RequestParam @Min(1) @Max(100) int limit, // 과도한 조회/예외 가능성 방지를 위한 가드 추가
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     CursorPageResponseInterestDto response = interestService.getList(
-        keyword, orderBy, direction, cursor, after, limit, userId
+        keyword, orderBy, direction, cursor, limit, userId
     );
     return ResponseEntity.ok(response);
   }

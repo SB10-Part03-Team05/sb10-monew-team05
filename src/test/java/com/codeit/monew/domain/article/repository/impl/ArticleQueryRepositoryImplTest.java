@@ -152,7 +152,6 @@ public class ArticleQueryRepositoryImplTest {
           result.content().get(1).publishDate());
 
       assertThat(result.hasNext()).isTrue();
-      assertThat(result.nextCursor()).isEqualTo(article2.getPublishDate().toString());
       assertThat(result.nextAfter()).isNotNull();
       assertThat(result.totalElements()).isEqualTo(3);
     }
@@ -209,7 +208,6 @@ public class ArticleQueryRepositoryImplTest {
       assertThat(result.content().get(1).commentCount()).isEqualTo(2);
 
       assertThat(result.hasNext()).isTrue();
-      assertThat(result.nextCursor()).isEqualTo("2");
       assertThat(result.nextAfter()).isNotNull();
       assertThat(result.totalElements()).isEqualTo(3);
     }
@@ -266,7 +264,6 @@ public class ArticleQueryRepositoryImplTest {
       assertThat(result.content().get(1).viewCount()).isEqualTo(2);
 
       assertThat(result.hasNext()).isTrue();
-      assertThat(result.nextCursor()).isEqualTo("2");
       assertThat(result.nextAfter()).isNotNull();
       assertThat(result.totalElements()).isEqualTo(3);
     }

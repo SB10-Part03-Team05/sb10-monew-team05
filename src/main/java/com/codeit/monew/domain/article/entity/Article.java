@@ -76,34 +76,42 @@ public class Article extends BaseUpdatableEntity {
   // 엔티티 무결성 검증 메서드
   private static void validateArticle(ArticleSource source, String sourceUrl, String title,
       Instant publishDate, String summary) {
-    // 필수 값 검증
+
+    // 1. 필수 객체 존재 검증 (DB Integrity - NOT NULL 제약)
     if (source == null) {
       throw new InvalidArticleEntityException("source", "null");
     }
-    if (isTextEmpty(sourceUrl)) {
-      throw new InvalidArticleEntityException("sourceUrl", "blank");
+    if (sourceUrl == null) {
+      throw new InvalidArticleEntityException("sourceUrl", "null");
     }
-    if (isTextEmpty(title)) {
-      throw new InvalidArticleEntityException("title", "blank");
+    if (title == null) {
+      throw new InvalidArticleEntityException("title", "null");
     }
     if (publishDate == null) {
       throw new InvalidArticleEntityException("publishDate", "null");
     }
-    if (isTextEmpty(summary)) {
+    if (summary == null) {
+      throw new InvalidArticleEntityException("summary", "null");
+    }
+
+    // 2. 도메인 규칙 검증 (Domain Integrity - 비즈니스 정책)
+    if (sourceUrl.isBlank()) {
+      throw new InvalidArticleEntityException("sourceUrl", "blank");
+    }
+    if (title.isBlank()) {
+      throw new InvalidArticleEntityException("title", "blank");
+    }
+    if (summary.isBlank()) {
       throw new InvalidArticleEntityException("summary", "blank");
     }
 
-    // 길이 제한 검증
+    // 3. 데이터 제약 검증 (Data Constraint - 길이 제한)
     if (title.length() > 200) {
       throw new InvalidArticleEntityException("title", "too_long", 200, title.length());
     }
     if (sourceUrl.length() > 2048) {
       throw new InvalidArticleEntityException("sourceUrl", "too_long", 2048, sourceUrl.length());
     }
-  }
-
-  private static boolean isTextEmpty(String text) {
-    return text == null || text.isBlank();
   }
 
 

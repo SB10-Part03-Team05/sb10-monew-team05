@@ -10,7 +10,6 @@ public interface InterestRepositoryCustom {
       String orderBy,
       String direction,
       String cursor,
-      Instant after,
       int limit,
       UUID userId
   );
