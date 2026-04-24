@@ -142,4 +142,11 @@ public class NotificationService {
 
     notification.confirm(); // 더티 체킹으로 confirmed = true 변경
   }
+
+  // 전체 알림 확인
+  @Transactional
+  public void confirmAllNotifications(UUID userId) {
+    int updatedCount = notificationRepository.confirmAllByUserId(userId);
+    log.info("[NOTIFICATION_SERVICE] 유저 {}의 알림 {}건 전체 읽음 처리 완료", userId, updatedCount);
+  }
 }

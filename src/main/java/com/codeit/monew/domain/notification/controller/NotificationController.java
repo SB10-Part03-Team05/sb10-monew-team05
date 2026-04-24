@@ -1,12 +1,8 @@
 package com.codeit.monew.domain.notification.controller;
 
-import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.notification.service.NotificationService;
-import com.codeit.monew.global.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.UUID;
@@ -38,6 +34,22 @@ public class NotificationController {
       @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     notificationService.confirmNotification(notificationId, userId);
+    return ResponseEntity.ok().build();
+  }
+
+  // 전체 알림 확인
+  @Operation(summary = "전체 알림 확인", description = "전체 알림을 한번에 확인합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "전체 알림 확인 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)"),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @PatchMapping
+  public ResponseEntity<Void> confirmAll(
+      @Parameter(description = "요청자 ID") @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    notificationService.confirmAllNotifications(userId);
     return ResponseEntity.ok().build();
   }
 }
