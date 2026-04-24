@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.notification.event;
 
+import com.codeit.monew.global.exception.common.InvalidParameterException;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,7 +20,7 @@ public record BulkArticleRegisteredEvent(
   ) {
     public InterestArticleCount {
       if (interestId == null) {
-        throw new IllegalArgumentException("관심사 ID는 null일 수 없습니다.");
+        throw new InvalidParameterException("interestId", null);
       }
       if (articleCount < 0) {
         throw new IllegalArgumentException("기사 수는 0보다 작을 수 없습니다.");
