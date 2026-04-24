@@ -38,8 +38,6 @@ public class ArticleScrapeService {
   private final KeywordRepository keywordRepository;
   // TODO: NotificationService notificationService;
 
-  private static final int BATCH_SIZE = 500;
-
   public int scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
     List<Article> parsedArticles = runStage("fetch_parse", source, query,
@@ -86,13 +84,10 @@ public class ArticleScrapeService {
   }
 
   private List<Article> filterNewArticles(List<Article> parsedArticles) {
-    List<String> allUrls = parsedArticles.stream().map(Article::getSourceUrl).toList();
-    Set<String> existingUrls = new HashSet<>();
-
-    for (int i = 0; i < allUrls.size(); i += BATCH_SIZE) {
-      List<String> chunk = allUrls.subList(i, Math.min(i + BATCH_SIZE, allUrls.size()));
-      existingUrls.addAll(articleRepository.findAllExistingUrlsIn(chunk));
-    }
+    List<String> allUrls = parsedArticles.stream()
+        .map(Article::getSourceUrl)
+        .toList();
+    Set<String> existingUrls = new HashSet<>(articleRepository.findAllExistingUrlsIn(allUrls));
 
     return parsedArticles.stream()
         .filter(article -> !existingUrls.contains(article.getSourceUrl()))

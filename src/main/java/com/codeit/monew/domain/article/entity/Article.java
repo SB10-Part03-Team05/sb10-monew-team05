@@ -128,17 +128,7 @@ public class Article extends BaseUpdatableEntity {
         .build();
   }
 
-  // 업데이트 메서드
-  public void update(ArticleSource source, String sourceUrl, String title, Instant publishDate,
-      String summary) {
-    validateArticle(source, sourceUrl, title, publishDate, summary);
-    this.source = source;
-    this.sourceUrl = sourceUrl;
-    this.title = title;
-    this.publishDate = publishDate;
-    this.summary = summary;
-  }
-
+  // 연관관계 편의 메서드
   public void addInterest(Interest interest) {
     if (interest == null) {
       return;
