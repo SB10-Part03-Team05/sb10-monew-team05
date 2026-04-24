@@ -2,7 +2,8 @@ name: Docker 이미지 build 및 push & ECS service 업데이트
 
 on: # workflow 실행 조건
   push:
-    branches: [ "dev" ]  # dev branch에서 push(merge 포함) 이벤트 발생될 때만 실행
+    branches: [ "cd/deploy" ]
+#    branches: [ "dev" ]  # dev branch에서 push(merge 포함) 이벤트 발생될 때만 실행
 
 jobs: # 실행할 작업
   # 1. Docker 이미지 build 및 push Job
@@ -150,3 +151,13 @@ jobs: # 실행할 작업
           --cluster ${{ vars.ECS_CLUSTER }} \
           --service ${{ vars.ECS_SERVICE }} \
           --desired-count 1
+
+      # 2-7) ECS service 안정화 대기
+      # `services-stable` : ECS service의 runningCount가 `desiredCount` 와 일치하고,
+      #                     진행 중인 deployment가 안정 상태가 될 때까지 대기
+      # 새 task가 바로 죽는 경우 Workflow가 성공으로 끝나는 것을 방지
+      - name: ECS service 안정화 확인
+        run: |
+          aws ecs wait service-stable \
+          --cluster ${{ vars.ECS_CLUSTER }} \
+          --services ${{ vars.ECS_SERVICE }}
