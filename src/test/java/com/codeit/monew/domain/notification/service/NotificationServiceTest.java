@@ -22,6 +22,7 @@ import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
+import com.codeit.monew.global.exception.notification.NotificationReceiverMismatchException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.Collections;
 import java.util.List;
@@ -39,13 +40,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
+
   @InjectMocks
   private NotificationService notificationService;
 
-  @Mock private NotificationRepository notificationRepository;
-  @Mock private SubscriptionRepository subscriptionRepository;
-  @Mock private UserRepository userRepository;
-  @Mock private CommentRepository commentRepository;
+  @Mock
+  private NotificationRepository notificationRepository;
+  @Mock
+  private SubscriptionRepository subscriptionRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private CommentRepository commentRepository;
 
   @Captor
   private ArgumentCaptor<List<InterestNotification>> interestNotificationListCaptor;
@@ -60,7 +66,8 @@ class NotificationServiceTest {
     @DisplayName("이벤트 데이터가 null이거나 비어있으면 조기 종료된다.")
     void fail_create_notification_event_is_null_or_empty() {
       // given
-      BulkArticleRegisteredEvent emptyEvent = new BulkArticleRegisteredEvent(Collections.emptyList());
+      BulkArticleRegisteredEvent emptyEvent = new BulkArticleRegisteredEvent(
+          Collections.emptyList());
       BulkArticleRegisteredEvent nullEvent = new BulkArticleRegisteredEvent(null);
 
       // when
@@ -123,7 +130,8 @@ class NotificationServiceTest {
 
       List<InterestNotification> savedNotifications = interestNotificationListCaptor.getValue();
       assertThat(savedNotifications).hasSize(1);
-      assertThat(savedNotifications.get(0).getContent()).isEqualTo("[테스트 관심사1]와 관련된 기사가 5건 등록되었습니다.");
+      assertThat(savedNotifications.get(0).getContent()).isEqualTo(
+          "[테스트 관심사1]와 관련된 기사가 5건 등록되었습니다.");
     }
   }
 
@@ -140,7 +148,8 @@ class NotificationServiceTest {
       given(userRepository.findByIdAndDeletedAtIsNull(readerId)).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
+      assertThatThrownBy(
+          () -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
           .isInstanceOf(UserNotFoundException.class);
       verify(notificationRepository, never()).save(any());
     }
@@ -157,7 +166,8 @@ class NotificationServiceTest {
       given(commentRepository.findById(commentId)).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
+      assertThatThrownBy(
+          () -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
           .isInstanceOf(CommentNotFoundException.class);
       verify(notificationRepository, never()).save(any());
     }
@@ -179,13 +189,15 @@ class NotificationServiceTest {
       Comment mockComment = mock(Comment.class);
       given(mockComment.getUser()).willReturn(mockOwner);
 
-      given(userRepository.findByIdAndDeletedAtIsNull(readerId)).willReturn(Optional.of(mockReader));
+      given(userRepository.findByIdAndDeletedAtIsNull(readerId)).willReturn(
+          Optional.of(mockReader));
       given(commentRepository.findById(commentId)).willReturn(Optional.of(mockComment));
 
       // when & then
-      assertThatThrownBy(() -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("댓글 작성자와 알림을 받을 사용자의 ID값이 일치하지 않습니다.");
+      assertThatThrownBy(
+          () -> notificationService.createCommentLikeNotification(commentId, readerId, "테스트 닉네임"))
+          .isInstanceOf(NotificationReceiverMismatchException.class)
+          .hasMessageContaining("댓글 작성자와 알림 수신자가 일치하지 않습니다.");
 
       verify(notificationRepository, never()).save(any());
     }
