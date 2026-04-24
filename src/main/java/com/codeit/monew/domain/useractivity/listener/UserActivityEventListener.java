@@ -5,8 +5,6 @@ import com.codeit.monew.domain.useractivity.entity.UserActivity.ArticleViewInfo;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.CommentInfo;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.CommentLikeInfo;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.SubscriptionInfo;
-import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
-import com.codeit.monew.domain.useractivity.repository.UserActivityRepository;
 import com.codeit.monew.domain.useractivity.event.ArticleViewedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedCancelEvent;
@@ -15,6 +13,7 @@ import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
+import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
@@ -32,7 +31,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class UserActivityEventListener {
 
-  private final UserActivityRepository userActivityRepository;
   private final MongoTemplate mongoTemplate;
   private final UserActivityMapper userActivityMapper;
 
