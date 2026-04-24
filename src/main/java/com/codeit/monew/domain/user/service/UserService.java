@@ -7,7 +7,7 @@ import com.codeit.monew.domain.user.dto.UserUpdateRequest;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.mapper.UserMapper;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.event.UserRegisteredEvent;
+import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
 import com.codeit.monew.global.exception.user.DuplicateEmailException;
 import com.codeit.monew.global.exception.user.PasswordMismatchException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;

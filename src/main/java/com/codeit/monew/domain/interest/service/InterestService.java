@@ -13,8 +13,8 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.event.InterestSubscribedEvent;
-import com.codeit.monew.global.event.InterestUnSubscribedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -29,9 +29,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
