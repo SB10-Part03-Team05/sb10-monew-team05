@@ -24,6 +24,10 @@ public interface UserActivityMapper {
   UserActivityDto.ActivityArticleViewDto toArticleViewDto(UserActivity.ArticleViewInfo info);
 
   @Mapping(target = "id", source = "userId")
+  @Mapping(target = "subscriptions", ignore = true)
+  @Mapping(target = "comments", ignore = true)
+  @Mapping(target = "commentLikes", ignore = true)
+  @Mapping(target = "articleViews", ignore = true)
   UserActivity toUserActivity(UserRegisteredEvent event);
 
   @Mapping(target = "id", source = "subscriptionId")
