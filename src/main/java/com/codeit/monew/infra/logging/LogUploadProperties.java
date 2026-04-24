@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class LogUploadProperties {
 
-  private String cron;
   private String zone;
 
   private String logDir;

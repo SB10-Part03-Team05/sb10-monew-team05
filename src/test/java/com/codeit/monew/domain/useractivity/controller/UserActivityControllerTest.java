@@ -11,7 +11,6 @@ import com.codeit.monew.domain.useractivity.service.UserActivityService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
-import com.codeit.monew.global.logging.ClientIpResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(UserActivityController.class)
-@Import({GlobalExceptionHandler.class, ClientIpResolver.class})
+@Import(GlobalExceptionHandler.class)
 class UserActivityControllerTest {
 
   @Autowired
