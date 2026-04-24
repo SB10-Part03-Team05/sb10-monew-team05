@@ -123,7 +123,17 @@ jobs: # 실행할 작업
           container-name: ${{ vars.ECS_CONTAINER }}
           image: ${{ vars.ECR_REPOSITORY_URI }}:${{ needs.docker-images-build-and-push.outputs.image_tag }}
 
-      # 2-4) 새 이미지가 반영된 task definition으로 ECS service 업데이트
+      # 2-4) 기존에 구동 중인 ECS service 중단
+      # `--desired-count` : 서비스가 유지하려고 하는 task 개수
+      # `--desired-count 0`이면 실행 중인 task 수를 0개로 맞춤 (모두 중지)
+      - name: 기존 ECS service 중지
+        run: |
+          aws ecs update-service \
+          --cluster ${{ vars.ECS_CLUSTER }} \
+          --service ${{ vars.ECS_SERVICE }} \
+          --desired-count 0
+
+      # 2-5) 새 이미지가 반영된 task definition으로 ECS service 업데이트
       # `task-definition` : 위 step에서 새 이미지가 반영된 task definition 정의 파일
       # `wait-for-service-stability` : 배포 후 service가 안정 상태가 될 때까지 기다림
       - name: ECS service 업데이트
@@ -133,3 +143,11 @@ jobs: # 실행할 작업
           cluster: ${{ vars.ECS_CLUSTER }}
           service: ${{ vars.ECS_SERVICE }}
           wait-for-service-stability: true
+
+      # 2-6) 컨테이너를 다시 실행하여 ECS service 다시 실행
+      - name: ECS service 다시 시작
+        run: |
+          aws ecs update-service \
+          --cluster ${{ vars.ECS_CLUSTER }} \
+          --service ${{ vars.ECS_SERVICE }} \
+          --desired-count 1
