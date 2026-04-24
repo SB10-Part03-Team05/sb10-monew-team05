@@ -6,6 +6,7 @@ import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.notification.entity.CommentNotification;
 import com.codeit.monew.domain.notification.entity.InterestNotification;
+import com.codeit.monew.domain.notification.entity.Notification;
 import com.codeit.monew.domain.notification.event.BulkArticleRegisteredEvent;
 import com.codeit.monew.domain.notification.repository.NotificationRepository;
 import com.codeit.monew.domain.user.entity.User;
@@ -54,9 +55,7 @@ public class NotificationService {
         ));
 
     // 1. 이벤트로 넘어온 관심사 ID 목록 추출
-    List<UUID> targetInterestIds = event.interestCounts().stream()
-        .map(BulkArticleRegisteredEvent.InterestArticleCount::interestId)
-        .toList();
+    List<UUID> targetInterestIds = new ArrayList<>(mergedCountsMap.keySet());
 
     // 2. 해당 관심사들의 구독 정보(유저, 관심사)를 한 번에 조회
     List<Subscription> subscriptions = subscriptionRepository.findAllByInterestIdInWithUserAndInterest(targetInterestIds);
@@ -69,7 +68,7 @@ public class NotificationService {
     List<InterestNotification> notificationsToSave = new ArrayList<>();
 
     // 4. 알림 조립
-    for (BulkArticleRegisteredEvent.InterestArticleCount countInfo : event.interestCounts()) {
+    for (BulkArticleRegisteredEvent.InterestArticleCount countInfo : mergedCountsMap.values()) {
 
       // 해당 관심사를 구독하는 목록 꺼내기 (없으면 빈 리스트 반환하여 NullPointerException 방어)
       List<Subscription> matchedSubscriptions = subscriptionsByInterestId.getOrDefault(countInfo.interestId(), List.of());
@@ -124,5 +123,23 @@ public class NotificationService {
     // 4. 저장
     notificationRepository.save(notification);
     log.info("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 생성 완료: notificationId={}", notification.getId());
+  }
+
+  // 단건 알림 확인
+  @Transactional
+  public void confirmNotification(UUID notificationId, UUID userId) {
+    Notification notification = notificationRepository.findById(notificationId)
+        .orElseThrow(() -> {
+          log.warn("[NOTIFICATION_SERVICE] 단건 확인 실패 - 알림 없음: notificationId={}", notificationId);
+          return new IllegalArgumentException("해당 알림을 찾을 수 없습니다.");
+        });
+
+    // 본인의 알림만 확인 가능
+    if (!notification.getUser().getId().equals(userId)) {
+      log.warn("[NOTIFICATION_SERVICE] 단건 확인 실패 - 권한 없음: notificationId={}, requestUserId={}", notificationId, userId);
+      throw new IllegalStateException("해당 알림에 접근할 권한이 없습니다.");
+    }
+
+    notification.confirm(); // 더티 체킹으로 confirmed = true 변경
   }
 }
