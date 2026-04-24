@@ -173,7 +173,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("댓글 작성자와 알림 수신자가 일치하지 않으면 IllegalStateException이 발생한다.")
+    @DisplayName("댓글 작성자와 알림 수신자가 일치하지 않으면 NotificationReceiverMismatchException 발생한다.")
     void fail_create_notification_ReceiverMismatch() {
       // given
       UUID commentId = UUID.randomUUID();
