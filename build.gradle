@@ -63,9 +63,6 @@ dependencies {
     // Spring Boot Actuator
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // AWS S3 SDK
-    implementation 'software.amazon.awssdk:s3:2.31.69'
-
     // XML 파싱용 ROME
     implementation 'com.rometools:rome:2.1.0'
 
