@@ -2,11 +2,11 @@ package com.codeit.monew.domain.useractivity.mapper;
 
 import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
-import com.codeit.monew.global.event.ArticleViewedEvent;
-import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.event.CommentLikedEvent;
-import com.codeit.monew.global.event.InterestSubscribedEvent;
-import com.codeit.monew.global.event.UserRegisteredEvent;
+import com.codeit.monew.domain.useractivity.event.ArticleViewedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentLikedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
+import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
