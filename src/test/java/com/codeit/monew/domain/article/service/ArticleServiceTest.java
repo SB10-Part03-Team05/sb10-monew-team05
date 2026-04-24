@@ -354,7 +354,7 @@ class ArticleServiceTest {
   class view {
 
     @Test
-    @DisplayName("기존 조회 이력이 없을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view를 등록할 수 있다.")
+    @DisplayName("기존 조회 이력이 없을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view(RDB)를 등록할 수 있다.")
     void success_post_article_view_by_articleId_and_userId_when_view_not_exist() {
       // given(준비)
       UUID articleId = UUID.randomUUID();
@@ -397,7 +397,7 @@ class ArticleServiceTest {
     }
 
     @Test
-    @DisplayName("기존 조회 이력이 있을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view를 등록할 수 있다.")
+    @DisplayName("기존 조회 이력이 있을 경우 뉴스 기사 ID와 사용자 ID로 뉴스 기사 view(RDB)를 등록할 수 있다.")
     void success_post_article_view_by_articleId_and_userId_when_view_already_exist() {
       // given(준비)
       UUID articleId = UUID.randomUUID();
