@@ -12,6 +12,7 @@ import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -60,7 +61,8 @@ class RssArticleBatchJobTest {
     @DisplayName("정상 1회 성공")
     void success_once() {
       // given: rssSourceTxProcessor가 CHOSUN 소스 처리 시 정상적으로 처리 건수(1)를 반환하도록 모킹
-      given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN)).willReturn(1);
+      given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN)).willReturn(
+          new ArticleScrapeResult(1, Map.of()));
 
       // when: 배치 잡 실행
       rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
@@ -104,7 +106,7 @@ class RssArticleBatchJobTest {
       given(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
           .willThrow(networkError())
           .willThrow(serverError())
-          .willReturn(1);
+          .willReturn(new ArticleScrapeResult(1, Map.of()));
 
       // when
       rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);

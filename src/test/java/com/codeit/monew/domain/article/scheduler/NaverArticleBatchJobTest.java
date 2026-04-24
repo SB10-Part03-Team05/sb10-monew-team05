@@ -15,6 +15,7 @@ import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -71,7 +72,8 @@ class NaverArticleBatchJobTest {
       // given: DB에서 조회된 키워드 목록에 중복("삼성", " 삼성 "), 빈 문자열(""), 공백("   ")이 섞여있다고 모킹
       given(keywordRepository.findAllWithInterest())
           .willReturn(List.of(kw("삼성"), kw(" 삼성 "), kw(""), kw("   ")));
-      given(naverKeywordTxProcessor.processOneKeyword("삼성")).willReturn(1);
+      given(naverKeywordTxProcessor.processOneKeyword("삼성")).willReturn(
+          new ArticleScrapeResult(1, Map.of()));
 
       // when: 네이버 기사 배치 잡 실행
       naverArticleBatchJob.run();
@@ -85,8 +87,10 @@ class NaverArticleBatchJobTest {
     void success_per_keyword() {
       // given: 서로 다른 정상적인 2개의 키워드("삼성", "애플")가 조회되도록 모킹
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(kw("삼성"), kw("애플")));
-      given(naverKeywordTxProcessor.processOneKeyword("삼성")).willReturn(1);
-      given(naverKeywordTxProcessor.processOneKeyword("애플")).willReturn(2);
+      given(naverKeywordTxProcessor.processOneKeyword("삼성")).willReturn(
+          new ArticleScrapeResult(1, Map.of()));
+      given(naverKeywordTxProcessor.processOneKeyword("애플")).willReturn(
+          new ArticleScrapeResult(2, Map.of()));
 
       // when: 배치 잡 실행
       naverArticleBatchJob.run();
@@ -103,7 +107,7 @@ class NaverArticleBatchJobTest {
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(kw("삼성")));
       given(naverKeywordTxProcessor.processOneKeyword("삼성"))
           .willThrow(rateLimit())
-          .willReturn(1);
+          .willReturn(new ArticleScrapeResult(1, Map.of()));
 
       // when: 배치 잡 실행
       naverArticleBatchJob.run();
@@ -134,7 +138,7 @@ class NaverArticleBatchJobTest {
       given(naverKeywordTxProcessor.processOneKeyword("삼성"))
           .willThrow(serverError())
           .willThrow(networkError())
-          .willReturn(1);
+          .willReturn(new ArticleScrapeResult(1, Map.of()));
 
       // when: 배치 잡 실행
       naverArticleBatchJob.run();
