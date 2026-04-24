@@ -202,7 +202,7 @@ class UserActivityEventListenerTest {
     );
     Update expectedCommentUpdate = new Update().set("comments.$.content", event.newContent());
 
-    // 댓글 좋아요에도 수정 사항 반영 쿼라
+    // 댓글 좋아요에도 수정 사항 반영 쿼리
     Query expectedLikeQuery = new Query(
         Criteria.where("commentLikes.commentId").is(event.commentId().toString())
     );

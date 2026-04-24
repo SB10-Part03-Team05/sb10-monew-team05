@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.service.UserActivityService;
+import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,6 +82,7 @@ class UserActivityControllerTest {
       // when, them
       mockMvc.perform(get("/api/user-activities/" + userId))
           .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
           .andExpect(jsonPath("$.status").value(404));
     }
 
