@@ -27,6 +27,8 @@ import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.ArticleViewedEvent;
+import com.codeit.monew.global.event.UserRegisteredEvent;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
@@ -42,6 +44,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,6 +70,9 @@ class ArticleServiceTest {
 
   @Mock
   private ArticleViewMapper articleViewMapper;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private ArticleService articleService;
@@ -387,6 +393,7 @@ class ArticleServiceTest {
       verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).countByArticleId(articleId);
       verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
+      verify(eventPublisher).publishEvent(any(ArticleViewedEvent.class));
     }
 
     @Test
@@ -426,6 +433,7 @@ class ArticleServiceTest {
       verify(commentRepository).countByArticleIdAndDeletedAtIsNull(articleId);
       verify(articleViewHistoryRepository).countByArticleId(articleId);
       verify(articleViewMapper).toDto(articleViewHistory, article, user, 3, 5);
+      verify(eventPublisher).publishEvent(any(ArticleViewedEvent.class));
     }
 
     @Test
