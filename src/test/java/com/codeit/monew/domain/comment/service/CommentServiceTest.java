@@ -12,6 +12,9 @@ import com.codeit.monew.domain.comment.repository.CommentQueryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.CommentCreatedEvent;
+import com.codeit.monew.global.event.CommentLikedEvent;
+import com.codeit.monew.global.event.CommentUpdatedEvent;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 
@@ -28,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,6 +57,7 @@ class CommentServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private CommentQueryRepository commentQueryRepository;
   @Mock private CommentMapper commentMapper;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @Nested
   @DisplayName("댓글 등록 테스트")
@@ -92,6 +97,7 @@ class CommentServiceTest {
 
       // DB에 save 메서드가 1번 호출되었는지 검증
       verify(commentRepository).save(any(Comment.class));
+      verify(eventPublisher).publishEvent(any(CommentCreatedEvent.class));
     }
 
     @Test
@@ -170,6 +176,7 @@ class CommentServiceTest {
       assertThat(result.content()).isEqualTo(newContent);
       assertThat(comment.getContent()).isEqualTo(newContent); // 엔티티 내부 상태가 변했는지 검증
       verify(commentLikeRepository).existsByCommentIdAndUserId(commentId, userId); // 좋아요 레포지토리가 정상적으로 호출되었는지 검증
+      verify(eventPublisher).publishEvent(any(CommentUpdatedEvent.class));
     }
 
     @Test
