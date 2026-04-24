@@ -24,8 +24,9 @@ public class NotificationController {
   @Operation(summary = "알림 확인", description = "알림을 확인합니다.")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "알림 확인 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검즘 실패)"),
-      @ApiResponse(responseCode = "404", description = "사용자 정보 없음"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)"),
+      @ApiResponse(responseCode = "403", description = "해당 알림에 접근할 권한이 없음"),
+      @ApiResponse(responseCode = "404", description = "알림 정보 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   @PatchMapping("/{notificationId}")
