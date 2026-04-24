@@ -2,8 +2,7 @@ name: Docker 이미지 build 및 push & ECS service 업데이트
 
 on: # workflow 실행 조건
   push:
-    branches: [ "cd/deploy" ]
-#    branches: [ "dev" ]  # dev branch에서 push(merge 포함) 이벤트 발생될 때만 실행
+    branches: [ "dev" ]  # dev branch에서 push(merge 포함) 이벤트 발생될 때만 실행
 
 jobs: # 실행할 작업
   # 1. Docker 이미지 build 및 push Job
