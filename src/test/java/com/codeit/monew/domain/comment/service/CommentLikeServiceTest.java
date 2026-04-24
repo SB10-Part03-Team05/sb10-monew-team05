@@ -16,6 +16,9 @@ import com.codeit.monew.domain.comment.repository.CommentLikeRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.ArticleViewedEvent;
+import com.codeit.monew.global.event.CommentLikedCancelEvent;
+import com.codeit.monew.global.event.CommentLikedEvent;
 import com.codeit.monew.global.exception.comment.CommentLikeAlreadyExistsException;
 import com.codeit.monew.global.exception.comment.CommentLikeNotFoundException;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
@@ -31,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -41,6 +45,7 @@ class CommentLikeServiceTest {
   @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private CommentRepository commentRepository;
   @Mock private UserRepository userRepository;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   private UUID userId;
   private UUID commentId;
@@ -89,6 +94,7 @@ class CommentLikeServiceTest {
       // then
       verify(comment).increaseLikeCount(); // 낙관적 락 발동 메서드 호출 검증
       verify(commentLikeRepository).save(any(CommentLike.class)); // 저장 검증
+      verify(eventPublisher).publishEvent(any(CommentLikedEvent.class));
       assertThat(result.commentId()).isEqualTo(commentId);
       assertThat(result.likedBy()).isEqualTo(userId);
     }
@@ -136,6 +142,7 @@ class CommentLikeServiceTest {
       // then
       verify(comment).decreaseLikeCount(); // 감소 메서드 호출 검증
       verify(commentLikeRepository).deleteByCommentIdAndUserId(commentId, userId); // 삭제 쿼리 검증
+      verify(eventPublisher).publishEvent(any(CommentLikedCancelEvent.class));
     }
 
     @Test

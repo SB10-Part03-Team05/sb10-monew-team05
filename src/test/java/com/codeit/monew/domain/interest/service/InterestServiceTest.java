@@ -20,6 +20,9 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.CommentLikedEvent;
+import com.codeit.monew.global.event.InterestSubscribedEvent;
+import com.codeit.monew.global.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -35,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -49,6 +53,8 @@ class InterestServiceTest {
   private SubscriptionRepository subscriptionRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private InterestService interestService;
@@ -277,6 +283,7 @@ class InterestServiceTest {
       assertEquals(interestId, result.interestId());
       verify(subscriptionRepository).save(any());
       verify(interestRepository).incrementSubscriberCount(interestId);
+      verify(eventPublisher).publishEvent(any(InterestSubscribedEvent.class));
     }
 
     @Test
@@ -341,6 +348,7 @@ class InterestServiceTest {
       // then
       verify(subscriptionRepository).deleteByUserIdAndInterestId(userId, interestId);
       verify(interestRepository).decrementSubscriberCount(interestId);
+      verify(eventPublisher).publishEvent(any(InterestUnSubscribedEvent.class));
     }
 
     @Test
