@@ -1,8 +1,8 @@
 package com.codeit.monew.domain.article.service;
 
 import com.codeit.monew.domain.article.ArticleSource;
-import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
@@ -15,13 +15,16 @@ import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.interest.repository.InterestRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.exception.article.ArticleNotFoundException;
+import com.codeit.monew.global.event.ArticleViewedEvent;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +42,7 @@ public class ArticleService {
   private final InterestRepository interestRepository;
   private final ArticleMapper articleMapper;
   private final ArticleViewMapper articleViewMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   // 뉴스 기사 단건 조회
   @Transactional(readOnly = true)
@@ -147,6 +151,21 @@ public class ArticleService {
     log.info("[ARTICLE_VIEW_POST] 뉴스 기사 조회 처리 성공: id={}, viewedBy={}, createdAt={}, articleId={}",
         articleViewHistory.getId(), user.getId(), articleViewHistory.getCreatedAt(),
         article.getId());
+
+    // 활동 내역 기사 조회 정보 갱신 로직
+    eventPublisher.publishEvent(new ArticleViewedEvent(
+        articleId,
+        user.getId(),
+        Instant.now(),
+        article.getSource(),
+        article.getSourceUrl(),
+        article.getTitle(),
+        article.getPublishDate(),
+        article.getSummary(),
+        commentCount,
+        viewCount
+    ));
+
     return articleViewMapper.toDto(articleViewHistory, article, user, commentCount, viewCount);
   }
 

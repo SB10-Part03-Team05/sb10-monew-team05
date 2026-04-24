@@ -8,13 +8,15 @@ public enum ErrorCode {
   INVALID_PARAMETER_INPUT("입력값이 유효하지 않습니다."),
 
   // User 관련 에러 코드
-  USER_NOT_FOUND("유저를 찾을 수 없습니다."),
+  USER_NOT_FOUND("사용자를 찾을 수 없습니다."),
   DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
   USER_ACCESS_DENIED("사용자 수정, 삭제 권한이 없습니다."),
   PASSWORD_MISMATCH("비밀번호가 일치하지 않습니다."),
 
   // Article 관련 에러 코드
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),
+  INVALID_ARTICLE_ENTITY("뉴스 기사 정보가 유효하지 않습니다."),
+  ARTICLE_SCRAPE_FAILED("뉴스 기사 수집 처리 중 오류가 발생했습니다."),
 
   // Interest 관련 에러 코드
   INTEREST_NOT_FOUND("관심사를 찾을 수 없습니다."),
@@ -39,7 +41,8 @@ public enum ErrorCode {
   EXTERNAL_RATE_LIMITED("외부 연동 요청 제한이 발생했습니다."),
   EXTERNAL_SERVER_ERROR("외부 연동 서버 오류가 발생했습니다."),
   EXTERNAL_EMPTY_RESPONSE("외부 연동 응답 본문이 비어 있습니다."),
-  EXTERNAL_NETWORK_ERROR("외부 연동 네트워크 오류가 발생했습니다.");
+  EXTERNAL_NETWORK_ERROR("외부 연동 네트워크 오류가 발생했습니다."),
+  EXTERNAL_INVALID_XML("외부 연동 XML 파싱에 실패했습니다.");
 
   private final String message;
 

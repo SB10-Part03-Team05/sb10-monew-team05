@@ -13,6 +13,8 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.global.event.InterestSubscribedEvent;
+import com.codeit.monew.global.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
@@ -20,13 +22,18 @@ import com.codeit.monew.global.exception.Interest.SubscriptionNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -36,10 +43,12 @@ public class InterestService {
   private final KeywordRepository keywordRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserRepository userRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   // 1. 관심사 등록
   @Transactional
   public InterestDto register(InterestRegisterRequest request) {
+    log.debug("[INTEREST_CREATE] 관심사 등록 요청: name={}", request.name());
 
     // 유사도 검사
     List<String> existingNames = interestRepository.findAllNamesWithLock();
@@ -60,6 +69,7 @@ public class InterestService {
     keywordRepository.saveAll(keywords);
     interest.getKeywords().addAll(keywords);
 
+    log.info("[INTEREST_CREATE] 관심사 등록 완료: interestId={}", interest.getId());
     return InterestDto.from(interest);
   }
   private double calculateSimilarity(String a, String b) {
@@ -75,6 +85,7 @@ public class InterestService {
   // 2. 관심사 수정
   @Transactional
   public InterestDto update(UUID interestId, InterestUpdateRequest request) {
+    log.debug("[INTEREST_UPDATE] 관심사 수정 요청: interestId={}", interestId);
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findById(interestId)
@@ -94,18 +105,23 @@ public class InterestService {
     interest.getKeywords().clear();
     interest.getKeywords().addAll(keywords);
 
+    log.info("[INTEREST_UPDATE] 관심사 수정 완료: interestId={}", interestId);
     return InterestDto.from(interest);
   }
 
   // 3. 관심사 삭제
   @Transactional
   public void delete(UUID interestId) {
-      // 관심사 존재 여부 확인
-      Interest interest = interestRepository.findById(interestId)
-          .orElseThrow(() -> new InterestNotFoundException(interestId));
+    log.debug("[INTEREST_DELETE] 관심사 삭제 요청: interestId={}", interestId);
 
-      // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
-      interestRepository.delete(interest);
+    // 관심사 존재 여부 확인
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
+
+    // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
+
+    interestRepository.delete(interest);
+    log.info("[INTEREST_DELETE] 관심사 삭제 완료: interestId={}", interestId);
   }
 
   // 4. 관심사 목록 조회
@@ -117,6 +133,9 @@ public class InterestService {
       int limit,
       UUID userId
   ) {
+    log.debug("[INTEREST_LIST] 관심사 목록 조회 요청: searchKeyword={}, orderBy={}, direction={}, limit={}",
+        searchKeyword, orderBy, direction, limit);
+
     return interestRepository.findInterests(
         searchKeyword, orderBy, direction, cursor, limit, userId
     );
@@ -125,6 +144,7 @@ public class InterestService {
   // 5. 관심사 구독
   @Transactional
   public SubscriptionDto subscribe(UUID interestId, UUID userId) {
+    log.debug("[INTEREST_SUBSCRIBE] 구독 요청: interestId={}, userId={}", interestId, userId);
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findByIdWithKeywords(interestId)
@@ -146,9 +166,23 @@ public class InterestService {
       throw e;
     }
 
+    // 활동 내역 구독 정보 갱신 로직
+    eventPublisher.publishEvent(new InterestSubscribedEvent(
+        userId,
+        subscription.getId(),
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords().stream()
+            .map(Keyword::getName)
+            .toList(), // List<String>으로 변환
+        interest.getSubscriberCount() + 1, // DB 락과 별개로 메모리상에서 +1 한 최신값 전달
+        subscription.getCreatedAt() != null ? subscription.getCreatedAt() : Instant.now()
+    ));
+
     // 구독자 수 증가
     interestRepository.incrementSubscriberCount(interestId);
 
+    log.info("[INTEREST_SUBSCRIBE] 구독 완료: subscriptionId={}", subscription.getId());
     return SubscriptionDto.from(subscription);
   }
 
@@ -164,6 +198,7 @@ public class InterestService {
   // 6. 관심사 구독 취소
   @Transactional
   public void unsubscribe(UUID interestId, UUID userId) {
+    log.debug("[INTEREST_UNSUBSCRIBE] 구독 취소 요청: interestId={}, userId={}", interestId, userId);
 
     // 관심사 존재 여부 확인
     Interest interest = interestRepository.findById(interestId)
@@ -175,7 +210,14 @@ public class InterestService {
       throw new SubscriptionNotFoundException(userId, interestId);
     }
 
+    eventPublisher.publishEvent(new InterestUnSubscribedEvent(
+        userId,
+        interestId
+    ));
+
     // 구독자 수 감소
     interestRepository.decrementSubscriberCount(interestId);
+
+    log.info("[INTEREST_UNSUBSCRIBE] 구독 취소 완료: interestId={}, userId={}", interestId, userId);
   }
 }

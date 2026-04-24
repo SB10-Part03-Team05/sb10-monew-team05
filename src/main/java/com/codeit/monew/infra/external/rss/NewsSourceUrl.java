@@ -1,5 +1,7 @@
 package com.codeit.monew.infra.external.rss;
 
+import com.codeit.monew.global.exception.common.InvalidParameterException;
+
 public enum NewsSourceUrl {
   HANKYUNG("https://www.hankyung.com/feed/all-news"),
   CHOSUN("https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml"),
@@ -19,8 +21,7 @@ public enum NewsSourceUrl {
 
   public String resolveNaverUrl(String query) {
     if (query == null || query.isBlank()) {
-      // todo: 커스텀 예외로 전환 필요
-      throw new IllegalArgumentException("NAVER query는 비어 있을 수 없습니다.");
+      throw new InvalidParameterException("query", query, "source", NAVER.name());
     }
     return urlTemplate.formatted(query);
   }
