@@ -2,6 +2,7 @@ package com.codeit.monew.domain.notification.controller;
 
 import com.codeit.monew.domain.notification.dto.NotificationListDto;
 import com.codeit.monew.domain.notification.service.NotificationService;
+import com.codeit.monew.global.exception.common.InvalidParameterException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -72,7 +73,14 @@ public class NotificationController {
       @Parameter(description = "보조 커서(createdAt) 값") @RequestParam(required = false) Instant after,
       @Parameter(description = "커서 페이지 크기", example = "50") @RequestParam(defaultValue = "50") int limit
   ) {
-    UUID cursorId = (cursor != null) ? UUID.fromString(cursor) : null;
+    UUID cursorId = null;
+    if (cursor != null) {
+      try {
+        cursorId = UUID.fromString(cursor);
+      } catch (IllegalArgumentException e) {
+        throw new InvalidParameterException("cursor", cursor);
+      }
+    }
     NotificationListDto response = notificationService.getUnconfirmedNotifications(userId, after, cursorId, limit);
     return ResponseEntity.ok(response);
   }
