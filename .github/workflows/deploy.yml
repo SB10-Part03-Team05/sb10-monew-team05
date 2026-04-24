@@ -158,6 +158,6 @@ jobs: # 실행할 작업
       # 새 task가 바로 죽는 경우 Workflow가 성공으로 끝나는 것을 방지
       - name: ECS service 안정화 확인
         run: |
-          aws ecs wait service-stable \
+          aws ecs wait services-stable \
           --cluster ${{ vars.ECS_CLUSTER }} \
           --services ${{ vars.ECS_SERVICE }}
