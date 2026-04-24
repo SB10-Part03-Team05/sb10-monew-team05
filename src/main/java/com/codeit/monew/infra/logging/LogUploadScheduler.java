@@ -21,16 +21,13 @@ public class LogUploadScheduler {
   /**
    * 지정된 스케줄(Cron)에 따라 로그 업로드 작업을 수행합니다.
    */
-  @Scheduled(
-      cron = "${monew.logging.upload.cron}",
-      zone = "${monew.logging.upload.zone}"
-  )
+  @Scheduled(cron = "0 10 0 * * *", zone = "Asia/Seoul")
   public void uploadRecentLogs() {
     // 1. 기준 시간 및 조회 기간 설정
     ZoneId zoneId = ZoneId.of(logUploadProperties.getZone());
     LocalDate baseDate = LocalDate.now(zoneId);
 
-    // 최소 1일은 조회하도록 설정 (안전장치)
+    // 최소 1일은 조회하도록 설정
     int lookbackDays = Math.max(1, logUploadProperties.getLookbackDays());
 
     log.info("[LOG_UPLOAD] scheduled upload started: lookbackDays={}", lookbackDays);

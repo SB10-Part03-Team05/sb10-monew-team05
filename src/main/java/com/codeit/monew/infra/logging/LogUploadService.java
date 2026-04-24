@@ -116,8 +116,8 @@ public class LogUploadService {
    */
   private void handleRetry(int attempt, int maxRetries, String key, Exception e) {
     if (attempt < maxRetries) {
-      log.warn("[LOG_UPLOAD] 업로드 실패, 재시도 중: {}/{}회, key={}, 이유={}", attempt, maxRetries, key,
-          e.getMessage());
+      log.warn("[LOG_UPLOAD] {}회차 시도 실패. 잠시 후 재시도합니다. (총 {}회 제한), key={}, 간격={}ms, 이유={}",
+          attempt, maxRetries, key, logUploadProperties.getRetryDelayMs(), e.getMessage());
       try {
         Thread.sleep(Math.max(0L, logUploadProperties.getRetryDelayMs()));
       } catch (InterruptedException ie) {
