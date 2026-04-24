@@ -61,7 +61,7 @@ class UserActivityControllerTest {
       );
 
       given(userActivityService.getUserActivity(any(UUID.class))).willReturn(responseDto);
-      // when, them
+      // when, then
       mockMvc.perform(get("/api/user-activities/" + userId))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").value(userId.toString()))

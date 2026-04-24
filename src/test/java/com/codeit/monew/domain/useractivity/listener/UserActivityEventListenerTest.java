@@ -77,7 +77,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleUserRegisteredEvent(event);
 
     // then
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
   }
@@ -96,7 +97,7 @@ class UserActivityEventListenerTest {
         0L,
         Instant.now()
     );
-    UserActivity.SubscriptionInfo mockSubscriptionInfo= new UserActivity.SubscriptionInfo();
+    UserActivity.SubscriptionInfo mockSubscriptionInfo = new UserActivity.SubscriptionInfo();
 
     Query expectedQuery = new Query(Criteria.where("_id").is(userId.toString()));
 
@@ -112,9 +113,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleInterestSubscribedEvent(event);
 
     // then
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
-
-
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -138,9 +138,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleInterestUnSubscribedEvent(event);
 
     // then
-    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
-
-
+    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -179,9 +178,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleCommentCreatedEvent(event);
 
     // then
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
-
-
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -208,14 +206,17 @@ class UserActivityEventListenerTest {
     Query expectedLikeQuery = new Query(
         Criteria.where("commentLikes.commentId").is(event.commentId().toString())
     );
-    Update expectedLikeUpdate = new Update().set("commentLikes.$.commentContent", event.newContent());
+    Update expectedLikeUpdate = new Update().set("commentLikes.$.commentContent",
+        event.newContent());
 
     // when
     userActivityEventListener.handleCommentUpdatedEvent(event);
 
     // then
-    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
-    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
+    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getAllValues().get(0)).isEqualTo(expectedCommentQuery);
     assertThat(updateCaptor.getAllValues().get(0)).isEqualTo(expectedCommentUpdate);
@@ -259,7 +260,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleCommentLikedEvent(event);
 
     // then
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -285,7 +287,8 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleCommentLikedCancelEvent(event);
 
     // then
-    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -329,8 +332,10 @@ class UserActivityEventListenerTest {
     userActivityEventListener.handleArticleViewedEvent(event);
 
     // then
-    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
+        eq(UserActivity.class));
 
     assertThat(queryCaptor.getAllValues().get(0)).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getAllValues().get(0)).isEqualTo(expectedPullUpdate);

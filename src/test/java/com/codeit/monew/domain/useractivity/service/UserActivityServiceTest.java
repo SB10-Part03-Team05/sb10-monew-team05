@@ -83,10 +83,10 @@ class UserActivityServiceTest {
       assertThat(resultDto.id()).isEqualTo(userId.toString());
       assertThat(resultDto.email()).isEqualTo(email);
       assertThat(resultDto.nickname()).isEqualTo(nickname);
-      assertThat(resultDto.subscriptions()).hasSize(0);
-      assertThat(resultDto.comments()).hasSize(0);
-      assertThat(resultDto.commentLikes()).hasSize(0);
-      assertThat(resultDto.articleViews()).hasSize(0);
+      assertThat(resultDto.subscriptions()).isEmpty();
+      assertThat(resultDto.comments()).isEmpty();
+      assertThat(resultDto.commentLikes()).isEmpty();
+      assertThat(resultDto.articleViews()).isEmpty();
       verify(userActivityRepository).findById(userId.toString());
       verify(userActivityMapper).toDto(any(UserActivity.class));
 
@@ -94,7 +94,7 @@ class UserActivityServiceTest {
 
     @Test
     @DisplayName("사용자가 존재하지 않으면 UserNotFound 예외가 발생한다.")
-    void should_fail_get_user_activity_success() {
+    void should_fail_get_user_activity_when_user_not_found() {
       // given
       UUID userId = UUID.randomUUID();
 
