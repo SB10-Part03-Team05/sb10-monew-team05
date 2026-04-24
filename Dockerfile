@@ -33,17 +33,33 @@ FROM amazoncorretto:17-alpine3.21
 # 2-2. 작업 디렉토리 설정
 WORKDIR /app
 
-# 2-3. 서비스 포트 노출
+# 2-3. 컨테이너 실행 전용 non-root 사용자와 그룹 설정
+# `addgroup -S app` : Alpine Linux에서 app이라는 system group을 생성
+# `add user -S app` : Alpine Linux에서 app이라는 system user를 생성
+# `-G app` : 사용자를 app group에 소속 시킴
+# `-h /app` : 사용자의 home directory를 /app으로 설정
+# `-s /sbin/nologin` : 이 사용자는 shell 로그인 용도가 아님을 명시
+# `chown -R app:app /app` : /app 디렉터리와 그 하위 파일의 소유자를 app 사용자와 app 그룹으로 변경
+#      즉, app 사용자가 /app 내부 파일을 읽고 실행할 수 있도록 권한이 맞춤
+RUN addgroup -S app \
+    && adduser -S app -G app -h /app -s /sbin/nologin \
+    && chown -R app:app /app
+
+# 2-4. 서비스 포트 노출
 EXPOSE 80
 
-# 2-4. 프로젝트 정보를 환경 변수로 설정 -> 실행할 JAR 파일의 이름을 추론하는데 사용
+# 2-5. 프로젝트 정보를 환경 변수로 설정 -> 실행할 JAR 파일의 이름을 추론하는데 사용
 # JVM 옵션도 환경 변수로 설정(기본값은 빈 문자열)
 ENV PROJECT_NAME=monew \
     PROJECT_VERSION=1.0.0 \
     JVM_OPTS=""
 
-# 2-5. Build Stage에서 생성된 JAR 파일 복사
-COPY --from=builder /app/build/libs/${PROJECT_NAME}-${PROJECT_VERSION}.jar ./
+# 2-6. Build Stage에서 생성된 JAR 파일 복사
+# `--chown=app:app` : 복사되는 JAR 파일의 소유자를 app 사용자와 app 그룹으로 설정
+COPY --from=builder --chown=app:app /app/build/libs/${PROJECT_NAME}-${PROJECT_VERSION}.jar ./
 
-# 2-6. 컨테이너가 실행될 때 실행할 명령어
+# 2-7. 컨테이너 실행 사용자를 root에서 app 사용자로 변경
+USER app
+
+# 2-8. 컨테이너가 실행될 때 실행할 명령어
 ENTRYPOINT ["sh", "-c", "exec java ${JVM_OPTS} -jar ${PROJECT_NAME}-${PROJECT_VERSION}.jar"]
