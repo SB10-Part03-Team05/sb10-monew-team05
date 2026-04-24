@@ -19,22 +19,22 @@ public class RssArticleBatchJob {
 
   private final RssSourceTxProcessor rssSourceTxProcessor;
 
-  public void run(NewsSourceUrl source) {
+  public ArticleScrapeResult run(NewsSourceUrl source) {
     int attempt = 0;
 
     while (true) {
       try {
-        int saved = rssSourceTxProcessor.processOneSource(source);
-        log.info("[RSS_BATCH] source={}, saved={}", source, saved);
-        return;
+        ArticleScrapeResult result = rssSourceTxProcessor.processOneSource(source);
+        log.info("[RSS_BATCH] source={}, saved={}", source, result.totalSavedCount());
+        return result;
       } catch (ExternalRateLimitException e) {
         log.warn("[RSS_BATCH] source={} rate-limited(429), skip until next batch", source, e);
-        return;
+        return ArticleScrapeResult.empty();
       } catch (ExternalServerException | ExternalNetworkException e) {
         attempt++;
         if (attempt > RSS_SERVER_MAX_RETRY) {
           log.error("[RSS_BATCH] source={} failed after retries", source, e);
-          return;
+          return ArticleScrapeResult.empty();
         }
         long waitMs = RSS_SERVER_RETRY_BASE_DELAY_MS * attempt;
         log.warn("[RSS_BATCH] source={} transient failure, retry={}/{}, waitMs={}",
@@ -42,10 +42,10 @@ public class RssArticleBatchJob {
         sleep(waitMs);
       } catch (ExternalClientException e) {
         log.warn("[RSS_BATCH] source={} client error, no retry", source, e);
-        return;
+        return ArticleScrapeResult.empty();
       } catch (Exception e) {
         log.error("[RSS_BATCH] source={} unexpected error, skip this source", source, e);
-        return;
+        return ArticleScrapeResult.empty();
       }
     }
   }

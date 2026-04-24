@@ -26,37 +26,40 @@ public class NaverArticleBatchJob {
   private final NaverKeywordTxProcessor naverKeywordTxProcessor;
   private final KeywordRepository keywordRepository;
 
-  public void run() {
+  public ArticleScrapeResult run() {
     Set<String> keywords = loadDistinctKeywordNames();
     int total = keywords.size();
     int index = 0;
 
     log.info("[NAVER_BATCH] start. keywordCount={}", total);
 
+    ArticleScrapeResult totalResult = ArticleScrapeResult.empty();
     for (String keyword : keywords) {
       index++;
       sleep(NAVER_REQUEST_DELAY_MS);
-      scrapeByKeyword(keyword, index, total);
+      ArticleScrapeResult result = scrapeByKeyword(keyword, index, total);
+      totalResult = totalResult.plus(result);
     }
 
-    log.info("[NAVER_BATCH] finished. keywordCount={}", total);
+    log.info("[NAVER_BATCH] finished. keywordCount={}, totalSaved={}", total, totalResult.totalSavedCount());
+    return totalResult;
   }
 
-  private void scrapeByKeyword(String keyword, int index, int total) {
+  private ArticleScrapeResult scrapeByKeyword(String keyword, int index, int total) {
     int rateLimitAttempt = 0;
     int serverAttempt = 0;
 
     while (true) {
       try {
-        int saved = naverKeywordTxProcessor.processOneKeyword(keyword);
-        log.info("[NAVER_BATCH] keyword={}/{} ({}) saved={}", index, total, keyword, saved);
-        return;
+        ArticleScrapeResult result = naverKeywordTxProcessor.processOneKeyword(keyword);
+        log.info("[NAVER_BATCH] keyword={}/{} ({}) saved={}", index, total, keyword, result.totalSavedCount());
+        return result;
       } catch (ExternalRateLimitException e) {
         rateLimitAttempt++;
         if (rateLimitAttempt > NAVER_RATE_LIMIT_MAX_RETRY) {
           log.warn("[NAVER_BATCH] keyword={} rate-limit retry exhausted({})",
               keyword, NAVER_RATE_LIMIT_MAX_RETRY, e);
-          return;
+          return ArticleScrapeResult.empty();
         }
         long waitMs = NAVER_RATE_LIMIT_BASE_DELAY_MS * rateLimitAttempt;
         log.warn("[NAVER_BATCH] keyword={} 429 retry={}/{}, waitMs={}",
@@ -67,7 +70,7 @@ public class NaverArticleBatchJob {
         if (serverAttempt > NAVER_SERVER_MAX_RETRY) {
           log.error("[NAVER_BATCH] keyword={} server retry exhausted({})",
               keyword, NAVER_SERVER_MAX_RETRY, e);
-          return;
+          return ArticleScrapeResult.empty();
         }
         long waitMs = NAVER_SERVER_RETRY_BASE_DELAY_MS * serverAttempt;
         log.warn("[NAVER_BATCH] keyword={} server retry={}/{}, waitMs={}",
@@ -75,11 +78,11 @@ public class NaverArticleBatchJob {
         sleep(waitMs);
       } catch (ExternalClientException e) {
         log.warn("[NAVER_BATCH] keyword={} client error, no retry", keyword, e);
-        return;
+        return ArticleScrapeResult.empty();
       } catch (Exception e) {
         // 예기치 못한 예외도 이 키워드만 실패 처리하고 다음 키워드로 진행
         log.error("[NAVER_BATCH] keyword={} unexpected error, skip this keyword", keyword, e);
-        return;
+        return ArticleScrapeResult.empty();
       }
     }
   }
