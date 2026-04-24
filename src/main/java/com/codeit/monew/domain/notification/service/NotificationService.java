@@ -16,6 +16,8 @@ import com.codeit.monew.global.exception.notification.NotificationAccessDeniedEx
 import com.codeit.monew.global.exception.notification.NotificationNotFoundException;
 import com.codeit.monew.global.exception.notification.NotificationReceiverMismatchException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -151,5 +153,14 @@ public class NotificationService {
   public void confirmAllNotifications(UUID userId) {
     int updatedCount = notificationRepository.confirmAllByUserId(userId);
     log.info("[NOTIFICATION_CONFIRM] 유저 {}의 알림 {}건 전체 읽음 처리 완료", userId, updatedCount);
+  }
+
+  // 확인한 알림 중 7일이 경과된 알림 삭제
+  @Transactional
+  public void cleanUpOldNotifications() {
+    Instant targetTime = Instant.now().minus(7, ChronoUnit.DAYS);
+
+    int deletedCount = notificationRepository.deleteOldConfirmedNotifications(targetTime);
+    log.info("[NOTIFICATION_DELETE] 7일 경과된 읽은 알림 삭제 완료: {}건", deletedCount);
   }
 }
