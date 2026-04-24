@@ -79,7 +79,7 @@ class UserActivityControllerTest {
 
       given(userActivityService.getUserActivity(any(UUID.class)))
           .willThrow(new UserNotFoundException(userId));
-      // when, them
+      // when, then
       mockMvc.perform(get("/api/user-activities/" + userId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
