@@ -33,6 +33,9 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
 
+    // AWS S3 SDK
+    implementation 'software.amazon.awssdk:s3:2.31.7'
+
     // P6Spy (SQL 파라미터 로그 확인용)
     implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.1'
 
