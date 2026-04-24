@@ -6,11 +6,15 @@ import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.notification.entity.CommentNotification;
 import com.codeit.monew.domain.notification.entity.InterestNotification;
+import com.codeit.monew.domain.notification.entity.Notification;
 import com.codeit.monew.domain.notification.event.BulkArticleRegisteredEvent;
 import com.codeit.monew.domain.notification.repository.NotificationRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
+import com.codeit.monew.global.exception.notification.NotificationAccessDeniedException;
+import com.codeit.monew.global.exception.notification.NotificationNotFoundException;
+import com.codeit.monew.global.exception.notification.NotificationReceiverMismatchException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -54,9 +58,7 @@ public class NotificationService {
         ));
 
     // 1. 이벤트로 넘어온 관심사 ID 목록 추출
-    List<UUID> targetInterestIds = event.interestCounts().stream()
-        .map(BulkArticleRegisteredEvent.InterestArticleCount::interestId)
-        .toList();
+    List<UUID> targetInterestIds = new ArrayList<>(mergedCountsMap.keySet());
 
     // 2. 해당 관심사들의 구독 정보(유저, 관심사)를 한 번에 조회
     List<Subscription> subscriptions = subscriptionRepository.findAllByInterestIdInWithUserAndInterest(targetInterestIds);
@@ -69,7 +71,7 @@ public class NotificationService {
     List<InterestNotification> notificationsToSave = new ArrayList<>();
 
     // 4. 알림 조립
-    for (BulkArticleRegisteredEvent.InterestArticleCount countInfo : event.interestCounts()) {
+    for (BulkArticleRegisteredEvent.InterestArticleCount countInfo : mergedCountsMap.values()) {
 
       // 해당 관심사를 구독하는 목록 꺼내기 (없으면 빈 리스트 반환하여 NullPointerException 방어)
       List<Subscription> matchedSubscriptions = subscriptionsByInterestId.getOrDefault(countInfo.interestId(), List.of());
@@ -89,7 +91,7 @@ public class NotificationService {
     // 5. 일괄 저장
     if (!notificationsToSave.isEmpty()) {
       notificationRepository.saveAll(notificationsToSave);
-      log.info("[NOTIFICATION_SERVICE] 관심사 기사 알림 대량 생성 완료: 총 {}건", notificationsToSave.size());
+      log.info("[NOTIFICATION_CREATE] 관심사 기사 알림 대량 생성 완료: 총 {}건", notificationsToSave.size());
     }
   }
 
@@ -99,22 +101,22 @@ public class NotificationService {
     // 1. 알림을 받을 사람 (댓글 작성자) 조회
     User reader = userRepository.findByIdAndDeletedAtIsNull(readerId)
         .orElseThrow(() -> {
-          log.warn("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 실패 - 유저 없음: readerId={}", readerId);
+          log.warn("[NOTIFICATION_CREATE] 댓글 좋아요 알림 실패 - 유저 없음: readerId={}", readerId);
           return new UserNotFoundException(readerId);
         });
 
     // 2. 대상 댓글 조회
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> {
-          log.warn("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 실패 - 댓글 없음: commentId={}", commentId);
+          log.warn("[NOTIFICATION_CREATE] 댓글 좋아요 알림 실패 - 댓글 없음: commentId={}", commentId);
           return new CommentNotFoundException(commentId);
         });
 
     // 2-1. 이벤트로 넘어온 readerId가 실제 댓글 작성자가 맞는지 교차 검증
     if (comment.getUser() == null || !comment.getUser().getId().equals(reader.getId())) {
-      log.warn("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 실패 - 수신자 불일치: commentId={}, readerId={}, commentOwnerId={}",
+      log.warn("[NOTIFICATION_CREATE] 댓글 좋아요 알림 실패 - 수신자 불일치: commentId={}, readerId={}, commentOwnerId={}",
           commentId, readerId, comment.getUser() == null ? null : comment.getUser().getId());
-      throw new IllegalStateException("댓글 작성자와 알림을 받을 사용자의 ID값이 일치하지 않습니다.");
+      throw new NotificationReceiverMismatchException(commentId, readerId);
     }
 
     // 3. 알림 내용 생성
@@ -123,6 +125,31 @@ public class NotificationService {
 
     // 4. 저장
     notificationRepository.save(notification);
-    log.info("[NOTIFICATION_SERVICE] 댓글 좋아요 알림 생성 완료: notificationId={}", notification.getId());
+    log.info("[NOTIFICATION_CREATE] 댓글 좋아요 알림 생성 완료: notificationId={}", notification.getId());
+  }
+
+  // 단건 알림 확인
+  @Transactional
+  public void confirmNotification(UUID notificationId, UUID userId) {
+    Notification notification = notificationRepository.findById(notificationId)
+        .orElseThrow(() -> {
+          log.warn("[NOTIFICATION_CONFIRM] 단건 확인 실패 - 알림 없음: notificationId={}", notificationId);
+          return new NotificationNotFoundException(notificationId);
+        });
+
+    // 본인의 알림만 확인 가능
+    if (!notification.getUser().getId().equals(userId)) {
+      log.warn("[NOTIFICATION_CONFIRM] 단건 확인 실패 - 권한 없음: notificationId={}, requestUserId={}", notificationId, userId);
+      throw new NotificationAccessDeniedException(notificationId, userId);
+    }
+
+    notification.confirm(); // 더티 체킹으로 confirmed = true 변경
+  }
+
+  // 전체 알림 확인
+  @Transactional
+  public void confirmAllNotifications(UUID userId) {
+    int updatedCount = notificationRepository.confirmAllByUserId(userId);
+    log.info("[NOTIFICATION_CONFIRM] 유저 {}의 알림 {}건 전체 읽음 처리 완료", userId, updatedCount);
   }
 }
