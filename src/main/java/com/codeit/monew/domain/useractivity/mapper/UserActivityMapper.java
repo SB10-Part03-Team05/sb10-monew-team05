@@ -2,11 +2,11 @@ package com.codeit.monew.domain.useractivity.mapper;
 
 import com.codeit.monew.domain.useractivity.dto.UserActivityDto;
 import com.codeit.monew.domain.useractivity.entity.UserActivity;
-import com.codeit.monew.global.event.ArticleViewedEvent;
-import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.event.CommentLikedEvent;
-import com.codeit.monew.global.event.InterestSubscribedEvent;
-import com.codeit.monew.global.event.UserRegisteredEvent;
+import com.codeit.monew.domain.useractivity.event.ArticleViewedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentLikedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
+import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -24,6 +24,10 @@ public interface UserActivityMapper {
   UserActivityDto.ActivityArticleViewDto toArticleViewDto(UserActivity.ArticleViewInfo info);
 
   @Mapping(target = "id", source = "userId")
+  @Mapping(target = "subscriptions", ignore = true)
+  @Mapping(target = "comments", ignore = true)
+  @Mapping(target = "commentLikes", ignore = true)
+  @Mapping(target = "articleViews", ignore = true)
   UserActivity toUserActivity(UserRegisteredEvent event);
 
   @Mapping(target = "id", source = "subscriptionId")
