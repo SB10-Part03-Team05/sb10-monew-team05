@@ -2,6 +2,7 @@ package com.codeit.monew.domain.article.repository;
 
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.entity.Article;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -34,4 +35,9 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, Article
       nativeQuery = true
   )
   Collection<String> findAllExistingUrlsIn(List<String> chunk);
+
+  List<Article> findAllByPublishDateGreaterThanEqualAndPublishDateLessThan(
+      Instant from,
+      Instant to
+  );
 }
