@@ -1,6 +1,5 @@
 package com.codeit.monew.global.exception;
 
-import com.codeit.monew.global.exception.article.ArticleBackupBatchRunFailed;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
