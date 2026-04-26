@@ -4,7 +4,7 @@ on: # Workflow 실행 조건(트리거 이벤트) 정의
   pull_request: # PR 생성 이벤트 발생 시 실행
     branches: [ "dev" ]  # dev branch를 대상으로 하는 PR일 때만 실행
   push: # push 이벤트 발생 시 실행
-    branches: [ "dev", "feature/article-backup-batch" ]  # dev branch에서 push(merge 포함)될 때만 실행
+    branches: [ "dev" ]  # dev branch에서 push(merge 포함)될 때만 실행
 
 permissions: # Workflow에 권한 부여
   contents: read  # repo 코드를 checkout 후 read만 할 수 있는 최소 권한 부여
