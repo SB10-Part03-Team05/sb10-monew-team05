@@ -330,16 +330,16 @@ public class ArticleQueryRepositoryImpl implements ArticleQueryRepository {
   private BooleanExpression[] commonWhere(ArticleSearchRequest request, QArticle article,
       QArticleInterest articleInterest) {
 
-    ZoneId zoneId = ZoneId.of("Asia/Seoul");
+    ZoneId KST = ZoneId.of("Asia/Seoul");
 
     LocalDateTime publishDateFrom = request.getPublishDateFrom();
     LocalDateTime publishDateTo = request.getPublishDateTo();
 
     Instant fromInstant = publishDateFrom != null
-        ? publishDateFrom.atZone(zoneId).toInstant()
+        ? publishDateFrom.atZone(KST).toInstant()
         : null;
     Instant toInstant = publishDateTo != null
-        ? publishDateTo.atZone(zoneId).toInstant()
+        ? publishDateTo.atZone(KST).toInstant()
         : null;
 
     return new BooleanExpression[]{
