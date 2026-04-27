@@ -26,7 +26,7 @@ public class RssArticleBatchJob {
       // 재시도 제외: 4xx 에러 및 429 에러
       noRetryFor = {ExternalClientException.class, ExternalRateLimitException.class},
       maxAttempts = 3,
-      backoff = @Backoff(delay = 10000, multiplier = 2)
+      backoff = @Backoff(delayExpression = "${retry.backoff.delay:10000}", multiplier = 2)
   )
   public ArticleScrapeResult run(NewsSourceUrl source) {
     try {
