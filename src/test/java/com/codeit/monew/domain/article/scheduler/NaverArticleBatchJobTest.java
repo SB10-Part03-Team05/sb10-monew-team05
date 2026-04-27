@@ -83,7 +83,7 @@ class NaverArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(429) 재시도 소진: recover에서 예외를 다시 던진다")
+  @DisplayName("실패(429) 재시도 소진: 재시도 소진 후 최종적으로 ExternalRateLimitException을 던진다")
   void rate_limit_retry_exhausted_throws() {
     // Given: 모든 시도(3회)에서 계속 Rate Limit이 발생하는 상황
     when(naverKeywordTxProcessor.processOneKeyword("삼성"))
@@ -99,7 +99,7 @@ class NaverArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(4xx): 재시도 없이 recover에서 예외를 다시 던진다")
+  @DisplayName("실패(4xx): 4xx는 재시도 없이 ExternalClientException을 던진다")
   void client_error_no_retry_and_throws() {
     // Given: 재시도 대상이 아닌 Client Error(4xx) 발생 설정
     when(naverKeywordTxProcessor.processOneKeyword("삼성"))
@@ -132,7 +132,7 @@ class NaverArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(server/network) 재시도 소진: recover에서 예외를 다시 던진다")
+  @DisplayName("실패(server/network) 재시도 소진: 재시도 소진 후 최종적으로 ExternalServerException을 던진다")
   void transient_retry_exhausted_throws() {
     // Given: 일시적 장애가 계속되어 재시도 횟수를 모두 사용하는 상황
     when(naverKeywordTxProcessor.processOneKeyword("삼성"))

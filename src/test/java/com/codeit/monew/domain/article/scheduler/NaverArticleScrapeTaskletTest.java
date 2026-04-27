@@ -39,8 +39,8 @@ class NaverArticleScrapeTaskletTest {
   @Mock
   private KeywordRepository keywordRepository;
 
-  @Mock
-  private BatchCircuitBreaker circuitBreaker;
+  @Spy
+  private BatchCircuitBreaker circuitBreaker = new BatchCircuitBreaker();
 
   @Mock
   private ArticleScrapeResultExecutionContextManager contextManager;
@@ -62,7 +62,7 @@ class NaverArticleScrapeTaskletTest {
   }
 
   @Test
-  @DisplayName("키워드 정규화(공백 제거/중복 제거/빈 값 필터링) 후 성공 결과를 합산하여 저장한다")
+  @DisplayName("키워드 정규화(공백 제거/중복 제거/빈 값 필터링) 후 성공 결과를 합산하여 머지한다")
   void execute_success_path_with_normalized_keywords() {
     // Given: 중복되고 공백이 포함된 다양한 키워드 목록 준비
     when(keywordRepository.findAllWithInterest()).thenReturn(
@@ -108,6 +108,8 @@ class NaverArticleScrapeTaskletTest {
 
     // Then: 한 번의 실패와 한 번의 성공이 기록되어야 함
     assertEquals(RepeatStatus.FINISHED, status);
+    verify(naverArticleBatchJob, times(1)).run("삼성");
+    verify(naverArticleBatchJob, times(1)).run("애플");
     verify(circuitBreaker, times(1)).recordFailure(); // 삼성 실패
     verify(circuitBreaker, times(1)).recordSuccess(); // 애플 성공
 
@@ -118,21 +120,26 @@ class NaverArticleScrapeTaskletTest {
   }
 
   @Test
-  @DisplayName("서킷 브레이커가 열려 있으면 작업을 실행하지 않고 조기에 종료한다")
+  @DisplayName("서킷 브레이커가 10회 연속 실패로 열리면 남은 키워드를 조기 종료한다")
   void execute_stops_when_circuit_is_broken() {
-    // Given: 이미 서킷 브레이커가 끊어진(Broken) 상태
-    when(keywordRepository.findAllWithInterest()).thenReturn(List.of(kw("삼성"), kw("애플")));
-    when(circuitBreaker.isBroken()).thenReturn(true);
-    when(circuitBreaker.getConsecutiveFailures()).thenReturn(10);
+    // Given: 11개 키워드 중 앞 10개가 연속 실패하도록 설정
+    when(keywordRepository.findAllWithInterest()).thenReturn(List.of(
+        kw("k1"), kw("k2"), kw("k3"), kw("k4"), kw("k5"),
+        kw("k6"), kw("k7"), kw("k8"), kw("k9"), kw("k10"), kw("k11")
+    ));
+    when(naverArticleBatchJob.run(any()))
+        .thenThrow(new ExternalNetworkException(
+            NewsSourceUrl.NAVER, "https://x", new RuntimeException("network")));
 
     // When: Tasklet 실행
     RepeatStatus status = tasklet.execute(contribution, chunkContext);
 
-    // Then: 어떠한 Job 실행이나 성공/실패 기록도 호출되지 않아야 함
+    // Then: 10회 실패 후 서킷이 열려 11번째 키워드는 실행되지 않아야 함
     assertEquals(RepeatStatus.FINISHED, status);
-    verify(naverArticleBatchJob, never()).run(any());
+    verify(naverArticleBatchJob, times(10)).run(any());
+    verify(naverArticleBatchJob, never()).run("k11");
+    verify(circuitBreaker, times(10)).recordFailure();
     verify(circuitBreaker, never()).recordSuccess();
-    verify(circuitBreaker, never()).recordFailure();
 
     // 빈 결과 객체가 merge되어야 함
     ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);

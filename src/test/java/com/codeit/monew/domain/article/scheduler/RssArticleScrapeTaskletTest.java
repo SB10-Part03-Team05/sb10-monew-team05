@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
@@ -63,6 +64,7 @@ class RssArticleScrapeTaskletTest {
 
     // NAVER 소스는 RSS Tasklet에서 호출되지 않아야 함 (필터링 검증)
     verify(rssArticleBatchJob, never()).run(NewsSourceUrl.NAVER);
+    verifyNoMoreInteractions(rssArticleBatchJob);
 
     // Context Manager에 최종 합계(1+2+3=6)가 전달되었는지 확인
     ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
@@ -74,7 +76,7 @@ class RssArticleScrapeTaskletTest {
   @DisplayName("예상치 못한 예외가 발생하면 전파하고 결과를 병합하지 않는다")
   void execute_propagates_exception() {
     // Given: 실행 중 예외가 발생하는 상황 설정
-    when(rssArticleBatchJob.run(NewsSourceUrl.HANKYUNG))
+    when(rssArticleBatchJob.run(any(NewsSourceUrl.class)))
         .thenThrow(new RuntimeException("boom"));
 
     // When & Then: 예외가 발생하는지 확인

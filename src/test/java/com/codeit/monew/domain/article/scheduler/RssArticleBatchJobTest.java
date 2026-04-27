@@ -71,7 +71,7 @@ class RssArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(429): 재시도 대상이 아니므로 즉시 복구 로직이 작동하여 빈 결과를 반환한다")
+  @DisplayName("실패(429): 재시도 대상이 아니므로 빈 결과를 반환한다")
   void rate_limit_no_retry_and_recover_empty() {
     // Given: Rate Limit(429) 예외가 발생하는 상황 설정
     when(rssSourceTxProcessor.processOneSource(NewsSourceUrl.CHOSUN))
