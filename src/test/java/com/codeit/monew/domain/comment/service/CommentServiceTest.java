@@ -12,9 +12,8 @@ import com.codeit.monew.domain.comment.repository.CommentQueryRepository;
 import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
-import com.codeit.monew.global.event.CommentCreatedEvent;
-import com.codeit.monew.global.event.CommentLikedEvent;
-import com.codeit.monew.global.event.CommentUpdatedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
+import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
 

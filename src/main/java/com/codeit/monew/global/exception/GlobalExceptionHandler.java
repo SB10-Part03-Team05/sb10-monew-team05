@@ -6,6 +6,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -147,6 +148,14 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
   }
 
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+      HttpMessageNotReadableException e) {
+    log.warn("[EXCEPTION] JSON 역직렬화 실패: message={}", e.getMessage());
+    ErrorResponse errorResponse = new ErrorResponse(e, HttpStatus.BAD_REQUEST.value());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+
   private HttpStatus determineHttpStatus(MonewException exception) {
     ErrorCode errorCode = exception.getErrorCode();
     return switch (errorCode) {
@@ -161,8 +170,7 @@ public class GlobalExceptionHandler {
       case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
       case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
       case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR,
-           EXTERNAL_INVALID_XML ->
-          HttpStatus.SERVICE_UNAVAILABLE; // 503
+           EXTERNAL_INVALID_XML -> HttpStatus.SERVICE_UNAVAILABLE; // 503
       case ARTICLE_SCRAPE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
       default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
     };

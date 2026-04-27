@@ -6,7 +6,7 @@ spring:
     name: monew
 
   profiles:
-    active: dev # local | dev | prod
+    active: ${SPRING_PROFILES_ACTIVE:local} # local | dev | prod
 
   config:
     import: optional:file:.env[.properties]
@@ -40,6 +40,16 @@ monew:
   naver:
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}
+
+  logging:
+    upload:
+      zone: ${LOG_UPLOAD_ZONE:Asia/Seoul}
+      log-dir: ${LOG_UPLOAD_LOG_DIR:.logs}
+      file-prefix: ${LOG_UPLOAD_FILE_PREFIX:application}
+      s3-prefix: ${LOG_UPLOAD_S3_PREFIX:logs}
+      lookback-days: ${LOG_UPLOAD_LOOKBACK_DAYS:7}
+      max-retries: ${LOG_UPLOAD_MAX_RETRIES:3}
+      retry-delay-ms: ${LOG_UPLOAD_RETRY_DELAY_MS:10000}
 
 # 로깅 레벨 설정
 logging:

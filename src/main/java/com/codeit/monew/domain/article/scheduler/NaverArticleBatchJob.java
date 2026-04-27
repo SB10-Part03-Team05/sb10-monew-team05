@@ -95,7 +95,7 @@ public class NaverArticleBatchJob {
     return result;
   }
 
-  private void sleep(long millis) {
+  void sleep(long millis) {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
