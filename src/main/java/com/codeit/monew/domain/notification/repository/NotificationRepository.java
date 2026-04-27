@@ -18,7 +18,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   // 알림 일괄 삭제용
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM Notification n " +
-      "WHERE n.confirmedAt IS NOT NULL " +
-      "AND n.createdAt < :targetTime")
+      "WHERE n.confirmedAt < :targetTime")
   int deleteOldConfirmedNotifications(@Param("targetTime") Instant targetTime);
 }
