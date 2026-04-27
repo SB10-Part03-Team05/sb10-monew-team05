@@ -16,6 +16,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class ArticleBackupMapperTest {
 
+  // MapStruct가 생성한 mapper 구현체를 테스트에 직접 가져옴
   private final ArticleBackupMapper articleBackupMapper = Mappers.getMapper(
       ArticleBackupMapper.class);
 
