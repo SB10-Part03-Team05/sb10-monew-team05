@@ -1,10 +1,7 @@
 package com.codeit.monew.domain.article.scheduler;
 
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
-import com.codeit.monew.global.exception.external.ExternalClientException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
-import com.codeit.monew.global.exception.external.ExternalRateLimitException;
-import com.codeit.monew.global.exception.external.ExternalServerException;
+import com.codeit.monew.global.exception.external.ExternalApiException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -17,74 +14,52 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class NaverArticleBatchJob {
 
-  private static final long NAVER_REQUEST_DELAY_MS = 50L;               // 요청 간격
-  private static final int NAVER_RATE_LIMIT_MAX_RETRY = 5;              // 429, 재시도 최대 횟수
-  private static final long NAVER_RATE_LIMIT_BASE_DELAY_MS = 100L;      // 429, 재시도 요청 간격 * 시도 횟수
-  private static final int NAVER_SERVER_MAX_RETRY = 3;                  // 500, 재시도 최대 횟수
-  private static final long NAVER_SERVER_RETRY_BASE_DELAY_MS = 10_000L; // 500, 재시도 요청 간격 * 시도 횟수
-
-  private final NaverKeywordTxProcessor naverKeywordTxProcessor;
+  private final NaverScrapeService naverScrapeService;
   private final KeywordRepository keywordRepository;
+  private final BatchCircuitBreaker circuitBreaker;
 
   public ArticleScrapeResult run() {
     Set<String> keywords = loadDistinctKeywordNames();
-    int total = keywords.size();
-    int index = 0;
-
-    log.info("[NAVER_BATCH] start. keywordCount={}", total);
-
     ArticleScrapeResult totalResult = ArticleScrapeResult.empty();
+
+    log.info("[NAVER_BATCH] start. keywordCount={}", keywords.size());
+
+    int currentOrder = 1;
     for (String keyword : keywords) {
-      index++;
-      sleep(NAVER_REQUEST_DELAY_MS);
-      ArticleScrapeResult result = scrapeByKeyword(keyword, index, total);
-      totalResult = totalResult.plus(result);
-    }
-
-    log.info("[NAVER_BATCH] finished. keywordCount={}, totalSaved={}", total, totalResult.totalSavedCount());
-    return totalResult;
-  }
-
-  private ArticleScrapeResult scrapeByKeyword(String keyword, int index, int total) {
-    int rateLimitAttempt = 0;
-    int serverAttempt = 0;
-
-    while (true) {
-      try {
-        ArticleScrapeResult result = naverKeywordTxProcessor.processOneKeyword(keyword);
-        log.info("[NAVER_BATCH] keyword={}/{} ({}) saved={}", index, total, keyword, result.totalSavedCount());
-        return result;
-      } catch (ExternalRateLimitException e) {
-        rateLimitAttempt++;
-        if (rateLimitAttempt > NAVER_RATE_LIMIT_MAX_RETRY) {
-          log.warn("[NAVER_BATCH] keyword={} rate-limit retry exhausted({})",
-              keyword, NAVER_RATE_LIMIT_MAX_RETRY, e);
-          return ArticleScrapeResult.empty();
-        }
-        long waitMs = NAVER_RATE_LIMIT_BASE_DELAY_MS * rateLimitAttempt;
-        log.warn("[NAVER_BATCH] keyword={} 429 retry={}/{}, waitMs={}",
-            keyword, rateLimitAttempt, NAVER_RATE_LIMIT_MAX_RETRY, waitMs, e);
-        sleep(waitMs);
-      } catch (ExternalServerException | ExternalNetworkException e) {
-        serverAttempt++;
-        if (serverAttempt > NAVER_SERVER_MAX_RETRY) {
-          log.error("[NAVER_BATCH] keyword={} server retry exhausted({})",
-              keyword, NAVER_SERVER_MAX_RETRY, e);
-          return ArticleScrapeResult.empty();
-        }
-        long waitMs = NAVER_SERVER_RETRY_BASE_DELAY_MS * serverAttempt;
-        log.warn("[NAVER_BATCH] keyword={} server retry={}/{}, waitMs={}",
-            keyword, serverAttempt, NAVER_SERVER_MAX_RETRY, waitMs, e);
-        sleep(waitMs);
-      } catch (ExternalClientException e) {
-        log.warn("[NAVER_BATCH] keyword={} client error, no retry", keyword, e);
-        return ArticleScrapeResult.empty();
-      } catch (Exception e) {
-        // 예기치 못한 예외도 이 키워드만 실패 처리하고 다음 키워드로 진행
-        log.error("[NAVER_BATCH] keyword={} unexpected error, skip this keyword", keyword, e);
-        return ArticleScrapeResult.empty();
+      if (circuitBreaker.isBroken()) {
+        log.error("[NAVER_BATCH] consecutive {} failures. stop early. remaining={}",
+            circuitBreaker.getConsecutiveFailures(), keywords.size() - currentOrder + 1);
+        break;
       }
+
+      log.info("[NAVER_BATCH] >>> [{}/{}] Processing START: '{}'",
+          currentOrder, keywords.size(), keyword);
+
+      ArticleScrapeResult result = ArticleScrapeResult.empty();
+      String status;
+
+      try {
+        result = naverScrapeService.scrapeWithRetry(keyword);
+        circuitBreaker.recordSuccess();
+        status = result.totalSavedCount() > 0 ? "SUCCESS" : "SUCCESS_EMPTY";
+      } catch (ExternalApiException e) {
+        circuitBreaker.recordFailure();
+        status = "FAILED";
+        log.warn(
+            "[NAVER_BATCH] keyword='{}' failed. consecutiveFailures={}, errorType={}, message={}",
+            keyword, circuitBreaker.getConsecutiveFailures(), e.getClass().getSimpleName(),
+            e.getMessage());
+      }
+
+      log.info("[NAVER_BATCH] <<< [{}/{}] Processing END: '{}' - Status: {}, Saved: {}",
+          currentOrder++, keywords.size(), keyword, status, result.totalSavedCount());
+
+      totalResult = totalResult.plus(result);
+      sleep(50L);
     }
+
+    log.info("[NAVER_BATCH] finished. totalSaved={}", totalResult.totalSavedCount());
+    return totalResult;
   }
 
   private Set<String> loadDistinctKeywordNames() {
