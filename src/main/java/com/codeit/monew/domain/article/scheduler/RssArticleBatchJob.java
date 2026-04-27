@@ -33,13 +33,13 @@ public class RssArticleBatchJob {
       ArticleScrapeResult result = rssSourceTxProcessor.processOneSource(source);
       log.info("[RSS_BATCH] source={}, saved={}", source, result.totalSavedCount());
       return result;
-    } catch (ExternalRateLimitException e) { // 429
+    } catch (ExternalRateLimitException e) {
       log.warn("[RSS_BATCH] source={} rate-limited(429), skip source", source);
-      return ArticleScrapeResult.empty();
-    } catch (ExternalClientException e) { // 4xx
+      throw e;
+    } catch (ExternalClientException e) {
       log.warn("[RSS_BATCH] source={} client error(4xx), skip source", source);
-      return ArticleScrapeResult.empty();
-    } catch (ExternalServerException | ExternalNetworkException e) { // 5xx
+      throw e;
+    } catch (ExternalServerException | ExternalNetworkException e) {
       log.warn("[RSS_BATCH] source={} transient failure, retrying...", source);
       throw e;
     } catch (Exception e) {
@@ -50,7 +50,8 @@ public class RssArticleBatchJob {
 
   @Recover
   public ArticleScrapeResult recover(ExternalApiException e, NewsSourceUrl source) {
-    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}", source, e.getMessage());
+    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}",
+        source, e.getMessage());
     return ArticleScrapeResult.empty();
   }
 }

@@ -22,4 +22,8 @@ public class BatchCircuitBreaker {
     return consecutiveFailures >= MAX_ALLOWED;
   }
 
+  public void reset() {
+    this.consecutiveFailures = 0;
+  }
+
 }
