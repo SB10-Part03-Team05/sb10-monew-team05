@@ -12,13 +12,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
   // 알림 전체 읽음 처리용
   @Modifying(clearAutomatically = true)
-  @Query("UPDATE Notification n SET n.confirmed = true WHERE n.user.id = :userId AND n.confirmed = false")
-  int confirmAllByUserId(@Param("userId") UUID userId);
+  @Query("UPDATE Notification n SET n.confirmedAt = :now WHERE n.user.id = :userId AND n.confirmedAt IS NULL")
+  int confirmAllByUserId(@Param("userId") UUID userId, @Param("now") Instant now);
 
   // 알림 일괄 삭제용
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM Notification n " +
-      "WHERE n.confirmed = true " +
-      "AND n.createdAt < :targetTime")
+      "WHERE n.confirmedAt < :targetTime")
   int deleteOldConfirmedNotifications(@Param("targetTime") Instant targetTime);
 }
