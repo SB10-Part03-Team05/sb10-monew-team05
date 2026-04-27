@@ -21,6 +21,7 @@ import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
+import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -88,10 +89,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 조선일보 RSS 소스에 대한 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 1건이 성공적으로 저장되고, 기사에 '삼성' 관심사가 매핑되었는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
       assertEquals(1, a1.getArticleInterests().size());
       assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
       verify(xmlClient).fetchRssXml(NewsSourceUrl.CHOSUN);
@@ -113,10 +114,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 검색어 "네이버"를 이용하여 네이버 API 소스 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, "네이버");
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, "네이버");
 
       // then: 1건이 성공적으로 저장되고 올바른 클라이언트 메서드가 호출되었는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
       verify(xmlClient).fetchNaverXml("네이버");
     }
 
@@ -128,10 +129,10 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of());
 
       // when: 스크래핑 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
 
       // then: 저장된 기사 수가 0이며, 이후 불필요한 DB 조회가 발생하지 않음을 검증
-      assertEquals(0, saved);
+      assertEquals(0, result.totalSavedCount());
       verify(articleRepository, never()).findAllExistingUrlsIn(anyList());
       verify(keywordRepository, never()).findAllWithInterest();
     }
@@ -152,10 +153,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(first));
 
       // when: 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.YONHAP, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.YONHAP, null);
 
       // then: URL 기준으로 중복을 제거하여 1건만 저장요청되며, 첫 번째 기사만 살아남았는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
       ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
       verify(articleRepository).saveAll(captor.capture());
       assertEquals("https://dup.com/1", captor.getValue().get(0).getSourceUrl());
@@ -174,10 +175,10 @@ class ArticleScrapeServiceTest {
           List.of("https://exists.com/1"));
 
       // when: 스크래핑 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 저장 대상 기사가 없으므로 0건 저장되며, 관심사 매핑 및 저장 로직이 수행되지 않음을 검증
-      assertEquals(0, saved);
+      assertEquals(0, result.totalSavedCount());
       verify(keywordRepository, never()).findAllWithInterest();
       verify(articleRepository, never()).saveAll(anyList());
     }
@@ -199,10 +200,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(fresh));
 
       // when: 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 기존 기사는 필터링되고, 1건(새 기사)만 최종적으로 DB에 저장되는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
 
       ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
       verify(articleRepository).saveAll(captor.capture());
@@ -222,10 +223,10 @@ class ArticleScrapeServiceTest {
       given(keywordRepository.findAllWithInterest()).willReturn(List.of()); // 등록된 키워드 없음
 
       // when: 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.YONHAP, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.YONHAP, null);
 
       // then: 어떤 관심사에도 매핑되지 않은 기사는 저장 대상에서 제외되어 0건이 저장됨을 검증
-      assertEquals(0, saved);
+      assertEquals(0, result.totalSavedCount());
       verify(articleRepository, never()).saveAll(anyList());
     }
 
@@ -244,10 +245,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 매칭이 올바르게 이루어져 1건이 저장되고, 해당 기사에 삼성 관심사가 연관관계로 묶였는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
       assertEquals(1, a1.getArticleInterests().size());
       assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
     }
@@ -269,10 +270,10 @@ class ArticleScrapeServiceTest {
       given(articleRepository.saveAll(anyList())).willReturn(List.of(matched));
 
       // when: 스크래핑 및 저장 로직 실행
-      int saved = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 관심사가 매핑되지 않은 테슬라 기사는 버려지고, 애플 기사 1건만 최종 저장되는지 검증
-      assertEquals(1, saved);
+      assertEquals(1, result.totalSavedCount());
       ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
       verify(articleRepository).saveAll(captor.capture());
       assertEquals(1, captor.getValue().size());

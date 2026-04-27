@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.article.scheduler;
 
+import com.codeit.monew.global.exception.external.ExternalApiException;
 import com.codeit.monew.global.exception.external.ExternalClientException;
 import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
@@ -7,6 +8,9 @@ import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -14,48 +18,40 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RssArticleBatchJob {
 
-  private static final int RSS_SERVER_MAX_RETRY = 3;                  // 500, 최대 재시도 횟수
-  private static final long RSS_SERVER_RETRY_BASE_DELAY_MS = 10_000L; // 500, 재시도 요청 간격 * attempt
-
   private final RssSourceTxProcessor rssSourceTxProcessor;
 
-  public void run(NewsSourceUrl source) {
-    int attempt = 0;
-
-    while (true) {
-      try {
-        int saved = rssSourceTxProcessor.processOneSource(source);
-        log.info("[RSS_BATCH] source={}, saved={}", source, saved);
-        return;
-      } catch (ExternalRateLimitException e) {
-        log.warn("[RSS_BATCH] source={} rate-limited(429), skip until next batch", source, e);
-        return;
-      } catch (ExternalServerException | ExternalNetworkException e) {
-        attempt++;
-        if (attempt > RSS_SERVER_MAX_RETRY) {
-          log.error("[RSS_BATCH] source={} failed after retries", source, e);
-          return;
-        }
-        long waitMs = RSS_SERVER_RETRY_BASE_DELAY_MS * attempt;
-        log.warn("[RSS_BATCH] source={} transient failure, retry={}/{}, waitMs={}",
-            source, attempt, RSS_SERVER_MAX_RETRY, waitMs, e);
-        sleep(waitMs);
-      } catch (ExternalClientException e) {
-        log.warn("[RSS_BATCH] source={} client error, no retry", source, e);
-        return;
-      } catch (Exception e) {
-        log.error("[RSS_BATCH] source={} unexpected error, skip this source", source, e);
-        return;
-      }
+  @Retryable(
+      // 재시도 대상: 서버 에러 및 네트워크 장애 (일시적 오류)
+      retryFor = {ExternalServerException.class, ExternalNetworkException.class},
+      // 재시도 제외: 4xx 에러 및 429 에러
+      noRetryFor = {ExternalClientException.class, ExternalRateLimitException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delayExpression = "${retry.backoff.delay:10000}", multiplier = 2)
+  )
+  public ArticleScrapeResult run(NewsSourceUrl source) {
+    try {
+      ArticleScrapeResult result = rssSourceTxProcessor.processOneSource(source);
+      log.info("[RSS_BATCH] source={}, saved={}", source, result.totalSavedCount());
+      return result;
+    } catch (ExternalRateLimitException e) {
+      log.warn("[RSS_BATCH] source={} rate-limited(429), skip source", source);
+      throw e;
+    } catch (ExternalClientException e) {
+      log.warn("[RSS_BATCH] source={} client error(4xx), skip source", source);
+      throw e;
+    } catch (ExternalServerException | ExternalNetworkException e) {
+      log.warn("[RSS_BATCH] source={} transient failure, retrying...", source);
+      throw e;
+    } catch (Exception e) {
+      log.error("[RSS_BATCH] source={} unexpected error", source, e);
+      throw e;
     }
   }
 
-  void sleep(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("RSS batch sleep interrupted", e);
-    }
+  @Recover
+  public ArticleScrapeResult recover(ExternalApiException e, NewsSourceUrl source) {
+    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}",
+        source, e.getMessage());
+    return ArticleScrapeResult.empty();
   }
 }
