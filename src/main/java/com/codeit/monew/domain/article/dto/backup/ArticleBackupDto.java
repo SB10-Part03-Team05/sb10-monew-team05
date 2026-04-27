@@ -3,6 +3,7 @@ package com.codeit.monew.domain.article.dto.backup;
 import com.codeit.monew.domain.article.ArticleSource;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ArticleBackupDto(
@@ -32,7 +33,10 @@ public record ArticleBackupDto(
     Instant updatedAt,
 
     @Schema(description = "삭제 시간")
-    Instant deletedAt
+    Instant deletedAt,
+
+    @Schema(description = "연결된 관심사 ID 목록")
+    List<UUID> interestIds
 ) {
 
 }
