@@ -60,7 +60,9 @@ public class Notification extends BaseUpdatableEntity {
 
   // 비즈니스 로직 - 알림 읽음 처리
   public void confirm() {
-    this.confirmedAt = Instant.now();
+    if (this.confirmedAt == null) {
+      this.confirmedAt = Instant.now();
+    }
   }
 
   // 알림 확인 여부 반환
