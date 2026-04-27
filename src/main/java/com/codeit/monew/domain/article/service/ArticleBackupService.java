@@ -40,7 +40,7 @@ public class ArticleBackupService {
 
     // publishDate 이상(>=) And publishDate 미만(<)인 뉴스 기사를 가져옴
     List<ArticleBackupDto> backupData = articleRepository
-        .findAllByPublishDateGreaterThanEqualAndPublishDateLessThanAndDeletedAtIsNull(from, to)
+        .findAllWithInterests(from, to)
         .stream()
         .map(article -> articleBackupMapper.toDto(article))
         .toList();
