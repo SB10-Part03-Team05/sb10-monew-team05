@@ -32,16 +32,12 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @ExtendWith(MockitoExtension.class)
 class S3ArticleBackupFileStorageTest {
 
   @Mock
   private S3Client s3Client;
-
-  @Mock
-  private S3Presigner s3Presigner;
 
   private AwsProperties createAwsProperties(String bucket) {
     AwsProperties awsProperties = new AwsProperties();
@@ -67,7 +63,7 @@ class S3ArticleBackupFileStorageTest {
       AwsProperties awsProperties = createAwsProperties("monew-backup-bucket");
       ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
       S3ArticleBackupFileStorage storage = new S3ArticleBackupFileStorage(awsProperties, s3Client,
-          s3Presigner, objectMapper);
+          objectMapper);
       String key = "backups/articles/2026-04-26/articles.json";
       List<ArticleBackupDto> articleList = List.of(createArticleBackupDto());
 
@@ -96,7 +92,7 @@ class S3ArticleBackupFileStorageTest {
       ObjectMapper objectMapper = org.mockito.Mockito.mock(ObjectMapper.class);
       ObjectWriter objectWriter = org.mockito.Mockito.mock(ObjectWriter.class);
       S3ArticleBackupFileStorage storage = new S3ArticleBackupFileStorage(awsProperties, s3Client,
-          s3Presigner, objectMapper);
+          objectMapper);
 
       given(objectMapper.writerWithDefaultPrettyPrinter()).willReturn(objectWriter);
       given(objectWriter.writeValueAsBytes(any()))
@@ -116,7 +112,7 @@ class S3ArticleBackupFileStorageTest {
       AwsProperties awsProperties = createAwsProperties("monew-backup-bucket");
       ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
       S3ArticleBackupFileStorage storage = new S3ArticleBackupFileStorage(awsProperties, s3Client,
-          s3Presigner, objectMapper);
+          objectMapper);
 
       given(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
           .willThrow(S3Exception.builder().message("s3 failed").build());
@@ -134,7 +130,7 @@ class S3ArticleBackupFileStorageTest {
       AwsProperties awsProperties = createAwsProperties("monew-backup-bucket");
       ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
       S3ArticleBackupFileStorage storage = new S3ArticleBackupFileStorage(awsProperties, s3Client,
-          s3Presigner, objectMapper);
+          objectMapper);
 
       given(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
           .willThrow(SdkClientException.builder().message("aws client failed").build());
