@@ -14,7 +14,7 @@ public class RssSourceTxProcessor {
   private final ArticleScrapeService articleScrapeService;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public int processOneSource(NewsSourceUrl source) {
+  public ArticleScrapeResult processOneSource(NewsSourceUrl source) {
     return articleScrapeService.scrapeAndSave(source, null);
   }
 }

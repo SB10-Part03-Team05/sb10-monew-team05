@@ -2,6 +2,8 @@ package com.codeit.monew.domain.article.service;
 
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
+import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
+import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult.InterestInfo;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
@@ -11,6 +13,7 @@ import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +42,14 @@ public class ArticleScrapeService {
   private final KeywordRepository keywordRepository;
   // TODO: NotificationService notificationService;
 
-  public int scrapeAndSave(NewsSourceUrl source, String query) {
+  public ArticleScrapeResult scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
     List<Article> parsedArticles = runStage("fetch_parse", source, query,
         () -> xmlParser.parse(fetchXml(source, query), source));
 
     // 수집된 기사가 하나도 없다면(네이버 검색 결과 없음) 0을 반환하고 종료
     if (parsedArticles.isEmpty()) {
-      return 0;
+      return ArticleScrapeResult.empty();
     }
 
     // 수집된 리스트 내에서 URL이 중복되는 기사들을 제거 (메모리 상 중복 제거)
@@ -58,7 +62,7 @@ public class ArticleScrapeService {
 
     // 필터링 후 남은 새 기사가 없다면 0을 반환하고 종료
     if (newArticles.isEmpty()) {
-      return 0;
+      return ArticleScrapeResult.empty();
     }
 
     // 사용자들이 등록한 모든 키워드와 그에 연결된 관심사 정보를 DB에서 로드
@@ -131,16 +135,30 @@ public class ArticleScrapeService {
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
-  //
-  private int saveAndNotify(Map<Article, Set<Interest>> articleInterestMap, NewsSourceUrl source) {
+  private ArticleScrapeResult saveAndNotify(Map<Article, Set<Interest>> articleInterestMap, NewsSourceUrl source) {
     List<Article> toSave = new ArrayList<>(articleInterestMap.keySet());
 
-    if (!toSave.isEmpty()) {
-      articleRepository.saveAll(toSave);
-      // TODO: notificationService.publishBulkArticleNotifications(articleInterestMap);
-      log.info("[{}] {}건의 새로운 기사가 저장 및 알림 처리되었습니다.", source, toSave.size());
+    if (toSave.isEmpty()) {
+      return ArticleScrapeResult.empty();
     }
-    return toSave.size();
+
+    articleRepository.saveAll(toSave);
+
+    // 관심사별 기사 개수 집계
+    Map<UUID, InterestInfo> interestResults = new HashMap<>();
+    articleInterestMap.values().forEach(interests -> {
+      interests.forEach(interest -> {
+        InterestInfo info = interestResults.getOrDefault(
+            interest.getId(),
+            new InterestInfo(interest.getName(), 0L)
+        );
+        interestResults.put(interest.getId(), new InterestInfo(info.name(), info.count() + 1));
+      });
+    });
+
+    log.info("[{}] {}건의 새로운 기사가 저장되었습니다.", source, toSave.size());
+
+    return new ArticleScrapeResult(toSave.size(), interestResults);
   }
 
   private String fetchXml(NewsSourceUrl source, String query) {

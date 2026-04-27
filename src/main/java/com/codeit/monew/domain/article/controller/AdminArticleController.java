@@ -1,11 +1,8 @@
 package com.codeit.monew.domain.article.controller;
 
-import com.codeit.monew.domain.article.dto.request.ArticleScrapeRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleScrapeBatchRunResponse;
-import com.codeit.monew.domain.article.dto.response.ArticleScrapeResponse;
 import com.codeit.monew.domain.article.service.ArticleScrapeBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
-import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,7 +17,6 @@ import org.springframework.batch.core.JobExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,32 +28,6 @@ public class AdminArticleController {
 
   private final ArticleScrapeService articleScrapeService;
   private final ArticleScrapeBatchRunner articleScrapeBatchRunner;
-
-  @PostMapping("/scrape-test")
-  @Operation(summary = "뉴스 기사 수집 테스트", description = "외부 RSS/네이버 API를 호출하여 기사를 수집하고 저장합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "수집 성공", content = @Content(schema = @Schema(implementation = ArticleScrapeResponse.class))),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content(schema = @Schema(implementation = Map.class))),
-      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-  })
-  public ResponseEntity<?> scrapeTest(@RequestBody ArticleScrapeRequest request) {
-    if (request == null || request.source() == null) {
-      return badRequest("source는 필수입니다.");
-    }
-
-    if (request.source() == NewsSourceUrl.NAVER
-        && (request.query() == null || request.query().isBlank())) {
-      return badRequest("NAVER 요청에는 query가 필수입니다.");
-    }
-
-    int savedCount = articleScrapeService.scrapeAndSave(request.source(), request.query());
-    ArticleScrapeResponse response = new ArticleScrapeResponse(
-        request.source(),
-        request.query(),
-        savedCount
-    );
-    return ResponseEntity.status(HttpStatus.OK).body(response);
-  }
 
   @PostMapping("/scrape-batch/run")
   @Operation(summary = "뉴스 수집 배치 수동 실행", description = "Spring Batch 뉴스 수집 Job을 즉시 실행하고 Step별 결과를 반환합니다.")
