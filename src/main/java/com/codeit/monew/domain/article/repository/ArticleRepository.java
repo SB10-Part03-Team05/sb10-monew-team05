@@ -36,8 +36,17 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, Article
   )
   Collection<String> findAllExistingUrlsIn(List<String> chunk);
 
-  List<Article> findAllByPublishDateGreaterThanEqualAndPublishDateLessThan(
-      Instant from,
-      Instant to
+  @Query(value = """
+      SELECT DISTINCT a 
+      FROM Article AS a 
+      LEFT JOIN FETCH a.articleInterests ai 
+      LEFT JOIN FETCH ai.interest 
+      WHERE a.publishDate >= :from
+            AND a.publishDate < :to
+            AND a.deletedAt IS NULL
+      """)
+  List<Article> findAllWithInterests(
+      @Param("from") Instant from,
+      @Param("to") Instant to
   );
 }
