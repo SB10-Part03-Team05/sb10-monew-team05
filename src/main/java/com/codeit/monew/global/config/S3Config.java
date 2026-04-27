@@ -2,7 +2,9 @@ package com.codeit.monew.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -24,19 +26,13 @@ public class S3Config {
         && !awsProperties.getAccessKey().isBlank()) {
       return S3Client.builder()
           .region(Region.of(awsProperties.getRegion()))
-          .credentialsProvider(
-              StaticCredentialsProvider.create(
-                  AwsBasicCredentials.create(
-                      awsProperties.getAccessKey(),
-                      awsProperties.getSecretKey()
-                  )
-              )
-          ).build();
+          .credentialsProvider(getCredentialsProvider())
+          .build();
     }
 
     return S3Client.builder()
         .region(Region.of(awsProperties.getRegion()))
-        .credentialsProvider(DefaultCredentialsProvider.create())
+        .credentialsProvider(getCredentialsProvider())
         .build();
   }
 
@@ -46,19 +42,26 @@ public class S3Config {
         && !awsProperties.getAccessKey().isBlank()) {
       return S3Presigner.builder()
           .region(Region.of(awsProperties.getRegion()))
-          .credentialsProvider(
-              StaticCredentialsProvider.create(
-                  AwsBasicCredentials.create(
-                      awsProperties.getAccessKey(),
-                      awsProperties.getSecretKey()
-                  )
-              )
-          ).build();
+          .credentialsProvider(getCredentialsProvider())
+          .build();
     }
 
     return S3Presigner.builder()
         .region(Region.of(awsProperties.getRegion()))
-        .credentialsProvider(DefaultCredentialsProvider.create())
+        .credentialsProvider(getCredentialsProvider())
         .build();
+  }
+
+  private AwsCredentialsProvider getCredentialsProvider() {
+    String accessKey = awsProperties.getAccessKey();
+    String secretKey = awsProperties.getSecretKey();
+
+    if (StringUtils.hasText(accessKey) && StringUtils.hasText(secretKey)) {
+      return StaticCredentialsProvider.create(
+          AwsBasicCredentials.create(accessKey, secretKey)
+      );
+    }
+
+    return DefaultCredentialsProvider.create();
   }
 }
