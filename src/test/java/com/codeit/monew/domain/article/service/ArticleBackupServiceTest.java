@@ -59,7 +59,7 @@ class ArticleBackupServiceTest {
   private ArticleBackupDto createArticleBackupDto(Article article) {
     return new ArticleBackupDto(article.getId(), article.getSource(), article.getSourceUrl(),
         article.getTitle(), article.getPublishDate(), article.getSummary(), Instant.now(),
-        Instant.now(), Instant.now());
+        Instant.now(), Instant.now(), List.of());
   }
 
   @Nested
@@ -90,7 +90,7 @@ class ArticleBackupServiceTest {
       List<ArticleBackupDto> expectedBackupData = List.of(articleDto);
 
       given(articleRepository
-          .findAllByPublishDateGreaterThanEqualAndPublishDateLessThanAndDeletedAtIsNull(from, to))
+          .findAllWithInterests(from, to))
           .willReturn(List.of(article));
       given(articleBackupMapper.toDto(article)).willReturn(articleDto);
 
@@ -99,7 +99,7 @@ class ArticleBackupServiceTest {
 
       // then(검증)
       verify(articleRepository)
-          .findAllByPublishDateGreaterThanEqualAndPublishDateLessThanAndDeletedAtIsNull(from, to);
+          .findAllWithInterests(from, to);
       verify(articleBackupMapper).toDto(article);
       verify(s3ArticleBackupFileStorage).upload(key, expectedBackupData);
     }
@@ -113,7 +113,7 @@ class ArticleBackupServiceTest {
       assertThrows(InvalidParameterException.class,
           () -> articleBackupService.backup(null));
       verify(articleRepository, never())
-          .findAllByPublishDateGreaterThanEqualAndPublishDateLessThanAndDeletedAtIsNull(from, to);
+          .findAllWithInterests(from, to);
       verify(articleBackupMapper, never()).toDto(any(Article.class));
       verify(s3ArticleBackupFileStorage, never()).upload(any(), any());
     }
