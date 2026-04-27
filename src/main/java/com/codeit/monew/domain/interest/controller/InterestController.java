@@ -116,7 +116,7 @@ public class InterestController {
   @PostMapping("/{interestId}/subscriptions")
   @Operation(summary = "관심사 구독", description = "관심사를 구독합니다.")
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "구독 성공", content = @Content(schema = @Schema(implementation = SubscriptionDto.class))),
+      @ApiResponse(responseCode = "201", description = "구독 성공", content = @Content(schema = @Schema(implementation = SubscriptionDto.class))),
       @ApiResponse(responseCode = "404", description = "관심사 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
