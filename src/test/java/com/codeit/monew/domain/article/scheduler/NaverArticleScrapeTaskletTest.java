@@ -166,6 +166,9 @@ class NaverArticleScrapeTaskletTest {
     ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
     verify(contextManager, times(1)).merge(any(ChunkContext.class), captor.capture());
 
+    // 에러 발생 전까지 저장된 기사의 개수인 totalSavedCount가 1인지 확인
+    assertEquals(1, captor.getValue().totalSavedCount());
+
     // 서킷 브레이커는 성공한 "삼성"에 대해서만 기록됨
     verify(circuitBreaker, times(1)).recordSuccess();
     verify(circuitBreaker, never()).recordFailure(); // RuntimeException은 서킷 브레이커 대상이 아님

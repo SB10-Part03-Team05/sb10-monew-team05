@@ -32,32 +32,24 @@ public class NaverArticleScrapeTasklet implements Tasklet {
       Set<String> keywords = loadDistinctKeywordNames();
       log.info("[NAVER_BATCH] start. keywordCount={}", keywords.size());
 
-      totalResult = processKeywords(keywords);
+      int currentOrder = 1;
+      for (String keyword : keywords) {
+        if (circuitBreaker.isBroken()) {
+          log.error("[NAVER_BATCH] 연속 실패 횟수 {}회 도달. 조기 종료 수행. 남은 키워드 수: {}",
+              circuitBreaker.getConsecutiveFailures(), keywords.size() - currentOrder + 1);
+          break;
+        }
+
+        ArticleScrapeResult result = scrapeSingleKeyword(keyword, currentOrder++, keywords.size());
+        totalResult = totalResult.plus(result);
+        sleep(50L);
+      }
 
       log.info("[NAVER_BATCH] finished. totalSaved={}", totalResult.totalSavedCount());
       return RepeatStatus.FINISHED;
     } finally {
       contextManager.merge(chunkContext, totalResult);
     }
-  }
-
-  private ArticleScrapeResult processKeywords(Set<String> keywords) {
-    ArticleScrapeResult totalResult = ArticleScrapeResult.empty();
-    int currentOrder = 1;
-
-    for (String keyword : keywords) {
-      if (circuitBreaker.isBroken()) {
-        log.error("[NAVER_BATCH] 연속 실패 횟수 {}회 도달. 조기 종료 수행. 남은 키워드 수: {}",
-            circuitBreaker.getConsecutiveFailures(), keywords.size() - currentOrder + 1);
-        break;
-      }
-
-      ArticleScrapeResult result = scrapeSingleKeyword(keyword, currentOrder++, keywords.size());
-      totalResult = totalResult.plus(result);
-
-      sleep(50L);
-    }
-    return totalResult;
   }
 
   private ArticleScrapeResult scrapeSingleKeyword(String keyword, int order, int total) {

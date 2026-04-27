@@ -91,6 +91,9 @@ class RssArticleScrapeTaskletTest {
     ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
     verify(contextManager, times(1)).merge(any(ChunkContext.class), captor.capture());
 
+    // 에러 발생 전까지 저장된 기사의 개수인 totalSavedCount가 1인지 확인
+    assertEquals(1, captor.getValue().totalSavedCount());
+
     // 에러가 발생한 이후의 소스(예: YONHAP 등)는 실행되지 않았어야 함
     verify(rssArticleBatchJob, never()).run(NewsSourceUrl.YONHAP);
   }
