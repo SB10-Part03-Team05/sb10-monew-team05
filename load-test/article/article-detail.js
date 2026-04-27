@@ -21,9 +21,9 @@ export const options = {
 
   // 실제 트래픽처럼 서서히 증가했다가 감소하는 시나리오
   stages: [
-    { duration: '10s', target: 10 },  // 0~10초: 가상 유저 0명 -> 10명으로 증가
-    { duration: '30s', target: 50 },  // 10~40초: 10명 -> 50명으로 증가
-    { duration: '10s', target: 0 },   // 40~50초: 50명 -> 0명으로 감소
+    { duration: '30s', target: 50 },
+    { duration: '30s', target: 300 },
+    { duration: '10s', target: 0 },
   ],
   thresholds: {
     http_req_duration: ['p(95)<500', 'p(99)<1000'], // p95가 500ms 넘으면 테스트 실패, p99가 1000ms 넘으면 테스트 실패

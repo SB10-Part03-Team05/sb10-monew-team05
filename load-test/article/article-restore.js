@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-
+// TODO: 뉴스 기사 복구 로직 구성 완료 후 테스트 진행 예정
 export const options = {
   // 결과 출력 시 보여줄 지표 지정
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
@@ -28,7 +28,7 @@ export default function () {
 
   // API 요청
   const res = http.get(
-      'http://localhost:8080/api/articles?orderBy=publishDate&direction=DESC&limit=10',
+      'http://localhost:8080/api/articles/restore?from=2026-04-24T00:00:00Z&to=2026-04-24T23:59:59Z', // 하드코딩
       params
   );
 
