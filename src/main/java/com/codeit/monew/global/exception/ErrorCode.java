@@ -6,7 +6,7 @@ import lombok.Getter;
 public enum ErrorCode {
   // common
   INVALID_PARAMETER_INPUT("입력값이 유효하지 않습니다."),
-  JSON_PARSER_FAILED("JSON 직렬화에 실패했습니다."),
+  JSON_PARSER_FAILED("JSON 직렬화/역직렬화에 실패했습니다."),
 
   // User 관련 에러 코드
   USER_NOT_FOUND("사용자를 찾을 수 없습니다."),
@@ -18,8 +18,9 @@ public enum ErrorCode {
   ARTICLE_NOT_FOUND("뉴스 기사 정보를 찾을 수 없습니다."),
   INVALID_ARTICLE_ENTITY("뉴스 기사 정보가 유효하지 않습니다."),
   ARTICLE_SCRAPE_FAILED("뉴스 기사 수집 처리 중 오류가 발생했습니다."),
-  ARTICLE_FILE_SAVE_FAILED("뉴스 기사 파일 저장에 실패했습니다."),
   ARTICLE_BACKUP_BATCH_RUN_FAILED("뉴스 기사 배치 실행에 실패했습니다."),
+  ARTICLE_FILE_SAVE_FAILED("뉴스 기사 파일 저장에 실패했습니다."),
+  ARTICLE_FILE_READ_FAILED("뉴스 기사 파일 읽기에 실패했습니다."),
 
   // Interest 관련 에러 코드
   INTEREST_NOT_FOUND("관심사를 찾을 수 없습니다."),
