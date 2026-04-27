@@ -20,8 +20,10 @@ public class NaverArticleBatchJob {
   private final NaverKeywordTxProcessor naverKeywordTxProcessor;
 
   @Retryable(
+      // 재시도 대상: 429에러, 서버 에러 및 네트워크 장애 (일시적 오류)
       retryFor = {ExternalRateLimitException.class, ExternalServerException.class,
           ExternalNetworkException.class},
+      // 재시도 제외: 4xx 에러
       noRetryFor = {ExternalClientException.class},
       maxAttempts = 3,
       backoff = @Backoff(delay = 100, multiplier = 10)
