@@ -310,7 +310,7 @@ public class InterestControllerTest {
     }
 
     @Test
-    @DisplayName("limit이 1미만일 경우 500 상태코드와 ConstraintViolationException 예외 발생")
+    @DisplayName("limit이 1미만일 경우 400 상태코드와 ConstraintViolationException 예외 발생")
     void should_fail_search_interest_list_when_limit_is_less_than_1() throws Exception {
       // given
       UUID requestUserId = UUID.randomUUID();
@@ -322,9 +322,9 @@ public class InterestControllerTest {
               .param("direction", "ASC")
               .param("limit", "0")
               .header("Monew-Request-User-ID", requestUserId.toString()))
-          .andExpect(status().isInternalServerError())
-          .andExpect(jsonPath("$.code").value("ConstraintViolationException"))
-          .andExpect(jsonPath("$.status").value(500))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("CONSTRAINT_VIOLATION_ERROR"))
+          .andExpect(jsonPath("$.status").value(400))
           .andExpect(jsonPath("$.exceptionType").value(
               ConstraintViolationException.class.getSimpleName()));
       // @RequestParam에 대한 제약 조건(@Min 등) 위반 시, 객체 검증 예외가 아닌 ConstraintViolationException이 발생함
