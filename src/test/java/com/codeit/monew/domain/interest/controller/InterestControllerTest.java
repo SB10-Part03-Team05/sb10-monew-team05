@@ -18,10 +18,10 @@ import com.codeit.monew.domain.interest.dto.request.InterestUpdateRequest;
 import com.codeit.monew.domain.interest.dto.response.CursorPageResponseInterestDto;
 import com.codeit.monew.domain.interest.dto.response.InterestDto;
 import com.codeit.monew.domain.interest.dto.response.SubscriptionDto;
-import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.service.InterestService;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
+import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
 import com.codeit.monew.global.exception.Interest.DuplicateInterestException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -238,7 +238,7 @@ public class InterestControllerTest {
 
     @Test
     @DisplayName("관심사 목록 조회 시 200 상태코드와 커서 페이지네이션이 적용된 관심사 목록이 반환된다.")
-    void should_search_interest_list_success_and_return__200() throws Exception {
+    void should_search_interest_list_success_and_return_200() throws Exception {
       // given
       UUID interestId1 = UUID.randomUUID();
       UUID interestId2 = UUID.randomUUID();
@@ -385,6 +385,26 @@ public class InterestControllerTest {
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(
               jsonPath("$.exceptionType").value(InterestNotFoundException.class.getSimpleName()));
+    }
+
+    @Test
+    @DisplayName("이미 구독한 관심사를 다시 구독 시 409 상태 코드가 반환된다.")
+    void should_fail_subscribe_interest_when_already_subscribed() throws Exception {
+      // given
+      UUID interestId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+      given(interestService.subscribe(any(UUID.class), any(UUID.class)))
+          .willThrow(new AlreadySubscribedException(interestId, requestUserId));
+
+      // when, then
+      mockMvc.perform(post("/api/interests/" + interestId + "/subscriptions")
+              .contentType(MediaType.APPLICATION_JSON)
+              .header("Monew-Request-User-ID", requestUserId.toString()))
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.code").value(ErrorCode.ALREADY_SUBSCRIBED.toString()))
+          .andExpect(jsonPath("$.status").value(409))
+          .andExpect(
+              jsonPath("$.exceptionType").value(AlreadySubscribedException.class.getSimpleName()));
     }
   }
 

@@ -118,6 +118,7 @@ public class InterestController {
   @ApiResponses(value = {
       @ApiResponse(responseCode = "201", description = "구독 성공", content = @Content(schema = @Schema(implementation = SubscriptionDto.class))),
       @ApiResponse(responseCode = "404", description = "관심사 정보 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "409", description = "관심사 구독 중 재구독 요청", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<SubscriptionDto> subscribe(
