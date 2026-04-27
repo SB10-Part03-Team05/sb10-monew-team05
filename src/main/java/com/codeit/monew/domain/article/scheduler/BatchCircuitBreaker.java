@@ -1,9 +1,11 @@
 package com.codeit.monew.domain.article.scheduler;
 
 import lombok.Getter;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.stereotype.Component;
 
 @Getter
+@StepScope
 @Component
 public class BatchCircuitBreaker {
 

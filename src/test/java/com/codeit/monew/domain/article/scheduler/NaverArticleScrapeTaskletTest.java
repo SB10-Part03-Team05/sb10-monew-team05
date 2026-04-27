@@ -148,20 +148,27 @@ class NaverArticleScrapeTaskletTest {
   }
 
   @Test
-  @DisplayName("처리 로직 밖의 예상치 못한 예외는 전파하고 머지하지 않는다")
-  void execute_propagates_unknown_exception() {
-    // Given: 비즈니스 예외(ExternalApiException)가 아닌 일반 예외 발생 상황
-    when(keywordRepository.findAllWithInterest()).thenReturn(List.of(kw("삼성")));
+  @DisplayName("처리 로직 밖의 예외 발생 시, 예외는 전파되지만 이전까지의 결과는 merge한다")
+  void execute_propagates_exception_but_merges_partial_result() {
+    // Given: "삼성"은 성공하고, "애플"에서 예상치 못한 에러가 발생하는 상황
+    when(keywordRepository.findAllWithInterest()).thenReturn(List.of(kw("삼성"), kw("애플")));
     when(circuitBreaker.isBroken()).thenReturn(false);
-    when(naverArticleBatchJob.run("삼성")).thenThrow(new RuntimeException("boom"));
 
-    // When & Then: 예외가 상위로 전파되는지 확인
+    // 첫 번째 키워드는 성공하여 기사 1개를 가져옴
+    when(naverArticleBatchJob.run("삼성")).thenReturn(new ArticleScrapeResult(1, Map.of()));
+    // 두 번째 키워드에서 런타임 에러 발생
+    when(naverArticleBatchJob.run("애플")).thenThrow(new RuntimeException("boom"));
+
+    // When & Then: 예외는 상위로 던져져야 함
     assertThrows(RuntimeException.class, () -> tasklet.execute(contribution, chunkContext));
 
-    // 예외 발생 시 서킷 브레이커 기록이나 결과 저장 로직이 수행되지 않아야 함
-    verify(contextManager, never()).merge(any(ChunkContext.class), any(ArticleScrapeResult.class));
-    verify(circuitBreaker, never()).recordSuccess();
-    verify(circuitBreaker, never()).recordFailure();
+    // 예외가 터지기 전까지 수집된 "삼성(1개)"의 결과가 merge되었는지 확인
+    ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
+    verify(contextManager, times(1)).merge(any(ChunkContext.class), captor.capture());
+
+    // 서킷 브레이커는 성공한 "삼성"에 대해서만 기록됨
+    verify(circuitBreaker, times(1)).recordSuccess();
+    verify(circuitBreaker, never()).recordFailure(); // RuntimeException은 서킷 브레이커 대상이 아님
   }
 
   /**

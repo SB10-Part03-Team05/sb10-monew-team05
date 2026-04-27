@@ -19,14 +19,16 @@ public class RssArticleScrapeTasklet implements Tasklet {
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
     ArticleScrapeResult stepResult = ArticleScrapeResult.empty();
 
-    for (NewsSourceUrl source : NewsSourceUrl.values()) {
-      if (source == NewsSourceUrl.NAVER) {
-        continue;
+    try {
+      for (NewsSourceUrl source : NewsSourceUrl.values()) {
+        if (source == NewsSourceUrl.NAVER) {
+          continue;
+        }
+        stepResult = stepResult.plus(rssArticleBatchJob.run(source));
       }
-      stepResult = stepResult.plus(rssArticleBatchJob.run(source));
+      return RepeatStatus.FINISHED;
+    } finally {
+      contextManager.merge(chunkContext, stepResult);
     }
-
-    contextManager.merge(chunkContext, stepResult);
-    return RepeatStatus.FINISHED;
   }
 }

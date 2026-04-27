@@ -26,8 +26,12 @@ public class ArticleScrapeBatchConfig {
   public Job articleScrapeBatchJob() {
     return new JobBuilder(JOB_NAME, jobRepository)
         .start(rssStep())
-        .next(naverStep())
-        .next(notificationStep())
+        .on("FAILED").to(notificationStep())
+        .from(rssStep())
+        .on("COMPLETED").to(naverStep())
+        .from(naverStep())
+        .on("*").to(notificationStep())
+        .end()
         .build();
   }
 

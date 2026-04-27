@@ -25,15 +25,20 @@ public class NaverArticleScrapeTasklet implements Tasklet {
 
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
-    circuitBreaker.reset();
-    Set<String> keywords = loadDistinctKeywordNames();
-    log.info("[NAVER_BATCH] start. keywordCount={}", keywords.size());
-    
-    ArticleScrapeResult totalResult = processKeywords(keywords);
+    ArticleScrapeResult totalResult = ArticleScrapeResult.empty();
 
-    log.info("[NAVER_BATCH] finished. totalSaved={}", totalResult.totalSavedCount());
-    contextManager.merge(chunkContext, totalResult);
-    return RepeatStatus.FINISHED;
+    try {
+      circuitBreaker.reset();
+      Set<String> keywords = loadDistinctKeywordNames();
+      log.info("[NAVER_BATCH] start. keywordCount={}", keywords.size());
+
+      totalResult = processKeywords(keywords);
+
+      log.info("[NAVER_BATCH] finished. totalSaved={}", totalResult.totalSavedCount());
+      return RepeatStatus.FINISHED;
+    } finally {
+      contextManager.merge(chunkContext, totalResult);
+    }
   }
 
   private ArticleScrapeResult processKeywords(Set<String> keywords) {

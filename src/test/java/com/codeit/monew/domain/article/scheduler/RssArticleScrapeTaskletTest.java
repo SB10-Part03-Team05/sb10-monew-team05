@@ -73,16 +73,25 @@ class RssArticleScrapeTaskletTest {
   }
 
   @Test
-  @DisplayName("예상치 못한 예외가 발생하면 전파하고 결과를 병합하지 않는다")
-  void execute_propagates_exception() {
-    // Given: 실행 중 예외가 발생하는 상황 설정
-    when(rssArticleBatchJob.run(any(NewsSourceUrl.class)))
-        .thenThrow(new RuntimeException("boom"));
+  @DisplayName("RSS 소스 처리 중 예외가 발생해도, 직전까지 성공한 결과는 병합(Merge)하고 예외를 전파한다")
+  void execute_propagates_exception_but_merges_partial_result() {
+    // Given: 첫 번째 소스(HANKYUNG)는 성공하고, 두 번째 소스(CHOSUN)에서 예외가 발생하는 상황
+    // 첫 번째 소스 실행 결과: 기사 1개 저장
+    when(rssArticleBatchJob.run(NewsSourceUrl.HANKYUNG))
+        .thenReturn(new ArticleScrapeResult(1, Map.of()));
 
-    // When & Then: 예외가 발생하는지 확인
+    // 두 번째 소스 실행 중 예상치 못한 런타임 에러 발생
+    when(rssArticleBatchJob.run(NewsSourceUrl.CHOSUN))
+        .thenThrow(new RuntimeException("RSS 소스 실행 중 에러 발생!"));
+
+    // When & Then: 예외가 상위로 전파되는지 확인 (Tasklet을 빠져나감)
     assertThrows(RuntimeException.class, () -> tasklet.execute(contribution, chunkContext));
 
-    // 예외 발생 시 결과 저장(merge) 로직이 호출되지 않아야 함
-    verify(contextManager, never()).merge(any(ChunkContext.class), any(ArticleScrapeResult.class));
+    // 에러가 터졌음에도 불구하고, 직전까지 성공한 'HANKYUNG'의 결과(1개)가 머지되었는가?
+    ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
+    verify(contextManager, times(1)).merge(any(ChunkContext.class), captor.capture());
+
+    // 에러가 발생한 이후의 소스(예: YONHAP 등)는 실행되지 않았어야 함
+    verify(rssArticleBatchJob, never()).run(NewsSourceUrl.YONHAP);
   }
 }
