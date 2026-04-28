@@ -8,6 +8,7 @@ import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,7 @@ public class UserActivityService {
 
   private final UserActivityMapper userActivityMapper;
 
-  @Transactional(readOnly = true)
+  @Cacheable(cacheNames = "userActivity", key = "#userId")
   public UserActivityDto getUserActivity(UUID userId) {
     UserActivity userActivity = userActivityRepository.findById(userId.toString())
         .orElseThrow(() -> new UserNotFoundException(userId));
