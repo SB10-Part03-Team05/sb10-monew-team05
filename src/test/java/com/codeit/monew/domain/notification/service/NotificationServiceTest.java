@@ -15,15 +15,21 @@ import com.codeit.monew.domain.comment.repository.CommentRepository;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.notification.entity.CommentNotification;
 import com.codeit.monew.domain.notification.entity.InterestNotification;
+import com.codeit.monew.domain.notification.entity.Notification;
 import com.codeit.monew.domain.notification.event.BulkArticleRegisteredEvent;
+import com.codeit.monew.domain.notification.mapper.NotificationMapper;
+import com.codeit.monew.domain.notification.repository.NotificationQueryRepository;
 import com.codeit.monew.domain.notification.repository.NotificationRepository;
 import com.codeit.monew.domain.interest.entity.Subscription;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.exception.comment.CommentNotFoundException;
+import com.codeit.monew.global.exception.notification.NotificationAccessDeniedException;
+import com.codeit.monew.global.exception.notification.NotificationNotFoundException;
 import com.codeit.monew.global.exception.notification.NotificationReceiverMismatchException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +58,10 @@ class NotificationServiceTest {
   private UserRepository userRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private NotificationQueryRepository notificationQueryRepository;
+  @Mock
+  private NotificationMapper notificationMapper;
 
   @Captor
   private ArgumentCaptor<List<InterestNotification>> interestNotificationListCaptor;
@@ -229,6 +239,183 @@ class NotificationServiceTest {
       assertThat(savedNotification.getContent()).isEqualTo("[테스트 닉네임]님이 나의 댓글을 좋아합니다.");
       assertThat(savedNotification.getUser()).isEqualTo(mockUser);
       assertThat(savedNotification.getComment()).isEqualTo(mockComment);
+    }
+  }
+
+  @Nested
+  @DisplayName("알림 단건 확인 테스트")
+  class ConfirmNotificationTest {
+
+    @Test
+    @DisplayName("알림을 찾을 수 없으면 NotificationNotFoundException이 발생한다.")
+    void fail_confirm_NotificationNotFound() {
+      // given
+      UUID notificationId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(notificationRepository.findById(notificationId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> notificationService.confirmNotification(notificationId, userId))
+          .isInstanceOf(NotificationNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("알림의 소유자가 아니면 NotificationAccessDeniedException이 발생한다.")
+    void fail_confirm_AccessDenied() {
+      // given
+      UUID notificationId = UUID.randomUUID();
+      UUID requesterId = UUID.randomUUID();
+      UUID ownerId = UUID.randomUUID(); // 요청자와 다른 소유자 ID
+
+      User mockOwner = mock(User.class);
+      given(mockOwner.getId()).willReturn(ownerId);
+
+      Notification mockNotification = mock(Notification.class);
+      given(mockNotification.getUser()).willReturn(mockOwner);
+
+      given(notificationRepository.findById(notificationId)).willReturn(Optional.of(mockNotification));
+
+      // when & then
+      assertThatThrownBy(() -> notificationService.confirmNotification(notificationId, requesterId))
+          .isInstanceOf(NotificationAccessDeniedException.class);
+      verify(mockNotification, never()).confirm();
+    }
+
+    @Test
+    @DisplayName("정상적으로 알림을 읽음 처리한다.")
+    void success_confirm_notification() {
+      // given
+      UUID notificationId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+
+      User mockUser = mock(User.class);
+      given(mockUser.getId()).willReturn(userId);
+
+      Notification mockNotification = mock(Notification.class);
+      given(mockNotification.getUser()).willReturn(mockUser);
+
+      given(notificationRepository.findById(notificationId)).willReturn(Optional.of(mockNotification));
+
+      // when
+      notificationService.confirmNotification(notificationId, userId);
+
+      // then
+      verify(mockNotification, times(1)).confirm();
+    }
+  }
+
+  @Nested
+  @DisplayName("알림 전체 확인 테스트")
+  class ConfirmAllNotificationsTest {
+
+    @Test
+    @DisplayName("유저의 모든 안 읽은 알림을 읽음 처리한다.")
+    void success_confirm_all_notifications() {
+      // given
+      UUID userId = UUID.randomUUID();
+      given(notificationRepository.confirmAllByUserId(any(UUID.class), any(java.time.Instant.class)))
+          .willReturn(5);
+
+      // when
+      notificationService.confirmAllNotifications(userId);
+
+      // then
+      verify(notificationRepository, times(1)).confirmAllByUserId(any(UUID.class), any(java.time.Instant.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("안 읽은 알림 목록 조회 테스트")
+  class GetUnconfirmedNotificationsTest {
+
+    @Test
+    @DisplayName("다음 페이지가 없는 경우(hasNext=false)를 정상적으로 반환한다.")
+    void success_get_notifications_has_no_next() {
+      // given
+      UUID userId = UUID.randomUUID();
+      int limit = 10;
+
+      // limit보다 적은 2개의 알림이 조회되었다고 가정
+      Notification mockNoti1 = mock(Notification.class);
+      Notification mockNoti2 = mock(Notification.class);
+      List<Notification> mockNotifications = new ArrayList<>(List.of(mockNoti1, mockNoti2));
+
+      given(notificationQueryRepository.findUnconfirmedByCursor(userId, null, null, limit))
+          .willReturn(mockNotifications);
+      given(notificationQueryRepository.countUnconfirmedByUserId(userId)).willReturn(2L);
+
+      com.codeit.monew.domain.notification.dto.NotificationDto mockDto1 = mock(com.codeit.monew.domain.notification.dto.NotificationDto.class);
+      com.codeit.monew.domain.notification.dto.NotificationDto mockDto2 = mock(com.codeit.monew.domain.notification.dto.NotificationDto.class);
+      given(mockDto2.id()).willReturn(UUID.randomUUID());
+      given(mockDto2.createdAt()).willReturn(java.time.Instant.now());
+
+      given(notificationMapper.toDto(mockNoti1)).willReturn(mockDto1);
+      given(notificationMapper.toDto(mockNoti2)).willReturn(mockDto2);
+
+      // when
+      com.codeit.monew.domain.notification.dto.NotificationListDto result =
+          notificationService.getUnconfirmedNotifications(userId, null, null, limit);
+
+      // then
+      assertThat(result.content()).hasSize(2);
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.totalElements()).isEqualTo(2L);
+      assertThat(result.nextCursor()).isNotNull();
+      assertThat(result.nextAfter()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("다음 페이지가 있는 경우(hasNext=true) 초과 데이터를 자르고 반환한다.")
+    void success_get_notifications_has_next() {
+      // given
+      UUID userId = UUID.randomUUID();
+      int limit = 2; // limit을 2로 설정
+
+      // 데이터베이스에서는 limit + 1 개인 3개를 가져왔다고 가정
+      Notification mockNoti1 = mock(Notification.class);
+      Notification mockNoti2 = mock(Notification.class);
+      Notification mockNoti3 = mock(Notification.class); // 잘려나갈 데이터
+      List<Notification> mockNotifications = new ArrayList<>(List.of(mockNoti1, mockNoti2, mockNoti3));
+
+      given(notificationQueryRepository.findUnconfirmedByCursor(userId, null, null, limit))
+          .willReturn(mockNotifications);
+      given(notificationQueryRepository.countUnconfirmedByUserId(userId)).willReturn(5L);
+
+      com.codeit.monew.domain.notification.dto.NotificationDto mockDto1 = mock(com.codeit.monew.domain.notification.dto.NotificationDto.class);
+      com.codeit.monew.domain.notification.dto.NotificationDto mockDto2 = mock(com.codeit.monew.domain.notification.dto.NotificationDto.class);
+      given(mockDto2.id()).willReturn(UUID.randomUUID());
+      given(mockDto2.createdAt()).willReturn(java.time.Instant.now());
+
+      given(notificationMapper.toDto(mockNoti1)).willReturn(mockDto1);
+      given(notificationMapper.toDto(mockNoti2)).willReturn(mockDto2);
+
+      // when
+      com.codeit.monew.domain.notification.dto.NotificationListDto result =
+          notificationService.getUnconfirmedNotifications(userId, null, null, limit);
+
+      // then
+      assertThat(result.content()).hasSize(2); // 3개 중 1개가 잘려서 2개 반환
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.totalElements()).isEqualTo(5L);
+    }
+  }
+
+  @Nested
+  @DisplayName("오래된 알림 삭제 배치 테스트")
+  class CleanUpOldNotificationsTest {
+
+    @Test
+    @DisplayName("7일이 지난 읽은 알림을 정상적으로 삭제한다.")
+    void success_cleanup_old_notifications() {
+      // given
+      given(notificationRepository.deleteOldConfirmedNotifications(any(java.time.Instant.class)))
+          .willReturn(10); // 10건 삭제되었다고 가정
+
+      // when
+      notificationService.cleanUpOldNotifications();
+
+      // then
+      verify(notificationRepository, times(1)).deleteOldConfirmedNotifications(any(java.time.Instant.class));
     }
   }
 }
