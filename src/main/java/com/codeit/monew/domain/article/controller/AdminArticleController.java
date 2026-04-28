@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -65,17 +66,19 @@ public class AdminArticleController {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
   }
 
-  @PostMapping("/backup-batch-restore-test/run")
-  public ResponseEntity backupTest() {
+  // main branch 병합 시 삭제 예정
+  @PostMapping("/backup-batch-restore-test/run/{day}")
+  public ResponseEntity backupTest(@PathVariable int day) {
     ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    LocalDate backupDate = LocalDate.now(KST);
-//    LocalDate backupDate = LocalDate.now(KST).minusDays(1);
-//    LocalDate backupDate = LocalDate.now(KST).minusDays(2);
-//    LocalDate backupDate = LocalDate.now(KST).minusDays(3);
-//    LocalDate backupDate = LocalDate.now(KST).minusDays(5);
+    LocalDate backupDate;
+    if (day == 0) {
+      backupDate = LocalDate.now(KST);
+    } else {
+      backupDate = LocalDate.now(KST).minusDays(day);
+    }
 
-    log.debug("[ARTICLE_BACKUP_TEST] 뉴스 기사 백업 테스트 시작: backupDate={}", backupDate);
+    log.debug("[ARTICLE_BACKUP_TEST] 뉴스 기사 백업 테스트 시작: day={}, backupDate={}", day, backupDate);
 
     articleBackupBatchRunner.run(backupDate);
 
