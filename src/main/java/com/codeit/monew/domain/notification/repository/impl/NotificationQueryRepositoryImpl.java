@@ -24,7 +24,7 @@ public class NotificationQueryRepositoryImpl implements NotificationQueryReposit
         .selectFrom(notification)
         .where(
             notification.user.id.eq(userId), // 해당 유저의 알림
-            notification.confirmed.isFalse(), // 미확인 알림
+            notification.confirmedAt.isNull(), // 미확인 알림
             ltCursor(after, cursor) // 커서 페이징 조건 (이전 페이지의 마지막 데이터 다음부터)
         )
         .orderBy(notification.createdAt.desc(), notification.id.desc()) // 최신 알람부터 보이도록 정렬
@@ -39,7 +39,7 @@ public class NotificationQueryRepositoryImpl implements NotificationQueryReposit
     Long count = queryFactory
         .select(notification.count()) // 미확인 알림 개수
         .from(notification) // 해당 유저의 알림
-        .where(notification.user.id.eq(userId), notification.confirmed.isFalse()) // 미확인 알림
+        .where(notification.user.id.eq(userId), notification.confirmedAt.isNull()) // 미확인 알림
         .fetchOne();
 
     return count != null ? count : 0L;

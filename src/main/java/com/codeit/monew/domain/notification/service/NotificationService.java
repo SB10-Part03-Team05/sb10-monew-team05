@@ -157,7 +157,7 @@ public class NotificationService {
   // 전체 알림 확인
   @Transactional
   public void confirmAllNotifications(UUID userId) {
-    int updatedCount = notificationRepository.confirmAllByUserId(userId);
+    int updatedCount = notificationRepository.confirmAllByUserId(userId, Instant.now());
     log.info("[NOTIFICATION_CONFIRM] 유저 {}의 알림 {}건 전체 읽음 처리 완료", userId, updatedCount);
   }
 

@@ -14,7 +14,7 @@ public class NaverKeywordTxProcessor {
   private final ArticleScrapeService articleScrapeService;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public int processOneKeyword(String keyword) {
+  public ArticleScrapeResult processOneKeyword(String keyword) {
     return articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, keyword);
   }
 }

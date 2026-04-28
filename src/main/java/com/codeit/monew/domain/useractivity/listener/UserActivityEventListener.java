@@ -14,9 +14,13 @@ import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
 import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -33,6 +37,35 @@ public class UserActivityEventListener {
 
   private final MongoTemplate mongoTemplate;
   private final UserActivityMapper userActivityMapper;
+  private final CacheManager cacheManager;
+
+  // DB 업데이트 이후 이전 캐시를 삭제하는 헬퍼 메서드
+  private void evictUserActivityCache(UUID userId) {
+    Cache cache = cacheManager.getCache("userActivity");
+    if (cache == null) {
+      log.warn("[USER_ACTIVITY_CACHE] 캐시를 찾지 못해 삭제 스킵: userId={}", userId);
+      return;
+    }
+    cache.evict(userId); // @Cacheable의 key가 UUID이므로 그대로 전달
+    log.debug("[USER_ACTIVITY_CACHE] 캐시 안전 삭제 완료: userId={}", userId);
+  }
+
+  // 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
+  private void queryForLikedUsers(UUID commentId) {
+    Query query = new Query(Criteria.where("commentLikes.commentId").is(commentId.toString()));
+    query.fields().include("_id");
+
+    List<UserActivity> likedUsers = mongoTemplate.find(query, UserActivity.class);
+
+    for (UserActivity user : likedUsers) {
+      try {
+        // 찾아낸 모든 타인의 캐시를 지워서 다음 조회 시 최신 데이터를 보게 함
+        evictUserActivityCache(UUID.fromString(user.getId()));
+      } catch (IllegalArgumentException e) {
+        log.warn("[USER_ACTIVITY_CACHE] 잘못된 userId 형식으로 캐시 삭제 스킵: id={}", user.getId());
+      }
+    }
+  }
 
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -48,6 +81,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.upsert(query, update, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 새로운 유저 도큐먼트 생성 완료");
   }
 
@@ -69,6 +103,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.upsert(query, update, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 관심사 구독 목록 업데이트 완료");
   }
 
@@ -86,6 +121,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 관심사 구독 취소 완료");
   }
 
@@ -107,6 +143,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.upsert(query, update, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 댓글 목록 업데이트 완료");
   }
 
@@ -120,19 +157,23 @@ public class UserActivityEventListener {
         Criteria.where("_id").is(event.userId().toString())
             .and("comments.id").is(event.commentId().toString())
     );
-
     // 댓글 수정
     Update commentUpdate = new Update().set("comments.$.content", event.newContent());
     mongoTemplate.updateFirst(commentQuery, commentUpdate, UserActivity.class);
-
-    Query likeQuery = new Query(
-        Criteria.where("commentLikes.commentId").is(event.commentId().toString())
-    );
+    // 작성자 본인 캐시 삭제
+    evictUserActivityCache(event.userId());
 
     // 댓글 좋아요 활동 내역에도 모두 반영
+    Query likeQuery = new Query(
+        Criteria.where("commentLikes.commentId").is(event.commentId().toString()));
     Update likeUpdate = new Update().set("commentLikes.$.commentContent", event.newContent());
 
-    mongoTemplate.updateMulti(likeQuery, likeUpdate, UserActivity.class);
+    try {
+      mongoTemplate.updateMulti(likeQuery, likeUpdate, UserActivity.class);
+    } finally {
+      // 실패 경로에서도 보수적으로 무효화
+      queryForLikedUsers(event.commentId());
+    }
 
     log.info("[USER_ACTIVITY] 댓글 내용 수정 완료");
   }
@@ -155,6 +196,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.upsert(query, update, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 댓글 좋아요 목록 업데이트 완료");
   }
 
@@ -171,6 +213,7 @@ public class UserActivityEventListener {
 
     mongoTemplate.updateFirst(query, pullUpdate, UserActivity.class);
 
+    evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 댓글 좋아요 취소 완료");
   }
 
@@ -198,9 +241,8 @@ public class UserActivityEventListener {
         .each(newArticleViewInfo);
 
     mongoTemplate.upsert(query, pushUpdate, UserActivity.class);
-
+    evictUserActivityCache(event.viewedBy());
     log.info("[USER_ACTIVITY] 기사 조회 목록 업데이트 완료");
   }
-
 
 }
