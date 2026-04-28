@@ -207,10 +207,11 @@ public class NotificationService {
 
   // 확인한 알림 중 7일이 경과된 알림 삭제
   @Transactional
-  public void cleanUpOldNotifications() {
+  public int cleanUpOldNotifications() {
     Instant targetTime = Instant.now().minus(7, ChronoUnit.DAYS);
 
     int deletedCount = notificationRepository.deleteOldConfirmedNotifications(targetTime);
     log.info("[NOTIFICATION_DELETE] 7일 경과된 읽은 알림 삭제 완료: {}건", deletedCount);
+    return deletedCount;
   }
 }
