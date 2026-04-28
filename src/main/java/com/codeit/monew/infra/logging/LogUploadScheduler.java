@@ -65,6 +65,7 @@ public class LogUploadScheduler {
             }
             case UPLOAD_FAILED -> {
               failedCount++;
+              jobStatus = "partial_fail";
               recordDetail("FAILED");
             }
           }
