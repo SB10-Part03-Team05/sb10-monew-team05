@@ -22,7 +22,7 @@ public class UserScheduler {
   private final MeterRegistry meterRegistry;
 
   //크론 표현식으로 매일 0시 0분에 실행되도록 처리
-  @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")// 10초마다 실행
+  @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
   @Transactional
   public void cleanUpUser() {
     Timer.Sample sample = Timer.start(meterRegistry);

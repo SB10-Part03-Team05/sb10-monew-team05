@@ -16,7 +16,7 @@ public class NotificationScheduler {
   private final MeterRegistry meterRegistry;
 
   // 매일 새벽 0시 0분에 실행 (Cron: 초 분 시 일 월 요일)
-  @Scheduled(cron = "0 0 0 * * *")
+  @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
   public void runNotificationCleanUp() {
     Timer.Sample sample = Timer.start(meterRegistry);
     String status = "success";
