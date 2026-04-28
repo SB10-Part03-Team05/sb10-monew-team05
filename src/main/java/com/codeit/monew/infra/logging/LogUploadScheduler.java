@@ -30,14 +30,6 @@ public class LogUploadScheduler {
     Timer.Sample sample = Timer.start(meterRegistry);
     String jobStatus = "success";
 
-    // 1. 기준 시간 및 조회 기간 설정
-    ZoneId zoneId = ZoneId.of(logUploadProperties.getZone());
-    LocalDate baseDate = LocalDate.now(zoneId);
-
-    // 최소 1일은 조회하도록 설정
-    int lookbackDays = Math.max(1, logUploadProperties.getLookbackDays());
-
-    log.info("[LOG_UPLOAD] scheduled upload started: lookbackDays={}", lookbackDays);
 
     // 결과 통계를 위한 카운터 초기화
     int uploadedCount = 0;
@@ -45,6 +37,14 @@ public class LogUploadScheduler {
     int failedCount = 0;
 
     try {
+      // 1. 기준 시간 및 조회 기간 설정
+      ZoneId zoneId = ZoneId.of(logUploadProperties.getZone());
+      LocalDate baseDate = LocalDate.now(zoneId);
+
+      // 최소 1일은 조회하도록 설정
+      int lookbackDays = Math.max(1, logUploadProperties.getLookbackDays());
+
+      log.info("[LOG_UPLOAD] scheduled upload started: lookbackDays={}", lookbackDays);
       // 2. 1일 전부터 lookbackDays 전까지 역순으로 루프를 돌며 업로드 시도
       for (int daysAgo = 1; daysAgo <= lookbackDays; daysAgo++) {
         LocalDate targetDate = baseDate.minusDays(daysAgo);
