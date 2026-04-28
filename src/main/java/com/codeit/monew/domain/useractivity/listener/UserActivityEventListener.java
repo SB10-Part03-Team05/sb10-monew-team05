@@ -42,10 +42,12 @@ public class UserActivityEventListener {
   // DB 업데이트 이후 이전 캐시를 삭제하는 헬퍼 메서드
   private void evictUserActivityCache(UUID userId) {
     Cache cache = cacheManager.getCache("userActivity");
-    if (cache != null) {
-      cache.evict(userId); // @Cacheable의 key가 UUID이므로 그대로 전달
-      log.debug("[USER_ACTIVITY_CACHE] 캐시 안전 삭제 완료: userId={}", userId);
+    if (cache == null) {
+      log.warn("[USER_ACTIVITY_CACHE] 캐시를 찾지 못해 삭제 스킵: userId={}", userId);
+      return;
     }
+    cache.evict(userId); // @Cacheable의 key가 UUID이므로 그대로 전달
+    log.debug("[USER_ACTIVITY_CACHE] 캐시 안전 삭제 완료: userId={}", userId);
   }
 
   // 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
