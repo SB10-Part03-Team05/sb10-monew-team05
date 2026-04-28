@@ -36,14 +36,19 @@ public class UserScheduler {
       deletedCount = targets.size();
       log.info("[USER_CLEAN_UP] 삭제 대상 사용자 수={}", targets.size());
       userRepository.deleteAllInBatch(targets);
+
       if (deletedCount > 0) {
+        // 삭제된 사용자의 총 누적 합계를 기록
         meterRegistry.counter("scheduler.user.deleted.total").increment(deletedCount);
       }
     } catch (Exception e) {
       status = "fail";
       throw e;
     } finally {
+      // 작업 횟수 및 결과 기록
       meterRegistry.counter("scheduler.user.job", "status", status).increment();
+
+      // 작업 소요 시간 기록
       sample.stop(meterRegistry.timer("scheduler.user.job.time", "status", status));
       log.info("[USER_CLEAN_UP] 스케줄러 종료: 상태={}, 삭제건수={}", status, deletedCount);
     }
