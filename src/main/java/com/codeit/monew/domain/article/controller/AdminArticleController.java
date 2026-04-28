@@ -3,6 +3,7 @@ package com.codeit.monew.domain.article.controller;
 import com.codeit.monew.domain.article.dto.request.ArticleScrapeRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleScrapeBatchRunResponse;
 import com.codeit.monew.domain.article.dto.response.ArticleScrapeResponse;
+import com.codeit.monew.domain.article.scheduler.backup.ArticleBackupBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
@@ -13,9 +14,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/admin/articles")
 @RequiredArgsConstructor
@@ -32,6 +37,7 @@ public class AdminArticleController {
 
   private final ArticleScrapeService articleScrapeService;
   private final ArticleScrapeBatchRunner articleScrapeBatchRunner;
+  private final ArticleBackupBatchRunner articleBackupBatchRunner;
 
   @PostMapping("/scrape-test")
   @Operation(summary = "뉴스 기사 수집 테스트", description = "외부 RSS/네이버 API를 호출하여 기사를 수집하고 저장합니다.")
@@ -87,5 +93,24 @@ public class AdminArticleController {
     body.put("message", message);
     body.put("status", HttpStatus.BAD_REQUEST.value());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @PostMapping("/backup-batch-restore-test/run")
+  public ResponseEntity backupTest() {
+    ZoneId KST = ZoneId.of("Asia/Seoul");
+
+    LocalDate backupDate = LocalDate.now(KST);
+//    LocalDate backupDate = LocalDate.now(KST).minusDays(1);
+//    LocalDate backupDate = LocalDate.now(KST).minusDays(2);
+//    LocalDate backupDate = LocalDate.now(KST).minusDays(3);
+//    LocalDate backupDate = LocalDate.now(KST).minusDays(5);
+
+    log.debug("[ARTICLE_BACKUP_TEST] 뉴스 기사 백업 테스트 시작: backupDate={}", backupDate);
+
+    articleBackupBatchRunner.run(backupDate);
+
+    log.debug("[ARTICLE_BACKUP_TEST] 뉴스 기사 백업 테스트 완료: backupDate={}", backupDate);
+
+    return ResponseEntity.status(HttpStatus.OK).build();
   }
 }
