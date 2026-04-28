@@ -187,7 +187,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler({InvalidDataAccessResourceUsageException.class, DataAccessException.class})
   public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException e) {
-    log.error("[EXCEPTION] 데이터베이스 오류: {}", e.getMessage());
+    log.error("[EXCEPTION] 데이터베이스 오류: exceptionType={}", e.getClass().getSimpleName());
 
     ErrorResponse errorResponse = new ErrorResponse(
         Instant.now(),
