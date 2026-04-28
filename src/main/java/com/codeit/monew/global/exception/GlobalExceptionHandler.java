@@ -1,5 +1,6 @@
 package com.codeit.monew.global.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,6 +80,32 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.BAD_REQUEST)
         .body(response);
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+    log.warn("[EXCEPTION] Constraint Violation 예외: code={}, message={}", e.getClass().getSimpleName(),
+        e.getMessage(), e);
+    Map<String, Object> details = new HashMap<>();
+    e.getConstraintViolations().forEach(violation -> {
+      String propertyPath = violation.getPropertyPath().toString();
+      String fieldName = propertyPath.substring(propertyPath.lastIndexOf('.') + 1);
+
+      details.put(fieldName, violation.getMessage());
+    });
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        Instant.now(),
+        "CONSTRAINT_VIOLATION_ERROR",
+        "요청 파라미터 유효성 검사에 실패했습니다.",
+        details,
+        e.getClass().getSimpleName(),
+        HttpStatus.BAD_REQUEST.value()
+    );
+
+    return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(errorResponse);
   }
 
   @ExceptionHandler(MissingRequestHeaderException.class)

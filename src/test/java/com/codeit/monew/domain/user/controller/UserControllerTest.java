@@ -160,7 +160,10 @@ class UserControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.status").value(404));
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(UserNotFoundException.class.getSimpleName()));
     }
   }
 
@@ -192,7 +195,10 @@ class UserControllerTest {
       // when, then
       mockMvc.perform(delete("/api/users/" + userId))
           .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.status").value(404));
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(UserNotFoundException.class.getSimpleName()));
     }
   }
 
@@ -224,7 +230,10 @@ class UserControllerTest {
       // when, then
       mockMvc.perform(delete("/api/users/" + userId + "/hard"))
           .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.status").value(404));
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(UserNotFoundException.class.getSimpleName()));
     }
   }
 
@@ -264,7 +273,11 @@ class UserControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.status").value(404));
+          .andExpect(jsonPath("$.code").value(ErrorCode.USER_NOT_FOUND.toString()))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(
+              jsonPath("$.exceptionType").value(UserNotFoundException.class.getSimpleName()));
+
     }
 
     @Test
@@ -294,7 +307,10 @@ class UserControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isUnauthorized())
-          .andExpect(jsonPath("$.status").value(401));
+          .andExpect(jsonPath("$.code").value(ErrorCode.PASSWORD_MISMATCH.toString()))
+          .andExpect(jsonPath("$.status").value(401))
+          .andExpect(
+              jsonPath("$.exceptionType").value(PasswordMismatchException.class.getSimpleName()));
     }
   }
 }
