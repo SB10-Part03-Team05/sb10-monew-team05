@@ -56,8 +56,12 @@ public class UserActivityEventListener {
     List<UserActivity> likedUsers = mongoTemplate.find(query, UserActivity.class);
 
     for (UserActivity user : likedUsers) {
-      // 찾아낸 모든 타인의 캐시를 지워서 다음 조회 시 최신 데이터를 보게 함
-      evictUserActivityCache(UUID.fromString(user.getId()));
+      try {
+        // 찾아낸 모든 타인의 캐시를 지워서 다음 조회 시 최신 데이터를 보게 함
+        evictUserActivityCache(UUID.fromString(user.getId()));
+      } catch (IllegalArgumentException e) {
+        log.warn("[USER_ACTIVITY_CACHE] 잘못된 userId 형식으로 캐시 삭제 스킵: id={}", user.getId());
+      }
     }
   }
 
@@ -154,17 +158,20 @@ public class UserActivityEventListener {
     // 댓글 수정
     Update commentUpdate = new Update().set("comments.$.content", event.newContent());
     mongoTemplate.updateFirst(commentQuery, commentUpdate, UserActivity.class);
-
-    // 댓글 좋아요 활동 내역에도 모두 반영
-    Query likeQuery = new Query(Criteria.where("commentLikes.commentId").is(event.commentId().toString()));
-    Update likeUpdate = new Update().set("commentLikes.$.commentContent", event.newContent());
-    mongoTemplate.updateMulti(likeQuery, likeUpdate, UserActivity.class);
-
     // 작성자 본인 캐시 삭제
     evictUserActivityCache(event.userId());
 
-    // 좋아요 누른 사람들 캐시 삭제
-    queryForLikedUsers(event.commentId());
+    // 댓글 좋아요 활동 내역에도 모두 반영
+    Query likeQuery = new Query(
+        Criteria.where("commentLikes.commentId").is(event.commentId().toString()));
+    Update likeUpdate = new Update().set("commentLikes.$.commentContent", event.newContent());
+
+    try {
+      mongoTemplate.updateMulti(likeQuery, likeUpdate, UserActivity.class);
+    } finally {
+      // 실패 경로에서도 보수적으로 무효화
+      queryForLikedUsers(event.commentId());
+    }
 
     log.info("[USER_ACTIVITY] 댓글 내용 수정 완료");
   }
