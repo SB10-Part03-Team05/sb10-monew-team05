@@ -63,6 +63,9 @@ dependencies {
     // Spring Boot Actuator
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // 수집된 메트릭을 Prometheus 포맷으로 변환
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
     // XML 파싱용 ROME
     implementation 'com.rometools:rome:2.1.0'
 
