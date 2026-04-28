@@ -75,6 +75,7 @@ public class LogUploadScheduler {
         } catch (Exception e) {
           // 개별 날짜 처리 중 예외 발생 시, 전체 루프를 멈추지 않고 에러 로그 기록 후 다음 날짜로 진행
           failedCount++;
+          jobStatus = "partial_fail";
           recordDetail("FAILED");
           log.error("[LOG_UPLOAD] scheduled upload failed: targetDate={}, error={}",
               targetDate, e.getMessage(), e);
