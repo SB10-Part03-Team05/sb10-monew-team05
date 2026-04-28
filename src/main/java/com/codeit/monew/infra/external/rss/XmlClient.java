@@ -8,6 +8,7 @@ import com.codeit.monew.global.exception.external.client.ExternalServerException
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -43,7 +44,7 @@ public class XmlClient {
 
   private String request(NewsSourceUrl source, String url) {
     try {
-      String xml = restClient.get()
+      ResponseEntity<byte[]> response = restClient.get()
           .uri(url)
           .headers(headers -> {
             headers.set("User-Agent", "Mozilla/5.0");
@@ -53,12 +54,18 @@ public class XmlClient {
             }
           })
           .retrieve()
-          .body(String.class);
+          .toEntity(byte[].class);
 
-      if (xml == null || xml.isBlank()) {
+      byte[] body = response.getBody();
+      if (body == null || body.length == 0) {
         throw new ExternalEmptyResponseException(source, url);
       }
-      return xml;
+
+      String decoded = ResponseBodyDecoder.decode(body, response.getHeaders());
+      if (decoded.isBlank()) {
+        throw new ExternalEmptyResponseException(source, url);
+      }
+      return decoded;
 
     } catch (HttpClientErrorException.TooManyRequests e) {
       throw new ExternalRateLimitException(source, url, e.getStatusCode(), e);

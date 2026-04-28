@@ -50,13 +50,17 @@ public class XmlParser {
       for (SyndEntry entry : feed.getEntries()) {
         try {
           String link = extractLink(entry, source);
-          articles.add(Article.createArticle(
+          Article article = Article.createArticle(
               source.getArticleSource(),
               link,
               entry.getTitle() == null ? null : Jsoup.parse(entry.getTitle()).text().trim(),
               entry.getPublishedDate() == null ? null : entry.getPublishedDate().toInstant(),
               extractSummary(entry, source, link)
-          ));
+          );
+          articles.add(article);
+          log.debug("Article Source: {}, URL: {}, Title: {}, Published Date: {}, Summary: {}",
+              article.getSource(), article.getSourceUrl(), article.getTitle(),
+              article.getPublishDate(), article.getSummary());
         } catch (InvalidArticleEntityException e) { // 특정 엔트리의 엔티티 무결성이 잘못된 경우 해당 엔트리 스킵
           skippedInvalid++;
           log.warn("[{}] entry parse skipped(invalid): title={}, link={}, details={}",
@@ -93,7 +97,6 @@ public class XmlParser {
     // Description이 있는 경우 -> 네이버, 연합뉴스
     if (entry.getDescription() != null) {
       String desc = Jsoup.parse(entry.getDescription().getValue()).text();
-      log.debug(desc); // test
       if (StringUtils.hasText(desc)) {
         return desc;
       }
@@ -102,7 +105,6 @@ public class XmlParser {
     // Description이 없고 Content가 있는 경우 -> 조선일보
     if (!entry.getContents().isEmpty()) {
       String encoded = Jsoup.parse(entry.getContents().get(0).getValue()).text();
-      log.debug(encoded); // test
       if (StringUtils.hasText(encoded)) {
         return encoded;
       }
@@ -110,7 +112,6 @@ public class XmlParser {
 
     // 3. RSS에 데이터가 전혀 없다면 크롤러에게 위임
     String crawledBodyText = articleBodyCrawler.crawlBodyText(sourceUrl, source);
-    log.debug(crawledBodyText); // test
     return StringUtils.hasText(crawledBodyText)
         ? toSummaryCandidate(crawledBodyText)
         : DEFAULT_SUMMARY; // 크롤링 된 값이 없다면(또는 크롤링에 실패했다면) 기본 문구 반환
@@ -119,7 +120,7 @@ public class XmlParser {
   // TODO: 문자열 자르기가 아닌 AI 요약으로 변경 할 예정
   private String toSummaryCandidate(String bodyText) {
     try {
-      Thread.sleep(200);
+      Thread.sleep(500);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
