@@ -1,10 +1,11 @@
 package com.codeit.monew.domain.article.scheduler;
 
 import com.codeit.monew.global.exception.external.ExternalApiException;
-import com.codeit.monew.global.exception.external.ExternalClientException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
-import com.codeit.monew.global.exception.external.ExternalRateLimitException;
-import com.codeit.monew.global.exception.external.ExternalServerException;
+import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
+import com.codeit.monew.global.exception.external.client.ExternalServerException;
+import com.codeit.monew.global.exception.external.parser.ExternalInvalidXmlException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +24,9 @@ public class RssArticleBatchJob {
   @Retryable(
       // 재시도 대상: 서버 에러 및 네트워크 장애 (일시적 오류)
       retryFor = {ExternalServerException.class, ExternalNetworkException.class},
-      // 재시도 제외: 4xx 에러 및 429 에러
-      noRetryFor = {ExternalClientException.class, ExternalRateLimitException.class},
+      // 재시도 제외: 4xx 에러 및 429 에러, XML 파싱 후 엔트리 전환 실패
+      noRetryFor = {ExternalClientException.class, ExternalRateLimitException.class,
+          ExternalInvalidXmlException.class},
       maxAttempts = 3,
       backoff = @Backoff(delayExpression = "${retry.backoff.delay:10000}", multiplier = 2)
   )
@@ -42,6 +44,9 @@ public class RssArticleBatchJob {
     } catch (ExternalServerException | ExternalNetworkException e) {
       log.warn("[RSS_BATCH] source={} transient failure, retrying...", source);
       throw e;
+    } catch (ExternalInvalidXmlException e) {
+      log.warn("[RSS_BATCH] source={} invalid xml, skip source", source);
+      throw e;
     } catch (Exception e) {
       log.error("[RSS_BATCH] source={} unexpected error", source, e);
       throw e;
@@ -50,8 +55,8 @@ public class RssArticleBatchJob {
 
   @Recover
   public ArticleScrapeResult recover(ExternalApiException e, NewsSourceUrl source) {
-    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}",
-        source, e.getMessage());
+    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}, statusCode={}}",
+        source, e.getMessage(), e.getStatusCode(), e);
     return ArticleScrapeResult.empty();
   }
 }

@@ -8,10 +8,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.codeit.monew.global.exception.external.ExternalClientException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
-import com.codeit.monew.global.exception.external.ExternalRateLimitException;
-import com.codeit.monew.global.exception.external.ExternalServerException;
+import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
+import com.codeit.monew.global.exception.external.client.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

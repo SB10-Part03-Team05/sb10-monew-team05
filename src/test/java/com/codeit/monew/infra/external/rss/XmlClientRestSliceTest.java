@@ -2,9 +2,7 @@ package com.codeit.monew.infra.external.rss;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -14,11 +12,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.codeit.monew.global.exception.external.ExternalClientException;
-import com.codeit.monew.global.exception.external.ExternalEmptyResponseException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
-import com.codeit.monew.global.exception.external.ExternalRateLimitException;
-import com.codeit.monew.global.exception.external.ExternalServerException;
+import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
+import com.codeit.monew.global.exception.external.client.ExternalServerException;
 import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
