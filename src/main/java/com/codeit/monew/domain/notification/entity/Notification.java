@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +40,12 @@ public class Notification extends BaseUpdatableEntity {
   // 알림 확인 시각
   @Column(name = "confirmed_at")
   private Instant confirmedAt;
+
+  // 알림 대상 자원 ID
+  // 현재 코드에서는 자식 클래스에서 각각의 자원 ID(comment_id, interest_id)를 별도로 관리하지만,
+  // DB 상 resource_id의 NOT NULL 제약 조건을 방어하기 위해 랜덤 UUID값 할당
+  @Column(name = "resource_id", nullable = false)
+  private UUID resourceId = UUID.randomUUID();
 
   // 자식 클래스에서 호출할 생성자
   protected Notification(User user, String content) {
