@@ -71,6 +71,14 @@ public class CommentLikeService {
           comment.getCreatedAt()
       ));
 
+      // 알림 생성을 위한 이벤트 발행
+      eventPublisher.publishEvent(new com.codeit.monew.domain.notification.event.CommentLikedEvent(
+          comment.getId(),
+          comment.getArticle().getId(),
+          comment.getUser().getId(),
+          user.getNickname()
+      ));
+
       return new CommentLikeDto(
           savedLike.getId(),
           user.getId(),
