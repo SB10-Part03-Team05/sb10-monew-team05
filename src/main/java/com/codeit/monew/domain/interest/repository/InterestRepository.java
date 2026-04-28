@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface InterestRepository extends JpaRepository<Interest, UUID>, InterestRepositoryCustom {
+public interface InterestRepository extends JpaRepository<Interest, UUID>,
+    InterestRepositoryCustom {
 
   // 유사도 검사용 전체 이름 조회
   @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -30,4 +31,7 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>, Inter
   // 구독 응답 키워드 포함을 위해 키워드 fetch join으로 함께 조회
   @Query("SELECT i FROM Interest i LEFT JOIN FETCH i.keywords WHERE i.id = :id")
   Optional<Interest> findByIdWithKeywords(@Param("id") UUID id);
+
+  @Query(value = "SELECT i.id FROM Interest AS i WHERE i.id IN (:interestIds) ")
+  List<UUID> findExistingInterestIds(@Param("interestIds") List<UUID> interestIds);
 }
