@@ -64,6 +64,10 @@ public class NaverArticleBatchJob {
       log.error("[NAVER_BATCH] keyword='{}' unexpected error", keyword, e);
       throw e;
     } finally {
+      meterRegistry.counter("scheduler.article.scrape.job",
+          "source", "NAVER",
+          "status", status,
+          "error_type", errorType).increment();
       sample.stop(meterRegistry.timer("scheduler.article.scrape.time",
           "source", "NAVER",
           "status", status,

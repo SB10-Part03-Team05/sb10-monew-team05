@@ -67,6 +67,10 @@ public class RssArticleBatchJob {
       log.error("[RSS_BATCH] source={} unexpected error", source, e);
       throw e;
     } finally {
+      meterRegistry.counter("scheduler.article.scrape.job",
+          "source", sourceName,
+          "status", status,
+          "error_type", errorType).increment();
       sample.stop(meterRegistry.timer("scheduler.article.scrape.time",
           "source", sourceName,
           "status", status,

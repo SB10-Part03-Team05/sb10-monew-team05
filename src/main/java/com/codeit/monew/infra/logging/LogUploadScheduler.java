@@ -91,13 +91,10 @@ public class LogUploadScheduler {
       // 작업 소요 시간 기록
       sample.stop(meterRegistry.timer("scheduler.log.upload.job.time", "status", jobStatus));
 
-      log.info("[LOG_UPLOAD] 작업 종료: uploaded={}, skipped={}, failed={}",
+      // 3. 전체 작업 결과 요약 출력
+      log.info("[LOG_UPLOAD] scheduled upload summary: uploaded={}, skipped={}, failed={}",
           uploadedCount, skippedCount, failedCount);
     }
-
-    // 3. 전체 작업 결과 요약 출력
-    log.info("[LOG_UPLOAD] scheduled upload summary: uploaded={}, skipped={}, failed={}",
-        uploadedCount, skippedCount, failedCount);
   }
 
   // 세부 상태별 건수를 메트릭에 포함시기는 헬퍼 메서드

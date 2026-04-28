@@ -104,7 +104,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - monew-grafana-data:/var/lib/grafana
     networks:
       - monew-network
     depends_on:
@@ -114,6 +116,7 @@ volumes:
   monew-postgres-data: # RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
   monew-mongodb-data:
   monew-mongodb-config:
+  monew-grafana-data:
 
 networks:
   monew-network:
