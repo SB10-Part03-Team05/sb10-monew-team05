@@ -7,8 +7,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.useractivity.entity.UserActivity;
 import com.codeit.monew.domain.useractivity.entity.UserActivity.ArticleViewInfo;
-import com.codeit.monew.domain.useractivity.entity.UserActivity.SubscriptionInfo;
 import com.codeit.monew.domain.useractivity.event.ArticleViewedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedCancelEvent;
@@ -17,11 +17,10 @@ import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
+import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import com.codeit.monew.domain.useractivity.entity.UserActivity;
-import com.codeit.monew.domain.useractivity.mapper.UserActivityMapper;
 import org.bson.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +30,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -45,6 +46,12 @@ class UserActivityEventListenerTest {
 
   @Mock
   private UserActivityMapper userActivityMapper;
+
+  @Mock
+  private CacheManager cacheManager;
+
+  @Mock
+  private Cache cache;
 
   @InjectMocks
   private UserActivityEventListener userActivityEventListener;
@@ -73,12 +80,14 @@ class UserActivityEventListenerTest {
         .set("email", event.email())
         .set("nickname", event.nickname())
         .set("createdAt", event.createdAt());
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleUserRegisteredEvent(event);
 
     // then
     verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
   }
@@ -108,6 +117,7 @@ class UserActivityEventListenerTest {
         .each(mockSubscriptionInfo);
 
     given(userActivityMapper.toSubscriptionInfo(any())).willReturn(mockSubscriptionInfo);
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
 
     // when
     userActivityEventListener.handleInterestSubscribedEvent(event);
@@ -115,6 +125,7 @@ class UserActivityEventListenerTest {
     // then
     verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -134,12 +145,14 @@ class UserActivityEventListenerTest {
     Update expectedUpdate = new Update().pull("subscriptions",
         new Document("interestId", event.interestId().toString())
     );
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleInterestUnSubscribedEvent(event);
 
     // then
     verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -173,16 +186,17 @@ class UserActivityEventListenerTest {
         .each(mockCommentInfo);
 
     given(userActivityMapper.toCommentInfo(any())).willReturn(mockCommentInfo);
-
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleCommentCreatedEvent(event);
 
     // then
     verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
-
+    verify(cache).evict(userId);
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
+
   }
 
   @Test
@@ -208,7 +222,7 @@ class UserActivityEventListenerTest {
     );
     Update expectedLikeUpdate = new Update().set("commentLikes.$.commentContent",
         event.newContent());
-
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleCommentUpdatedEvent(event);
 
@@ -217,6 +231,7 @@ class UserActivityEventListenerTest {
         eq(UserActivity.class));
     verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
 
     assertThat(queryCaptor.getAllValues().get(0)).isEqualTo(expectedCommentQuery);
     assertThat(updateCaptor.getAllValues().get(0)).isEqualTo(expectedCommentUpdate);
@@ -255,13 +270,14 @@ class UserActivityEventListenerTest {
         .each(mockCommentLikeInfo);
 
     given(userActivityMapper.toCommentLikeInfo(any())).willReturn(mockCommentLikeInfo);
-
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleCommentLikedEvent(event);
 
     // then
     verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -282,13 +298,14 @@ class UserActivityEventListenerTest {
     Update expectedUpdate = new Update().pull("commentLikes",
         new Document("commentId", event.commentId().toString())
     );
-
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleCommentLikedCancelEvent(event);
 
     // then
     verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(userId);
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
@@ -327,7 +344,7 @@ class UserActivityEventListenerTest {
         .each(mockArticleViewInfo);
 
     given(userActivityMapper.toArticleViewInfo(any())).willReturn(mockArticleViewInfo);
-
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
     // when
     userActivityEventListener.handleArticleViewedEvent(event);
 
@@ -336,6 +353,7 @@ class UserActivityEventListenerTest {
         eq(UserActivity.class));
     verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(),
         eq(UserActivity.class));
+    verify(cache).evict(event.viewedBy());
 
     assertThat(queryCaptor.getAllValues().get(0)).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getAllValues().get(0)).isEqualTo(expectedPullUpdate);
