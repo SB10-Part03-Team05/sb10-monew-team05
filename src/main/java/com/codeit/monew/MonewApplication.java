@@ -20,5 +20,4 @@ public class MonewApplication {
   public static void main(String[] args) {
     SpringApplication.run(MonewApplication.class, args);
   }
-
 }
