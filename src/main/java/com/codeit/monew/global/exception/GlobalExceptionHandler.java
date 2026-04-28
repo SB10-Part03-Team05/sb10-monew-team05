@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -181,6 +183,22 @@ public class GlobalExceptionHandler {
     log.warn("[EXCEPTION] JSON 역직렬화 실패: message={}", e.getMessage());
     ErrorResponse errorResponse = new ErrorResponse(e, HttpStatus.BAD_REQUEST.value());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+
+  @ExceptionHandler({InvalidDataAccessResourceUsageException.class, DataAccessException.class})
+  public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException e) {
+    log.error("[EXCEPTION] 데이터베이스 오류: {}", e.getMessage());
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        Instant.now(),
+        "DATABASE_ERROR",
+        "서버 내부 데이터베이스 오류가 발생했습니다.",
+        new HashMap<>(), // 쿼리 정보가 노출되면 안 되므로 빈 Map 전달
+        e.getClass().getSimpleName(),
+        HttpStatus.INTERNAL_SERVER_ERROR.value()
+    );
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
   }
 
   private HttpStatus determineHttpStatus(MonewException exception) {
