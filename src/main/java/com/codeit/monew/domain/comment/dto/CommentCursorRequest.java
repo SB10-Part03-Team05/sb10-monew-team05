@@ -1,6 +1,7 @@
 package com.codeit.monew.domain.comment.dto;
 
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -9,8 +10,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 // 댓글 목록 조회 요청 dto
+@Schema(description = "조회할 댓글 목록 정보")
 public record CommentCursorRequest(
-    @Parameter(description = "기사 ID", required = true)
+
+    @Parameter(description = "기사 ID")
     @NotNull(message = "기사 ID는 필수입니다.")
     UUID articleId,
 
