@@ -49,7 +49,7 @@ public class NotificationService {
   // 기사 등록 알림
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void createInterestNotifications(BulkArticleRegisteredEvent event) {
-    if (event.interestCounts() == null || event.interestCounts().isEmpty()) return;
+    if (event == null || event.interestCounts() == null || event.interestCounts().isEmpty()) return;
 
     // 이벤트 페이로드에 중복된 관심사 ID가 있더라도 개수를 합산하여 멱등성 보장
     Map<UUID, BulkArticleRegisteredEvent.InterestArticleCount> mergedCountsMap = event.interestCounts().stream()
