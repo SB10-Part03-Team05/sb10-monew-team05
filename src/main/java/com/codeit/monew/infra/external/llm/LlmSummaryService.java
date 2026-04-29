@@ -83,7 +83,7 @@ public class LlmSummaryService {
       String sourceUrl) {
     // 해당 프로바이더 빈이 컨테이너에 등록되어 있지 않은 경우
     if (summarizer == null) {
-      log.info("[LLM] provider={} unavailable (Bean not found). url={}", provider, sourceUrl);
+      log.warn("[LLM] provider={} unavailable (Bean not found). url={}", provider, sourceUrl);
       return "";
     }
 
@@ -103,7 +103,8 @@ public class LlmSummaryService {
           provider, sourceUrl, e.getClass().getSimpleName(), e.getMessage());
       return "";
     } catch (RuntimeException e) {
-      ExternalLlmProviderException wrapped = new ExternalLlmProviderException(provider, sourceUrl, e);
+      ExternalLlmProviderException wrapped = new ExternalLlmProviderException(provider, sourceUrl,
+          e);
       log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
           provider, sourceUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage());
       return "";
