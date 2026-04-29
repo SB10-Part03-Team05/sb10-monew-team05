@@ -73,6 +73,11 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
 
+    // Spring AI (LLM 사용, WebClient 기반)
+    implementation platform("org.springframework.ai:spring-ai-bom:1.1.5")
+    implementation "org.springframework.ai:spring-ai-starter-model-openai"
+    implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

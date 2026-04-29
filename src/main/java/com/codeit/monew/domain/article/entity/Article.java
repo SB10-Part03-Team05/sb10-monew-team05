@@ -128,6 +128,16 @@ public class Article extends BaseUpdatableEntity {
         .build();
   }
 
+  public void updateSummary(String summary) {
+    if (summary == null) {
+      throw new InvalidArticleEntityException("summary", "null");
+    }
+    if (summary.isBlank()) {
+      throw new InvalidArticleEntityException("summary", "blank");
+    }
+    this.summary = summary;
+  }
+
   // 연관관계 편의 메서드
   public void addInterest(Interest interest) {
     if (interest == null) {

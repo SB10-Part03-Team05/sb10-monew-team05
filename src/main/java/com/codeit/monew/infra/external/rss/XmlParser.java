@@ -23,7 +23,6 @@ import org.springframework.util.StringUtils;
 public class XmlParser {
 
   private static final String DEFAULT_SUMMARY = "요약이 제공되지 않는 출처입니다";
-  private static final int CRAWLED_SUMMARY_MAX_LENGTH = 220;
 
   private final ArticleBodyCrawler articleBodyCrawler;
 
@@ -113,20 +112,7 @@ public class XmlParser {
     // 3. RSS에 데이터가 전혀 없다면 크롤러에게 위임
     String crawledBodyText = articleBodyCrawler.crawlBodyText(sourceUrl, source);
     return StringUtils.hasText(crawledBodyText)
-        ? toSummaryCandidate(crawledBodyText)
+        ? crawledBodyText
         : DEFAULT_SUMMARY; // 크롤링 된 값이 없다면(또는 크롤링에 실패했다면) 기본 문구 반환
-  }
-
-  // TODO: 문자열 자르기가 아닌 AI 요약으로 변경 할 예정
-  private String toSummaryCandidate(String bodyText) {
-    try {
-      Thread.sleep(500);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    if (bodyText.length() <= CRAWLED_SUMMARY_MAX_LENGTH) {
-      return bodyText;
-    }
-    return bodyText.substring(0, CRAWLED_SUMMARY_MAX_LENGTH).trim() + "...";
   }
 }

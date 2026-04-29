@@ -28,6 +28,22 @@ spring:
         format_sql: false    # 쿼리 줄바꿈 안 함
         highlight_sql: false # SQL 색상 강조 안 함
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL}
+          temperature: ${OPENAI_TEMPERATURE}
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          options:
+            model: ${GEMINI_MODEL}
+            temperature: ${GEMINI_TEMPERATURE}
+
 # 환경 변수 설정
 monew:
   aws:

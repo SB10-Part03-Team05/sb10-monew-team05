@@ -19,6 +19,8 @@ public class ArticleBodyCrawler {
 
   private static final Duration CACHE_TTL = Duration.ofHours(6);
   private static final int MAX_CACHE_SIZE = 200;
+  private static final int MAX_CRAWLED_BODY_LENGTH = 2000;
+  private static final long CRAWL_COOLDOWN_MILLIS = 1000L;
 
   // 인메모리 캐시 저장소 (Thread-safe)
   private final Map<CacheKey, CacheValue> bodyTextCache = new ConcurrentHashMap<>();
@@ -41,13 +43,14 @@ public class ArticleBodyCrawler {
     CacheLookupResult cacheLookupResult = findCachedBodyText(source, normalizedUrl);
     if (cacheLookupResult.hit()) {
       log.debug("[{}] crawl cache hit. url={}", source, normalizedUrl);
-      return cacheLookupResult.bodyText();
+      return limitBodyLength(cacheLookupResult.bodyText());
     }
 
     log.debug("[{}] crawl cache miss. starting extraction. url={}", source, normalizedUrl);
 
     // 2. 크롤링 수행
     try {
+      applyCrawlCooldown();
       // 외부 서버에서 HTML 원문 fetch
       String html = xmlClient.fetchArticleHtml(source, normalizedUrl);
 
@@ -57,14 +60,17 @@ public class ArticleBodyCrawler {
         // case MAEIL -> maeilCrawler.crawl(html);
         default -> "";
       };
+      
+      // 기사 원문이 너무 길 경우 자르기
+      String normalizedBodyText = limitBodyLength(crawledBodyText);
 
       // 3. 크롤링 성공 시 캐시 저장
-      if (StringUtils.hasText(crawledBodyText)) {
-        cacheBodyText(source, normalizedUrl, crawledBodyText);
+      if (StringUtils.hasText(normalizedBodyText)) {
+        cacheBodyText(source, normalizedUrl, normalizedBodyText);
         log.debug("[{}] crawl cache store. url={}", source, normalizedUrl);
       }
 
-      return crawledBodyText;
+      return normalizedBodyText;
 
     } catch (RuntimeException e) {
       // 크롤러 장애가 전체 배치 프로세스(XmlParser)에 영향을 주지 않도록 방어
@@ -122,6 +128,28 @@ public class ArticleBodyCrawler {
 
     Instant now = Instant.now();
     bodyTextCache.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(now));
+  }
+
+  /**
+   * 크롤링 시 봇 차단을 방지하기 위해 쿨다은을 적용합니다.
+   */
+  private void applyCrawlCooldown() {
+    try {
+      Thread.sleep(CRAWL_COOLDOWN_MILLIS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.warn("crawl cooldown interrupted");
+    }
+  }
+
+  /**
+   * 기사 원문이 너무 길 경우 자릅니다.
+   */
+  private String limitBodyLength(String bodyText) {
+    if (!StringUtils.hasText(bodyText) || bodyText.length() <= MAX_CRAWLED_BODY_LENGTH) {
+      return bodyText;
+    }
+    return bodyText.substring(0, MAX_CRAWLED_BODY_LENGTH);
   }
 
   // --- 내부 데이터 구조 (Value Objects) ---

@@ -9,10 +9,12 @@ import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.article.ArticleScrapeException;
+import com.codeit.monew.infra.external.llm.LlmSummaryService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,7 +42,10 @@ public class ArticleScrapeService {
   private final XmlParser xmlParser;
   private final ArticleRepository articleRepository;
   private final KeywordRepository keywordRepository;
-  // TODO: NotificationService notificationService;
+  private final LlmSummaryService llmSummaryService;
+
+  private static final Set<NewsSourceUrl> LLM_SUMMARY_SOURCES =
+      EnumSet.of(NewsSourceUrl.HANKYUNG); // 나중에 크롤링 할 소스 추가
 
   public ArticleScrapeResult scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
@@ -135,11 +140,16 @@ public class ArticleScrapeService {
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
-  private ArticleScrapeResult saveAndNotify(Map<Article, Set<Interest>> articleInterestMap, NewsSourceUrl source) {
+  private ArticleScrapeResult saveAndNotify(Map<Article, Set<Interest>> articleInterestMap,
+      NewsSourceUrl source) {
     List<Article> toSave = new ArrayList<>(articleInterestMap.keySet());
 
     if (toSave.isEmpty()) {
       return ArticleScrapeResult.empty();
+    }
+
+    if (LLM_SUMMARY_SOURCES.contains(source)) {
+      applyLlmSummaryForCrawledArticles(toSave);
     }
 
     articleRepository.saveAll(toSave);
@@ -159,6 +169,15 @@ public class ArticleScrapeService {
     log.info("[{}] {}건의 새로운 기사가 저장되었습니다.", source, toSave.size());
 
     return new ArticleScrapeResult(toSave.size(), interestResults);
+  }
+
+  private void applyLlmSummaryForCrawledArticles(List<Article> articles) {
+    for (Article article : articles) {
+      String originalBody = article.getSummary();
+      String summarized = llmSummaryService.summarizeOrOriginal(originalBody,
+          article.getSourceUrl());
+      article.updateSummary(summarized);
+    }
   }
 
   private String fetchXml(NewsSourceUrl source, String query) {
