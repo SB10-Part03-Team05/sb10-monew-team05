@@ -263,7 +263,6 @@ class S3ArticleBackupFileStorageTest {
           objectMapper);
 
       LocalDate date = LocalDate.of(2026, 4, 26);
-      String json = "{ j s o n";
 
       given(s3Client.getObject(any(GetObjectRequest.class)))
           .willThrow(S3Exception.builder().message("s3 failed").build());
@@ -287,13 +286,12 @@ class S3ArticleBackupFileStorageTest {
           objectMapper);
 
       LocalDate date = LocalDate.of(2026, 4, 26);
-      String json = "{ j s o n";
 
       given(s3Client.getObject(any(GetObjectRequest.class)))
-          .willThrow(S3Exception.builder().message("s3 failed").build());
+          .willThrow(SdkClientException.builder().message("aws client failed").build());
 
       // when, then
-      assertThrows(ArticleFileReadFailedException.class,
+      assertThrows(AwsServerConnectFailedException.class,
           () -> storage.readArticles(date));
 
       ArgumentCaptor<GetObjectRequest> requestCaptor =
