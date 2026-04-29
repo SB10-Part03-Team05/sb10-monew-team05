@@ -89,6 +89,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - monew-prometheus-data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway" # 도커 컨테이너가 호스트 OS를 인식할 수 있도록 설정
     networks:
@@ -117,6 +118,7 @@ volumes:
   monew-mongodb-data:
   monew-mongodb-config:
   monew-grafana-data:
+  monew-prometheus-data:
 
 networks:
   monew-network:
