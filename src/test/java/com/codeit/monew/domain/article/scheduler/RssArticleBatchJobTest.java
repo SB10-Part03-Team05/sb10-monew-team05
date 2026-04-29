@@ -90,17 +90,16 @@ class RssArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(429): 재시도 대상이 아니므로 빈 결과를 반환한다")
+  @DisplayName("실패(429): 재시도 대상이 아니므로 예외를 던진다")
   void rate_limit_no_retry_and_recover_empty() {
     // Given: Rate Limit(429) 예외가 발생하는 상황 설정
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(rateLimit());
 
-    // When: RSS 배치 작업 실행
-    ArticleScrapeResult result = rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
+    // When & Then: RSS배치 작업 실행 시 429 예외가 발생하면 던짐
+    assertThrows(ExternalRateLimitException.class,
+        () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
 
-    // Then: 재시도 없이 recover가 작동하여 저장 수 0을 반환하는지 확인
-    assertEquals(0, result.totalSavedCount());
     verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.CHOSUN, null);
     assertEquals(1.0,
         meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(),
@@ -108,17 +107,15 @@ class RssArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(4xx): 클라이언트 에러 발생 시 재시도 없이 빈 결과를 반환한다")
+  @DisplayName("실패(4xx): 클라이언트 에러 발생 시 재시도 없이 예외를 던진다")
   void client_error_no_retry_and_recover_empty() {
     // Given: 클라이언트 에러(4xx) 발생 설정
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(clientError());
 
-    // When: RSS 배치 작업 실행
-    ArticleScrapeResult result = rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
+    // When & Then:  RSS배치 작업 실행 시 400 예외가 발생하면 던짐
+    assertThrows(ExternalClientException.class, () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
 
-    // Then: 호출 횟수 1회 확인 및 빈 결과값 검증
-    assertEquals(0, result.totalSavedCount());
     verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.CHOSUN, null);
     assertEquals(1.0,
         meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(),
@@ -152,17 +149,15 @@ class RssArticleBatchJobTest {
   }
 
   @Test
-  @DisplayName("실패(server/network) 재시도 소진: 모든 재시도 실패 시 빈 결과를 반환하며 종료한다")
+  @DisplayName("실패(server/network) 재시도 소진: 모든 재시도 실패 시 최종 예외를 던지며 종료한다")
   void transient_retry_exhausted_returns_empty() {
     // Given: 재시도 횟수를 모두 채울 때까지 계속 에러가 발생하는 상황
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(serverError());
 
-    // When: RSS 배치 작업 실행
-    ArticleScrapeResult result = rssArticleBatchJob.run(NewsSourceUrl.CHOSUN);
+    // When & Then: 모든 재시도(3회) 후 예외 전파
+    assertThrows(ExternalServerException.class, () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
 
-    // Then: 예외가 상위로 던져지지 않고 recover를 통해 빈 결과(0)를 반환하는지 확인
-    assertEquals(0, result.totalSavedCount());
     verify(articleScrapeService, times(3)).scrapeAndSave(NewsSourceUrl.CHOSUN, null);
     assertEquals(3.0,
         meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(),
