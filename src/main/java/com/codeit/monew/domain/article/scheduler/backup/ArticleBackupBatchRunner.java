@@ -45,14 +45,13 @@ public class ArticleBackupBatchRunner {
 
       JobExecution execution = jobLauncher.run(articleBackupBatchJob, jobParameters);
 
-      if (execution.getStatus() == BatchStatus.FAILED
-          || execution.getStatus() == BatchStatus.STOPPED) {
+      if (execution.getStatus() != BatchStatus.COMPLETED) {
         throw new IllegalStateException(
             "Article backup batch failed. jobExecutionId="
                 + execution.getId() + ", status=" + execution.getStatus()
         );
       }
-      
+
     } catch (Exception e) {
       throw new ArticleBackupBatchRunFailed(backupDate, e);
     }
