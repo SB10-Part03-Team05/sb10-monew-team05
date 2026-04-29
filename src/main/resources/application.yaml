@@ -42,7 +42,7 @@ spring:
         chat:
           options:
             model: ${GEMINI_MODEL:gemini-3.1-flash-lite-preview}
-            temperature: ${GEMINI_TEMPERATURE:GEMINI_TEMPERATURE=0.2}
+            temperature: ${GEMINI_TEMPERATURE:0.2}
     retry:
       max-attempts: ${SPRING_AI_RETRY_MAX_ATTEMPTS:1}
 
