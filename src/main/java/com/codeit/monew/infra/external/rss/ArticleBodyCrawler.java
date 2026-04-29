@@ -82,11 +82,12 @@ public class ArticleBodyCrawler {
       return normalizedBodyText;
 
     } catch (RuntimeException e) {
-      ExternalArticleCrawlException wrapped = new ExternalArticleCrawlException(source, normalizedUrl,
+      ExternalArticleCrawlException wrapped = new ExternalArticleCrawlException(source,
+          normalizedUrl,
           e);
       // 크롤러 장애가 전체 배치 프로세스(XmlParser)에 영향을 주지 않도록 방어
       log.warn("[{}] article crawl failed(fallback to empty). url={}, error={}, message={}",
-          source, normalizedUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage());
+          source, normalizedUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage(), e);
       return "";
     }
   }
@@ -149,7 +150,7 @@ public class ArticleBodyCrawler {
       Thread.sleep(CRAWL_COOLDOWN_MILLIS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      log.warn("crawl cooldown interrupted");
+      log.warn("crawl cooldown interrupted", e);
     }
   }
 

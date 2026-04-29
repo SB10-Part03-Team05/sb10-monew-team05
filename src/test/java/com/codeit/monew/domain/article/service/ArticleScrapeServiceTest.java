@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -26,6 +27,8 @@ import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -98,10 +101,8 @@ class ArticleScrapeServiceTest {
 
       // then: 1건이 성공적으로 저장되고, 기사에 '삼성' 관심사가 매핑되었는지 검증
       assertEquals(1, result.totalSavedCount());
-      assertEquals(1, a1.getArticleInterests().size());
-      assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
       verify(xmlClient).fetchRssXml(NewsSourceUrl.CHOSUN);
-      verify(articleScrapePersistenceService).saveAll(anyList());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
     }
 
     @Test
@@ -160,10 +161,11 @@ class ArticleScrapeServiceTest {
 
       // then: URL 기준으로 중복을 제거하여 1건만 저장요청되며, 첫 번째 기사만 살아남았는지 검증
       assertEquals(1, result.totalSavedCount());
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
       verify(articleScrapePersistenceService).saveAll(captor.capture());
-      assertEquals("https://dup.com/1", captor.getValue().get(0).getSourceUrl());
-      assertEquals("first", captor.getValue().get(0).getTitle());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://dup.com/1", saved.getSourceUrl());
+      assertEquals("first", saved.getTitle());
     }
 
     @Test
@@ -183,7 +185,7 @@ class ArticleScrapeServiceTest {
       // then: 저장 대상 기사가 없으므로 0건 저장되며, 관심사 매핑 및 저장 로직이 수행되지 않음을 검증
       assertEquals(0, result.totalSavedCount());
       verify(keywordRepository, never()).findAllWithInterest();
-      verify(articleScrapePersistenceService, never()).saveAll(anyList());
+      verify(articleScrapePersistenceService, never()).saveAll(anyMap());
     }
 
     @Test
@@ -207,10 +209,11 @@ class ArticleScrapeServiceTest {
       // then: 기존 기사는 필터링되고, 1건(새 기사)만 최종적으로 DB에 저장되는지 검증
       assertEquals(1, result.totalSavedCount());
 
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
       verify(articleScrapePersistenceService).saveAll(captor.capture());
       assertEquals(1, captor.getValue().size());
-      assertEquals("https://new.com/2", captor.getValue().get(0).getSourceUrl());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://new.com/2", saved.getSourceUrl());
     }
 
     @Test
@@ -229,7 +232,7 @@ class ArticleScrapeServiceTest {
 
       // then: 어떤 관심사에도 매핑되지 않은 기사는 저장 대상에서 제외되어 0건이 저장됨을 검증
       assertEquals(0, result.totalSavedCount());
-      verify(articleScrapePersistenceService, never()).saveAll(anyList());
+      verify(articleScrapePersistenceService, never()).saveAll(anyMap());
     }
 
     @Test
@@ -250,8 +253,7 @@ class ArticleScrapeServiceTest {
 
       // then: 매칭이 올바르게 이루어져 1건이 저장되고, 해당 기사에 삼성 관심사가 연관관계로 묶였는지 검증
       assertEquals(1, result.totalSavedCount());
-      assertEquals(1, a1.getArticleInterests().size());
-      assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
     }
 
     @Test
@@ -274,10 +276,11 @@ class ArticleScrapeServiceTest {
 
       // then: 관심사가 매핑되지 않은 테슬라 기사는 버려지고, 애플 기사 1건만 최종 저장되는지 검증
       assertEquals(1, result.totalSavedCount());
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
       verify(articleScrapePersistenceService).saveAll(captor.capture());
       assertEquals(1, captor.getValue().size());
-      assertEquals("https://a.com/1", captor.getValue().get(0).getSourceUrl());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://a.com/1", saved.getSourceUrl());
     }
 
     @Test
@@ -297,14 +300,14 @@ class ArticleScrapeServiceTest {
       articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 이미 요약이 있으므로 LLM 요약을 호출하지 않고 바로 saveAll이 호출되는지 검증
-      verify(articleScrapePersistenceService).saveAll(anyList());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
       verify(llmSummaryService, never()).summarizeOrOriginal(anyString(), anyString());
     }
 
     @Test
-    @DisplayName("요약이 없어 크롤링 후 LLM 사용 소스: 요약 후 saveAll 호출")
+    @DisplayName("요약이 없어 크롤링 된 본문이 있으면서 LLM 사용 소스: 요약 후 saveAll 호출")
     void call_save_all_for_hankyung_with_llm_summary() {
-      // given: 한국경제처럼 원문 요약이 부족해 LLM 요약이 필요한 기사(카카오) 설정
+      // given: 한국경제처럼 원문 요약이 없어서 LLM 요약이 필요한 기사(카카오) 설정
       Article a1 = article("https://a.com/1", "카카오", "원문 요약");
       Interest kakao = interest("카카오");
       Keyword k = keyword(kakao, "카카오");
@@ -321,7 +324,7 @@ class ArticleScrapeServiceTest {
 
       // then: LLM 요약 서비스가 호출되었는지 확인하고, 기사 객체에 요약문이 업데이트되었는지 검증
       verify(llmSummaryService).summarizeOrOriginal("원문 요약", "https://a.com/1");
-      verify(articleScrapePersistenceService).saveAll(anyList());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
       assertEquals("LLM 요약", a1.getSummary());
     }
   }

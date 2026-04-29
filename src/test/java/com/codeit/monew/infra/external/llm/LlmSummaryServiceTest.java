@@ -27,7 +27,7 @@ class LlmSummaryServiceTest {
   private GeminiLlmSummarizer geminiSummarizer;
 
   @Test
-  @DisplayName("본문이 null/blank면 요약 시도 없이 원문을 반환한다")
+  @DisplayName("본문이 null/blank면 요약 시도 없이 \"요약이 제공되지 않는 출처입니다\"을 반환한다")
   void return_original_when_body_text_is_blank() {
     // given: 서비스 초기화 및 빈 값 테스트 데이터 준비
     LlmSummaryService service = new LlmSummaryService(openAiProvider, geminiProvider);
@@ -36,9 +36,9 @@ class LlmSummaryServiceTest {
     String resultNull = service.summarizeOrOriginal(null, "https://a.com");
     String resultBlank = service.summarizeOrOriginal(" ", "https://a.com");
 
-    // then: 어떠한 LLM 프로바이더도 조회하지 않고 입력받은 원문 그대로 반환되는지 검증
-    assertEquals(null, resultNull);
-    assertEquals(" ", resultBlank);
+    // then: 어떠한 LLM 프로바이더도 조회하지 않고 "요약이 제공되지 않는 출처입니다" 문구가 반환되는지 검증
+    assertEquals("요약이 제공되지 않는 출처입니다", resultNull);
+    assertEquals("요약이 제공되지 않는 출처입니다", resultBlank);
     verify(openAiProvider, never()).getIfAvailable();
     verify(geminiProvider, never()).getIfAvailable();
   }

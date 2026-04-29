@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(MonewException.class)
   public ResponseEntity<ErrorResponse> handleMonewException(MonewException e) {
-    HttpStatus status = determineHttpStatus(e);
+    HttpStatus status = e.getErrorCode().getStatus();
 
     if (status == HttpStatus.INTERNAL_SERVER_ERROR) {
       log.error("[Exception] 커스텀 예외: timestamp={}, code={}, message={}, details={}",
@@ -88,8 +88,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleConstraintViolationException(
       ConstraintViolationException e) {
     log.warn("[EXCEPTION] Constraint Violation 예외: code={}, message={}",
-        e.getClass().getSimpleName(),
-        e.getMessage(), e);
+        e.getClass().getSimpleName(), e.getMessage(), e);
     Map<String, Object> details = new HashMap<>();
     e.getConstraintViolations().forEach(violation -> {
       String propertyPath = violation.getPropertyPath().toString();
@@ -208,20 +207,22 @@ public class GlobalExceptionHandler {
     return switch (errorCode) {
       case USER_NOT_FOUND, ARTICLE_NOT_FOUND, COMMENT_NOT_FOUND, INTEREST_NOT_FOUND,
            SUBSCRIPTION_NOT_FOUND, COMMENT_LIKE_NOT_FOUND, NOTIFICATION_NOT_FOUND ->
-          HttpStatus.NOT_FOUND;
-      case PASSWORD_MISMATCH -> HttpStatus.UNAUTHORIZED;
+          HttpStatus.NOT_FOUND; // 404
+      case PASSWORD_MISMATCH -> HttpStatus.UNAUTHORIZED; // 401
       case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS ->
-          HttpStatus.CONFLICT;
+          HttpStatus.CONFLICT; // 409
       case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN, NOTIFICATION_ACCESS_DENIED,
-           NOTIFICATION_RECEIVER_MISMATCH -> HttpStatus.FORBIDDEN;
+           NOTIFICATION_RECEIVER_MISMATCH -> HttpStatus.FORBIDDEN; // 403
       case INVALID_PARAMETER_INPUT, COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG,
-           INVALID_ARTICLE_ENTITY -> HttpStatus.BAD_REQUEST;
+           INVALID_ARTICLE_ENTITY -> HttpStatus.BAD_REQUEST; // 400
       case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
-      case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
+      case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY; // 502
       case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR,
-           EXTERNAL_INVALID_XML, EXTERNAL_LLM_PROVIDER_ERROR, EXTERNAL_ARTICLE_CRAWL_ERROR ->
+           EXTERNAL_INVALID_XML, AWS_SERVER_CONNECT_FAILED, ARTICLE_FILE_SAVE_FAILED,
+           ARTICLE_FILE_READ_FAILED, EXTERNAL_ARTICLE_CRAWL_ERROR ->
           HttpStatus.SERVICE_UNAVAILABLE; // 503
-      case ARTICLE_SCRAPE_FAILED, EXTERNAL_LLM_INVALID_INPUT -> HttpStatus.INTERNAL_SERVER_ERROR;
+      case ARTICLE_SCRAPE_FAILED, JSON_PARSER_FAILED, ARTICLE_BACKUP_BATCH_RUN_FAILED,
+           EXTERNAL_LLM_INVALID_INPUT -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 커스텀 예외
       default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
     };
   }

@@ -1,13 +1,16 @@
 package com.codeit.monew.domain.article.scheduler;
 
+import com.codeit.monew.global.exception.external.ExternalApiException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RssArticleScrapeTasklet implements Tasklet {
@@ -24,7 +27,11 @@ public class RssArticleScrapeTasklet implements Tasklet {
         if (source == NewsSourceUrl.NAVER) {
           continue;
         }
-        stepResult = stepResult.plus(rssArticleBatchJob.run(source));
+        try {
+          stepResult = stepResult.plus(rssArticleBatchJob.run(source));
+        } catch (ExternalApiException e) {
+          stepResult = stepResult.plus(ArticleScrapeResult.empty());
+        }
       }
       return RepeatStatus.FINISHED;
     } finally {

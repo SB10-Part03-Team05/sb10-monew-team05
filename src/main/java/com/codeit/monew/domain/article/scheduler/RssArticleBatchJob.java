@@ -96,6 +96,6 @@ public class RssArticleBatchJob {
   public ArticleScrapeResult recover(ExternalApiException e, NewsSourceUrl source) {
     log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}, statusCode={}",
         source, e.getMessage(), e.getStatusCode(), e);
-    return ArticleScrapeResult.empty();
+    throw e;
   }
 }

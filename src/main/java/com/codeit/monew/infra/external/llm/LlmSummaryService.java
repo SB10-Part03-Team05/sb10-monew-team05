@@ -35,7 +35,7 @@ public class LlmSummaryService {
    *
    * @param bodyText  요약할 기사 본문 원문
    * @param sourceUrl 로그 기록 및 추적을 위한 기사 원문 링크
-   * @return 요약된 텍스트. 모든 시도 실패 시 또는 본문이 비어있을 시 {@code bodyText} 그대로 반환
+   * @return 요약된 텍스트. 모든 시도 실패 시 또는 본문이 비어있을 시 {@code DEFAULT_SUMMARY}  반환
    */
   public String summarizeOrOriginal(String bodyText, String sourceUrl) {
     // 본문이 없으면 요약할 대상이 없으므로 즉시 반환
@@ -101,14 +101,14 @@ public class LlmSummaryService {
       return summary.trim();
     } catch (ExternalLlmException e) {
       // 외부 API 호출 실패 시에도 전체 기사 수집 프로세스가 중단되지 않도록 예외를 흡수(Graceful Degradation)
-      log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
-          provider, sourceUrl, e.getClass().getSimpleName(), e.getMessage());
+      log.info("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
+          provider, sourceUrl, e.getClass().getSimpleName(), e.getMessage(), e);
       return "";
     } catch (RuntimeException e) {
       ExternalLlmProviderException wrapped = new ExternalLlmProviderException(provider, sourceUrl,
           e);
-      log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
-          provider, sourceUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage());
+      log.info("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
+          provider, sourceUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage(), e);
       return "";
     }
   }

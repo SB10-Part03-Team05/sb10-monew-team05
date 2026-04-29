@@ -93,23 +93,6 @@ CREATE TABLE IF NOT EXISTS article_view_histories (
 -- 기사별 조회 수 집계나 조회 이력 또는 기사 삭제 시
 CREATE INDEX IF NOT EXISTS idx_article_view_histories_article_id ON article_view_histories (article_id);
 
--- 알림 table
-CREATE TABLE IF NOT EXISTS notifications (
-    id            UUID PRIMARY KEY,
-    user_id       UUID                     NOT NULL,
-    content       VARCHAR(255)             NOT NULL,
-    resource_type VARCHAR(50)              NOT NULL,
-    resource_id   UUID                     NOT NULL,
-    confirmed_at  TIMESTAMP WITH TIME ZONE,
-    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
-
-    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-);
-
--- 인덱스) 안 읽은 알림만 빠르게 조회 및 1주일 뒤 삭제 배치를 위한 부분 인덱스 (H2 호환을 위해 WHERE 조건 제거)
-CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications (user_id, created_at DESC);
-
 -- 댓글 table (댓글 + 통계 병합)
 CREATE TABLE IF NOT EXISTS comments (
     id         UUID PRIMARY KEY,
@@ -129,6 +112,29 @@ CREATE TABLE IF NOT EXISTS comments (
 -- 인덱스) 특정 기사의 댓글 목록 커서 페이지네이션 (최신순)
 CREATE INDEX IF NOT EXISTS idx_comments_pagination ON comments (article_id, created_at DESC, id DESC);
 
+-- 알림 table
+CREATE TABLE IF NOT EXISTS notifications (
+    id            UUID PRIMARY KEY,
+    user_id       UUID                     NOT NULL,
+    content       VARCHAR(255)             NOT NULL,
+    resource_type VARCHAR(50)              NOT NULL,
+    resource_id   UUID                     NOT NULL,
+    confirmed_at  TIMESTAMP WITH TIME ZONE,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    comment_id    UUID,
+    interest_id   UUID,
+
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE
+    );
+
+-- 인덱스) 안 읽은 알림만 빠르게 조회 및 1주일 뒤 삭제 배치를 위한 부분 인덱스 (H2 호환을 위해 WHERE 조건 제거)
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_comment_id ON notifications (comment_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_interest_id ON notifications (interest_id);
+
 -- 댓글 좋아요 이력 table
 CREATE TABLE IF NOT EXISTS comment_likes (
     id         UUID PRIMARY KEY,
@@ -141,16 +147,10 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     CONSTRAINT uk_comment_likes_comment_user UNIQUE (comment_id, user_id)
 );
 
--- notifications 테이블 칼럼 추가
-ALTER TABLE notifications ADD COLUMN comment_id UUID;
-ALTER TABLE notifications ADD COLUMN interest_id UUID;
-
--- 데이터 무결성을 위한 외래 키 추가
 ALTER TABLE notifications
-    ADD CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE;
-ALTER TABLE notifications
-    ADD CONSTRAINT fk_notifications_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE;
-
--- 인덱스 추가
-CREATE INDEX idx_notifications_comment_id ON notifications (comment_id);
-CREATE INDEX idx_notifications_interest_id ON notifications (interest_id);
+    ADD CONSTRAINT ck_notifications_resource_consistency
+        CHECK (
+            (resource_type = 'COMMENT' AND comment_id IS NOT NULL AND interest_id IS NULL) OR
+            (resource_type = 'INTEREST' AND interest_id IS NOT NULL AND comment_id IS NULL) OR
+            (resource_type NOT IN ('COMMENT', 'INTEREST') AND comment_id IS NULL AND interest_id IS NULL)
+            );

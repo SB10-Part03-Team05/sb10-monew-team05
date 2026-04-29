@@ -47,12 +47,17 @@ public class GeminiLlmSummarizer implements LlmSummarizer {
       String summary = response.getResult().getOutput().getText();
 
       // 토큰 메타데이터 추출 및 디버그 로그 기록
-      var usage = response.getMetadata().getUsage();
-      log.debug("[LLM-Gemini] Summary completed. Tokens: [In: {}, Out: {}, Total: {}]\nSummary: {}",
-          usage.getPromptTokens(),
-          usage.getCompletionTokens(),
-          usage.getTotalTokens(),
-          summary);
+      try {
+        var usage = response.getMetadata().getUsage();
+        log.debug(
+            "[LLM-Gemini] Summary completed. Tokens: [In: {}, Out: {}, Total: {}]\nSummary: {}",
+            usage.getPromptTokens(),
+            usage.getCompletionTokens(),
+            usage.getTotalTokens(),
+            summary);
+      } catch (Exception e) {
+        log.debug("[LLM-Gemini] Summary completed. Tokens: [unavailable]\nSummary: {}", summary);
+      }
 
       return summary;
     } catch (RuntimeException e) {

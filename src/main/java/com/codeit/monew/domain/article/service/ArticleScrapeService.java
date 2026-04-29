@@ -118,7 +118,6 @@ public class ArticleScrapeService {
     for (Article article : newArticles) {
       Set<Interest> matchedInterests = findMatchedInterests(article, keywords);
       if (!matchedInterests.isEmpty()) {
-        matchedInterests.forEach(article::addInterest); // 양방향 연관관계 편의 메서드
         map.put(article, matchedInterests);
       }
     }
@@ -153,7 +152,7 @@ public class ArticleScrapeService {
       applyLlmSummaryForCrawledArticles(toSave);
     }
 
-    articleScrapePersistenceService.saveAll(toSave);
+    articleScrapePersistenceService.saveAll(articleInterestMap);
 
     // 관심사별 기사 개수 집계
     Map<UUID, InterestInfo> interestResults = new HashMap<>();
