@@ -14,8 +14,8 @@ public class ArticleScrapeScheduler {
 
   private final ArticleScrapeBatchRunner articleScrapeBatchRunner;
 
-  //크론 표현식으로 매 시각 0분에 실행되도록 처리
-  @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+  //크론 표현식으로 매 시각 5분에 실행되도록 처리
+  @Scheduled(cron = "0 5 * * * *", zone = "Asia/Seoul")
   public void runHourly() {
     try {
       articleScrapeBatchRunner.runNow();
