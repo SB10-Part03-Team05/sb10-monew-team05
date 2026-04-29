@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.codeit.monew.domain.notification.dto.NotificationListDto;
 import com.codeit.monew.domain.notification.service.NotificationService;
+import com.codeit.monew.global.exception.GlobalExceptionHandler;
 import com.codeit.monew.global.exception.common.InvalidParameterException;
 import java.time.Instant;
 import java.util.Collections;
@@ -21,10 +22,12 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(NotificationController.class)
+@Import(GlobalExceptionHandler.class)
 class NotificationControllerTest {
 
   @Autowired
@@ -127,7 +130,7 @@ class NotificationControllerTest {
       mockMvc.perform(get("/api/notifications")
               .header(HEADER_USER_ID, testUserId.toString())
               .param("cursor", invalidCursor))
-          .andExpect(result -> assertTrue(result.getResolvedException() instanceof InvalidParameterException));
+          .andExpect(status().isBadRequest());
     }
   }
 }
