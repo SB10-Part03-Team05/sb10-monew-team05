@@ -43,6 +43,7 @@ WORKDIR /app
 #      즉, app 사용자가 /app 내부 파일을 읽고 실행할 수 있도록 권한이 맞춤
 RUN addgroup -S app \
     && adduser -S app -G app -h /app -s /sbin/nologin \
+    && mkdir -p /app/.logs \
     && chown -R app:app /app
 
 # 2-4. 서비스 포트 노출

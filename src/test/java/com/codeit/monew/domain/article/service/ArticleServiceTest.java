@@ -133,7 +133,7 @@ class ArticleServiceTest {
   }
 
   private Interest createInterest(UUID interestId, String name) {
-    Interest interest = Interest.create("삼성");
+    Interest interest = Interest.create(name);
 
     if (interestId == null) {
       ReflectionTestUtils.setField(interest, "id", UUID.randomUUID());

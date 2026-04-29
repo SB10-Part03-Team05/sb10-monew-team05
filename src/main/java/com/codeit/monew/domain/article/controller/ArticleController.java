@@ -3,8 +3,10 @@ package com.codeit.monew.domain.article.controller;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
+import com.codeit.monew.domain.article.dto.response.ArticleRestoreResultDto;
 import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
+import com.codeit.monew.domain.article.service.ArticleRestoreService;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.global.exception.ErrorResponse;
 import com.codeit.monew.global.exception.common.InvalidParameterException;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -40,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ArticleController {
 
   private final ArticleService articleService;
+  private final ArticleRestoreService articleRestoreService;
 
   @GetMapping(value = "/{articleId}")
   @Operation(summary = "뉴스 기사 단건 조회", description = "뉴스 기사 ID로 뉴스 기사 단건을 조회합니다.")
@@ -149,5 +153,27 @@ public class ArticleController {
     articleService.hardDelete(articleId);
 
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @GetMapping(value = "/restore")
+  @Operation(summary = "뉴스 복구", description = "유실된 뉴스 기사를 복구")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "복구 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ArticleRestoreResultDto.class)))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "503", description = "AWS 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<List<ArticleRestoreResultDto>> restore(
+      @Parameter(description = "날짜 시작(범위)") @RequestParam LocalDateTime from,
+      @Parameter(description = "날짜 끝(범위)") @RequestParam LocalDateTime to
+  ) {
+    // 날짜 시작일은 날짜 종료일보다 늦을 수 없음
+    if (from != null && to != null && from.isAfter(to)) {
+      throw new InvalidParameterException("from", from, "to", to);
+    }
+
+    List<ArticleRestoreResultDto> response = articleRestoreService.restore(from, to);
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
