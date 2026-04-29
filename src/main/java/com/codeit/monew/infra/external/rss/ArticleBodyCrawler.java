@@ -1,5 +1,6 @@
 package com.codeit.monew.infra.external.rss;
 
+import com.codeit.monew.global.exception.external.crawl.ExternalArticleCrawlException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -81,9 +82,11 @@ public class ArticleBodyCrawler {
       return normalizedBodyText;
 
     } catch (RuntimeException e) {
+      ExternalArticleCrawlException wrapped = new ExternalArticleCrawlException(source, normalizedUrl,
+          e);
       // 크롤러 장애가 전체 배치 프로세스(XmlParser)에 영향을 주지 않도록 방어
       log.warn("[{}] article crawl failed(fallback to empty). url={}, error={}, message={}",
-          source, normalizedUrl, e.getClass().getSimpleName(), e.getMessage());
+          source, normalizedUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage());
       return "";
     }
   }

@@ -1,5 +1,7 @@
 package com.codeit.monew.infra.external.llm.openai;
 
+import com.codeit.monew.global.exception.external.llm.ExternalLlmInvalidInputException;
+import com.codeit.monew.global.exception.external.llm.ExternalLlmProviderException;
 import com.codeit.monew.infra.external.llm.LlmSummarizer;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,29 +31,33 @@ public class OpenAiLlmSummarizer implements LlmSummarizer {
   @Override
   public String summarize(String bodyText) {
     if (!StringUtils.hasText(bodyText)) {
-      throw new IllegalArgumentException("bodyText must not be blank");
+      throw new ExternalLlmInvalidInputException("openai", "bodyText", bodyText);
     }
 
-    Prompt prompt = new Prompt(List.of(
-        new SystemMessage(SYSTEM_PROMPT),
-        new UserMessage(buildUserPrompt(bodyText))
-    ));
+    try {
+      Prompt prompt = new Prompt(List.of(
+          new SystemMessage(SYSTEM_PROMPT),
+          new UserMessage(buildUserPrompt(bodyText))
+      ));
 
-    // 응답 객체 전체를 가져옵니다.
-    var response = openAiChatModel.call(prompt);
+      // 응답 객체 전체를 가져옵니다.
+      var response = openAiChatModel.call(prompt);
 
-    // 요약 결과 추출
-    String summary = response.getResult().getOutput().getText();
+      // 요약 결과 추출
+      String summary = response.getResult().getOutput().getText();
 
-    // 토큰 메타데이터 추출 및 디버그 로그 기록
-    var usage = response.getMetadata().getUsage();
-    log.debug("[LLM-OpenAI] Summary completed. Tokens: [In: {}, Out: {}, Total: {}]\nSummary: {}",
-        usage.getPromptTokens(),
-        usage.getCompletionTokens(),
-        usage.getTotalTokens(),
-        summary);
+      // 토큰 메타데이터 추출 및 디버그 로그 기록
+      var usage = response.getMetadata().getUsage();
+      log.debug("[LLM-OpenAI] Summary completed. Tokens: [In: {}, Out: {}, Total: {}]\nSummary: {}",
+          usage.getPromptTokens(),
+          usage.getCompletionTokens(),
+          usage.getTotalTokens(),
+          summary);
 
-    return summary;
+      return summary;
+    } catch (RuntimeException e) {
+      throw new ExternalLlmProviderException("openai", null, e);
+    }
   }
 
   private String buildUserPrompt(String articleText) {

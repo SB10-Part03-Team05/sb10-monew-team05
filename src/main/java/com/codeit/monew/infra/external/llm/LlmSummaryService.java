@@ -1,5 +1,7 @@
 package com.codeit.monew.infra.external.llm;
 
+import com.codeit.monew.global.exception.external.llm.ExternalLlmException;
+import com.codeit.monew.global.exception.external.llm.ExternalLlmProviderException;
 import com.codeit.monew.infra.external.llm.gemini.GeminiLlmSummarizer;
 import com.codeit.monew.infra.external.llm.openai.OpenAiLlmSummarizer;
 import lombok.RequiredArgsConstructor;
@@ -95,10 +97,15 @@ public class LlmSummaryService {
       }
 
       return summary.trim();
-    } catch (RuntimeException e) {
+    } catch (ExternalLlmException e) {
       // 외부 API 호출 실패 시에도 전체 기사 수집 프로세스가 중단되지 않도록 예외를 흡수(Graceful Degradation)
       log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
           provider, sourceUrl, e.getClass().getSimpleName(), e.getMessage());
+      return "";
+    } catch (RuntimeException e) {
+      ExternalLlmProviderException wrapped = new ExternalLlmProviderException(provider, sourceUrl, e);
+      log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
+          provider, sourceUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage());
       return "";
     }
   }

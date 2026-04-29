@@ -90,7 +90,7 @@ public class NaverArticleScrapeTasklet implements Tasklet {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Naver batch sleep interrupted", e);
+      log.warn("naver batch sleep interrupted");
     }
   }
 }
