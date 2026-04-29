@@ -14,7 +14,7 @@ public record CursorPageResponseInterestDto(
     @Schema(description = "페이지 크기", example = "10")
     int size,
 
-    @Schema(description = "총 요소 수", maxLength = 100)
+    @Schema(description = "총 요소 수", example = "100")
     long totalElements,
 
     @Schema(description = "다음 페이지 여부", example = "true")
