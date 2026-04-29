@@ -2,6 +2,7 @@ package com.codeit.monew.domain.article.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -116,6 +117,8 @@ class ArticleRestoreServiceTest {
           .willReturn(List.of(articleBackupDto));
       given(articleRepository.findIdsByPublishDateBetween(any(), any()))
           .willReturn(List.of());
+      given(articleRepository.insertRestoredArticle(any(), anyString(), anyString(), anyString(),
+          any(), anyString(), any(), any())).willReturn(1);
 
       // when
       List<ArticleRestoreResultDto> result = articleRestoreService.restore(from, to);
