@@ -63,6 +63,9 @@ dependencies {
     // Spring Boot Actuator
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // 수집된 메트릭을 Prometheus 포맷으로 변환
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
     // XML 파싱용 ROME
     implementation 'com.rometools:rome:2.1.0'
 
@@ -84,6 +87,12 @@ dependencies {
 
     // Levenshtein Distance(유사도 검증 알고리즘)
     implementation 'org.apache.commons:commons-text:1.11.0'
+
+    // 스프링 캐시 추상화 라이브러리 (CacheManager, @Cacheable 등 제공)
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Caffeine Cache 구현체 라이브러리
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 }
 
 tasks.named('test') {

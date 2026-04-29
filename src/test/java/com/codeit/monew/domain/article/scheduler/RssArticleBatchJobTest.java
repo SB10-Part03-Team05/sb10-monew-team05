@@ -13,6 +13,8 @@ import com.codeit.monew.global.exception.external.client.ExternalNetworkExceptio
 import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.client.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,8 +41,13 @@ class RssArticleBatchJobTest {
     }
 
     @Bean
-    RssArticleBatchJob rssArticleBatchJob(RssSourceTxProcessor rssSourceTxProcessor) {
-      return new RssArticleBatchJob(rssSourceTxProcessor);
+    MeterRegistry meterRegistry() {
+      return new SimpleMeterRegistry();
+    }
+
+    @Bean
+    RssArticleBatchJob rssArticleBatchJob(RssSourceTxProcessor rssSourceTxProcessor, MeterRegistry meterRegistry) {
+      return new RssArticleBatchJob(rssSourceTxProcessor, meterRegistry);
     }
   }
 
@@ -50,9 +57,13 @@ class RssArticleBatchJobTest {
   @jakarta.annotation.Resource
   private RssSourceTxProcessor rssSourceTxProcessor;
 
+  @jakarta.annotation.Resource
+  private MeterRegistry meterRegistry;
+
   @BeforeEach
   void setUp() {
     reset(rssSourceTxProcessor);
+    meterRegistry.clear();
   }
 
   @Test
@@ -68,6 +79,9 @@ class RssArticleBatchJobTest {
     // Then: 결과 확인 및 호출 횟수(1회) 검증
     assertEquals(1, result.totalSavedCount());
     verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.saved.total", "source",
+        NewsSourceUrl.CHOSUN.name()).count());
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "success", "error_type", "none").count());
   }
 
   @Test
@@ -83,6 +97,7 @@ class RssArticleBatchJobTest {
     // Then: 재시도 없이 recover가 작동하여 저장 수 0을 반환하는지 확인
     assertEquals(0, result.totalSavedCount());
     verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "RATE_LIMIT").count());
   }
 
   @Test
@@ -98,6 +113,7 @@ class RssArticleBatchJobTest {
     // Then: 호출 횟수 1회 확인 및 빈 결과값 검증
     assertEquals(0, result.totalSavedCount());
     verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "CLIENT_ERROR").count());
   }
 
   @Test
@@ -115,6 +131,10 @@ class RssArticleBatchJobTest {
     // Then: 최종 성공 결과 확인 및 총 호출 횟수(3회) 검증
     assertEquals(2, result.totalSavedCount());
     verify(rssSourceTxProcessor, times(3)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(2.0, meterRegistry.counter("scheduler.article.scrape.saved.total", "source", NewsSourceUrl.CHOSUN.name()).count());
+    // 에러 2번 기록, 성공 1번 기록
+    assertEquals(2.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "SERVER_ERROR").count());
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "success", "error_type", "none").count());
   }
 
   @Test
@@ -130,6 +150,7 @@ class RssArticleBatchJobTest {
     // Then: 예외가 상위로 던져지지 않고 recover를 통해 빈 결과(0)를 반환하는지 확인
     assertEquals(0, result.totalSavedCount());
     verify(rssSourceTxProcessor, times(3)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(3.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "SERVER_ERROR").count());
   }
 
   @Test
@@ -142,6 +163,7 @@ class RssArticleBatchJobTest {
     // When & Then: 재시도나 복구 없이 즉시 예외가 던져지는지 확인
     assertThrows(RuntimeException.class, () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
     verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "UNKNOWN").count());
   }
 
   // --- 테스트용 예외 생성 헬퍼 메서드 ---

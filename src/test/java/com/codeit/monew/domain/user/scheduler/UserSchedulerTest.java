@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +26,9 @@ class UserSchedulerTest {
 
   @Mock
   private UserRepository userRepository;
+
+  @Spy
+  private MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
   @InjectMocks
   private UserScheduler userScheduler;
@@ -41,5 +47,12 @@ class UserSchedulerTest {
 
     // then
     verify(userRepository, times(1)).deleteAllInBatch(targets);
+    double deletedTotalCount = meterRegistry.counter("scheduler.user.deleted.total").count();
+    assertThat(deletedTotalCount).isEqualTo(1.0);
+    double jobSuccessCount = meterRegistry.counter("scheduler.user.job", "status", "success").count();
+    assertThat(jobSuccessCount).isEqualTo(1.0);
+    double jobSuccessTime = meterRegistry.timer("scheduler.user.job.time", "status", "success").count();
+    assertThat(jobSuccessCount).isEqualTo(1.0);
   }
+
 }

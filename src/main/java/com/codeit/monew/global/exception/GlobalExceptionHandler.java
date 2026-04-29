@@ -1,9 +1,12 @@
 package com.codeit.monew.global.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -81,6 +84,32 @@ public class GlobalExceptionHandler {
         .body(response);
   }
 
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+    log.warn("[EXCEPTION] Constraint Violation 예외: code={}, message={}", e.getClass().getSimpleName(),
+        e.getMessage(), e);
+    Map<String, Object> details = new HashMap<>();
+    e.getConstraintViolations().forEach(violation -> {
+      String propertyPath = violation.getPropertyPath().toString();
+      String fieldName = propertyPath.substring(propertyPath.lastIndexOf('.') + 1);
+
+      details.put(fieldName, violation.getMessage());
+    });
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        Instant.now(),
+        "CONSTRAINT_VIOLATION_ERROR",
+        "요청 파라미터 유효성 검사에 실패했습니다.",
+        details,
+        e.getClass().getSimpleName(),
+        HttpStatus.BAD_REQUEST.value()
+    );
+
+    return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(errorResponse);
+  }
+
   @ExceptionHandler(MissingRequestHeaderException.class)
   public ResponseEntity<ErrorResponse> handleException(MissingRequestHeaderException e) {
     log.warn("[EXCEPTION] 필수 헤더 누락 예외: code={}, header={}, message={}",
@@ -156,6 +185,22 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
   }
 
+  @ExceptionHandler({InvalidDataAccessResourceUsageException.class, DataAccessException.class})
+  public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException e) {
+    log.error("[EXCEPTION] 데이터베이스 오류: exceptionType={}", e.getClass().getSimpleName());
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        Instant.now(),
+        "DATABASE_ERROR",
+        "서버 내부 데이터베이스 오류가 발생했습니다.",
+        new HashMap<>(), // 쿼리 정보가 노출되면 안 되므로 빈 Map 전달
+        e.getClass().getSimpleName(),
+        HttpStatus.INTERNAL_SERVER_ERROR.value()
+    );
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+  }
+
   private HttpStatus determineHttpStatus(MonewException exception) {
     ErrorCode errorCode = exception.getErrorCode();
     return switch (errorCode) {
@@ -165,7 +210,7 @@ public class GlobalExceptionHandler {
       case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS ->
           HttpStatus.CONFLICT;
       case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN, NOTIFICATION_ACCESS_DENIED, NOTIFICATION_RECEIVER_MISMATCH -> HttpStatus.FORBIDDEN;
-      case COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG, INVALID_ARTICLE_ENTITY ->
+      case INVALID_PARAMETER_INPUT, COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG, INVALID_ARTICLE_ENTITY ->
           HttpStatus.BAD_REQUEST;
       case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
       case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502

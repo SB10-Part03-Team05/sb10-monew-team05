@@ -78,10 +78,47 @@ services:
     networks:
       - monew-network
 
+  # ---------------------------------------------------------
+  # [Prometheus 컨테이너]
+  # Spring 앱의 /actuator/prometheus 경로에서 주기적으로 지표 수집
+  # ---------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: monew-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - monew-prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # 도커 컨테이너가 호스트 OS를 인식할 수 있도록 설정
+    networks:
+      - monew-network
+
+  # ---------------------------------------------------------
+  # [Grafana 컨테이너]
+  # 수집된 시계열 데이터를 시각화하는 대시보드 제공
+  # ---------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monew-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - monew-grafana-data:/var/lib/grafana
+    networks:
+      - monew-network
+    depends_on:
+      - prometheus
+
 volumes:
   monew-postgres-data: # RDS로 전환 시 볼륨도 필요없으므로 주석 처리 또는 삭제하세요.
   monew-mongodb-data:
   monew-mongodb-config:
+  monew-grafana-data:
+  monew-prometheus-data:
 
 networks:
   monew-network:
