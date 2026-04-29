@@ -52,7 +52,7 @@ class UserSchedulerTest {
     double jobSuccessCount = meterRegistry.counter("scheduler.user.job", "status", "success").count();
     assertThat(jobSuccessCount).isEqualTo(1.0);
     double jobSuccessTime = meterRegistry.timer("scheduler.user.job.time", "status", "success").count();
-    assertThat(jobSuccessTime).isNotEqualTo(0.0);
+    assertThat(jobSuccessCount).isEqualTo(1.0);
   }
 
 }

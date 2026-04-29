@@ -164,7 +164,7 @@ class RssArticleBatchJobTest {
     // When & Then: 재시도나 복구 없이 즉시 예외가 던져지는지 확인
     assertThrows(RuntimeException.class, () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN));
     verify(rssSourceTxProcessor, times(1)).processOneSource(NewsSourceUrl.CHOSUN);
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "UNKNOWN").count());;
+    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(), "status", "fail", "error_type", "UNKNOWN").count());
   }
 
   // --- 테스트용 예외 생성 헬퍼 메서드 ---
