@@ -136,6 +136,12 @@ class ArticleRestoreServiceTest {
     @DisplayName("요청한 날짜 범위 내에 DB에 누락된 뉴스 기사가 없을 경우, 빈 뉴스 기사 ID 리스트를 포함해 반환한다.")
     void success_restore_when_no_missing_articles() {
       // give
+      Instant savedDate = from.atZone(KST).toInstant();
+
+      Article article = createArticle(null, ArticleSource.NAVER, "https://naver.com", "title",
+          savedDate, "summary");
+      ArticleBackupDto articleBackupDto = createArticleBackupDto(article);
+
       ArticleRestoreResultDto articleRestoreResultDto1 = createArticleRestoreResultDto(
           fromDate.atStartOfDay(KST).toInstant(),
           List.of(),
@@ -153,16 +159,20 @@ class ArticleRestoreServiceTest {
       );
 
       given(s3ArticleBackupFileStorage.readArticles(any()))
-          .willReturn(List.of());
+          .willReturn(List.of(articleBackupDto));
+      given(articleRepository.findIdsByPublishDateBetween(any(), any()))
+          .willReturn(List.of(articleBackupDto.id()));
 
       // when
       List<ArticleRestoreResultDto> result = articleRestoreService.restore(from, to);
 
-      // given
+      // then
       assertEquals(expectedRestoreArticleList, result);
 
       verify(s3ArticleBackupFileStorage, times(2)).readArticles(any());
-      verify(articleRepository, never()).findIdsByPublishDateBetween(any(), any());
+      verify(articleRepository, times(2)).findIdsByPublishDateBetween(any(), any());
+      verify(articleRepository, never()).insertRestoredArticle(any(), anyString(), anyString(),
+          anyString(), any(), anyString(), any(), any());
     }
   }
 }
