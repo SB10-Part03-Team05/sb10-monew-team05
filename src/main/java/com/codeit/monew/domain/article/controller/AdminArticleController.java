@@ -74,8 +74,10 @@ public class AdminArticleController {
     LocalDate backupDate;
     if (day == 0) {
       backupDate = LocalDate.now(KST);
-    } else {
+    } else if (day >= 1) {
       backupDate = LocalDate.now(KST).minusDays(day);
+    } else {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     log.debug("[ARTICLE_BACKUP_TEST] 뉴스 기사 백업 테스트 시작: day={}, backupDate={}", day, backupDate);
