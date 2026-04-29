@@ -11,7 +11,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,17 +83,22 @@ public class ArticleRestoreService {
     Instant toInstant = restoreDate.plusDays(1).atStartOfDay(KST).toInstant();
 
     // from ... to 사이의 뉴스 기사 id를 가져옴
-    List<UUID> savedArticleIdsInDB = articleRepository
-        .findIdsByPublishDateBetween(fromInstant, toInstant);
+    Set<UUID> savedArticleIdsInDB = new HashSet<>(
+        articleRepository.findIdsByPublishDateBetween(fromInstant, toInstant)
+    );
 
     // 백업된 뉴스 기사와 DB에 저장된 뉴스 기사 비교하여 누락된 뉴스 기사 DTO List 생성
     List<ArticleBackupDto> articlesToBeRestored = backupArticleList.stream()
         .filter(dto -> !savedArticleIdsInDB.contains(dto.id()))
         .toList();
 
+    // 복구한 뉴스 기사 ID 리스트
+    List<UUID> restoredArticleIds = new ArrayList<>();
+
     // DB에 누락된 뉴스 기사 복구
     articlesToBeRestored.forEach(dto -> {
-          articleRepository.insertRestoredArticle(
+          // 0이면 insert X, 1이면 insert O
+          int inserted = articleRepository.insertRestoredArticle(
               dto.id(),
               dto.source().toString(),
               dto.sourceUrl(),
@@ -102,13 +109,12 @@ public class ArticleRestoreService {
               dto.updatedAt()
           );
 
-          restoreArticleInterests(dto);
+          if (inserted > 0) {
+            restoreArticleInterests(dto);
+            restoredArticleIds.add(dto.id());
+          }
         }
     );
-
-    List<UUID> restoredArticleIds = articlesToBeRestored.stream()
-        .map(dto -> dto.id())
-        .toList();
 
     return new ArticleRestoreResultDto(
         restoreInstant,
