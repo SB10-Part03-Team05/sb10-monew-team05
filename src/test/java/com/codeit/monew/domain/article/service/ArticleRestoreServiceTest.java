@@ -128,6 +128,8 @@ class ArticleRestoreServiceTest {
 
       verify(s3ArticleBackupFileStorage, times(2)).readArticles(any());
       verify(articleRepository, times(2)).findIdsByPublishDateBetween(any(), any());
+      verify(articleRepository, times(2)).insertRestoredArticle(any(), anyString(), anyString(),
+          anyString(), any(), anyString(), any(), any());
     }
 
     @Test
