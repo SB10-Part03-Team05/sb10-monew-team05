@@ -29,13 +29,11 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ArticleScrapeService {
 
   private final XmlClient xmlClient;
@@ -43,6 +41,7 @@ public class ArticleScrapeService {
   private final ArticleRepository articleRepository;
   private final KeywordRepository keywordRepository;
   private final LlmSummaryService llmSummaryService;
+  private final ArticleScrapePersistenceService articleScrapePersistenceService;
 
   private static final Set<NewsSourceUrl> LLM_SUMMARY_SOURCES = EnumSet.of(
       NewsSourceUrl.HANKYUNG
@@ -154,7 +153,7 @@ public class ArticleScrapeService {
       applyLlmSummaryForCrawledArticles(toSave);
     }
 
-    articleRepository.saveAll(toSave);
+    articleScrapePersistenceService.saveAll(toSave);
 
     // 관심사별 기사 개수 집계
     Map<UUID, InterestInfo> interestResults = new HashMap<>();

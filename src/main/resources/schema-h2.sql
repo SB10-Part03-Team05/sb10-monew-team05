@@ -140,3 +140,17 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     CONSTRAINT fk_comment_likes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT uk_comment_likes_comment_user UNIQUE (comment_id, user_id)
 );
+
+-- notifications 테이블 칼럼 추가
+ALTER TABLE notifications ADD COLUMN comment_id UUID;
+ALTER TABLE notifications ADD COLUMN interest_id UUID;
+
+-- 데이터 무결성을 위한 외래 키 추가
+ALTER TABLE notifications
+    ADD CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE;
+ALTER TABLE notifications
+    ADD CONSTRAINT fk_notifications_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE;
+
+-- 인덱스 추가
+CREATE INDEX idx_notifications_comment_id ON notifications (comment_id);
+CREATE INDEX idx_notifications_interest_id ON notifications (interest_id);

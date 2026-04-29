@@ -31,7 +31,7 @@ public class GeminiLlmSummarizer implements LlmSummarizer {
   @Override
   public String summarize(String bodyText) {
     if (!StringUtils.hasText(bodyText)) {
-      throw new ExternalLlmInvalidInputException("gemini", "bodyText", bodyText);
+      throw new ExternalLlmInvalidInputException("gemini", "bodyText");
     }
 
     try {

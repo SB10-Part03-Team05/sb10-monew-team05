@@ -21,24 +21,28 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 public class LlmClientTimeoutConfig {
 
   /**
-   * LLM 서비스 응답 대기를 위한 최대 시간 (15초). 연결(Connect) 및 읽기(Read) 타임아웃에 공통으로 적용됩니다.
+   * LLM 서비스 응답 대기를 위한 설정값입니다. OpenAI/Groq은 연결 5초, 읽기 15초(총 20초 수준)를 적용하며, Gemini는 단일 타임아웃 20초를
+   * 적용합니다.
    */
-  private static final int LLM_TIMEOUT_MILLIS = 30_000;
+  private static final int OPENAI_CONNECT_TIMEOUT_MILLIS = 5_000;
+  private static final int OPENAI_READ_TIMEOUT_MILLIS = 15_000;
+  private static final int GEMINI_TIMEOUT_MILLIS = 20_000;
 
   /**
    * Spring {@link org.springframework.web.client.RestClient}를 사용하는 클라이언트를 위한 타임아웃 커스터마이저입니다. 주로
    * OpenAI 등 HTTP 기반의 표준 REST 호출을 수행하는 라이브러리에 적용됩니다.
    *
-   * @return {@link RestClientCustomizer} 15초 타임아웃 팩토리가 적용된 설정 객체
+   * @return {@link RestClientCustomizer} 연결 5초, 읽기 15초 타임아웃이 적용된 설정 객체
    */
   @Bean
   public RestClientCustomizer llmRestClientCustomizer() {
     return restClientBuilder -> {
       SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-      factory.setConnectTimeout(LLM_TIMEOUT_MILLIS);
-      factory.setReadTimeout(LLM_TIMEOUT_MILLIS);
+      factory.setConnectTimeout(OPENAI_CONNECT_TIMEOUT_MILLIS);
+      factory.setReadTimeout(OPENAI_READ_TIMEOUT_MILLIS);
       restClientBuilder.requestFactory(factory);
-      log.info("[LLM-Config] RestClient 기반 타임아웃 설정 완료 ({}ms)", LLM_TIMEOUT_MILLIS);
+      log.info("[LLM-Config] OpenAI/Groq RestClient timeout configured. connect={}ms, read={}ms",
+          OPENAI_CONNECT_TIMEOUT_MILLIS, OPENAI_READ_TIMEOUT_MILLIS);
     };
   }
 
@@ -49,7 +53,7 @@ public class LlmClientTimeoutConfig {
    * 합니다. 이 빈은 설정 파일에 API Key가 존재할 때만 생성됩니다.
    *
    * @param properties Spring AI Google GenAI 연결 설정 정보 (API Key 추출용)
-   * @return 타임아웃과 API Key가 설정된 Gemini {@link Client} 객체
+   * @return 20초 타임아웃과 API Key가 설정된 Gemini {@link Client} 객체
    */
   @Bean
   @ConditionalOnClass(Client.class)
@@ -57,10 +61,10 @@ public class LlmClientTimeoutConfig {
   public Client googleGenAiClient(GoogleGenAiConnectionProperties properties) {
     // Gemini SDK 전용 타임아웃 옵션 구성
     HttpOptions timeoutOptions = HttpOptions.builder()
-        .timeout(LLM_TIMEOUT_MILLIS)
+        .timeout(GEMINI_TIMEOUT_MILLIS)
         .build();
 
-    log.info("[LLM-Config] Gemini Client 생성 완료 (Timeout: {}ms)", LLM_TIMEOUT_MILLIS);
+    log.info("[LLM-Config] Gemini Client timeout configured. timeout={}ms", GEMINI_TIMEOUT_MILLIS);
 
     // API Key와 타임아웃 옵션을 결합하여 클라이언트 반환
     return Client.builder()

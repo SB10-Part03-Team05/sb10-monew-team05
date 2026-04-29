@@ -31,18 +31,20 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
-      base-url: ${OPENAI_BASE_URL}
+      base-url: ${OPENAI_BASE_URL:https://api.groq.com/openai}
       chat:
         options:
-          model: ${OPENAI_CHAT_MODEL}
-          temperature: ${OPENAI_TEMPERATURE}
+          model: ${OPENAI_CHAT_MODEL:meta-llama/llama-4-scout-17b-16e-instruct}
+          temperature: ${OPENAI_TEMPERATURE:0.2}
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
         chat:
           options:
-            model: ${GEMINI_MODEL}
-            temperature: ${GEMINI_TEMPERATURE}
+            model: ${GEMINI_MODEL:gemini-3.1-flash-lite-preview}
+            temperature: ${GEMINI_TEMPERATURE:GEMINI_TEMPERATURE=0.2}
+    retry:
+      max-attempts: ${SPRING_AI_RETRY_MAX_ATTEMPTS:1}
 
 # 환경 변수 설정
 monew:

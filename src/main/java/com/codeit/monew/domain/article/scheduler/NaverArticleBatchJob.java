@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.article.scheduler;
 
+import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.global.exception.external.ExternalApiException;
 import com.codeit.monew.global.exception.external.client.ExternalClientException;
 import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
@@ -7,6 +8,7 @@ import com.codeit.monew.global.exception.external.client.ExternalNetworkExceptio
 import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.client.ExternalServerException;
 import com.codeit.monew.global.exception.external.parser.ExternalInvalidXmlException;
+import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +23,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NaverArticleBatchJob {
 
-  private final NaverKeywordTxProcessor naverKeywordTxProcessor;
+  private final ArticleScrapeService articleScrapeService;
   private final MeterRegistry meterRegistry;
 
   @Retryable(
       // 재시도 대상: 429에러, 서버 에러 및 네트워크 장애 (일시적 오류)
       retryFor = {ExternalRateLimitException.class, ExternalServerException.class,
-          ExternalNetworkException.class, ExternalEmptyResponseException.class},
+          ExternalNetworkException.class},
       // 재시도 제외: 4xx 에러, XML 파싱 후 엔트리 전환 실패, 빈 XML 응답
       noRetryFor = {ExternalClientException.class, ExternalInvalidXmlException.class,
           ExternalEmptyResponseException.class},
@@ -39,7 +41,7 @@ public class NaverArticleBatchJob {
     String status = "success";
     String errorType = "none"; // 에러 유형 초기화
     try {
-      ArticleScrapeResult result = naverKeywordTxProcessor.processOneKeyword(keyword);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, keyword);
       if (result.totalSavedCount() > 0) {
         meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER")
             .increment(result.totalSavedCount());

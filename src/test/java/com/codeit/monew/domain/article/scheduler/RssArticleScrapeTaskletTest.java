@@ -3,6 +3,7 @@ package com.codeit.monew.domain.article.scheduler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,11 +11,14 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,34 +44,52 @@ class RssArticleScrapeTaskletTest {
   private ChunkContext chunkContext;
 
   @Test
-  @DisplayName("YONHAP까지 실행하고 다음 소스에서 Unknown에러가 발생해서 다른 RSS와 네이버는 건너뛰며 전체 결과를 병합한다")
-  void execute_runs_non_naver_sources_and_merges() {
-    // Given: 각 언론사별(RSS) 실행 결과 설정 (NAVER 제외)
-    when(rssArticleBatchJob.run(NewsSourceUrl.HANKYUNG))
-        .thenReturn(new ArticleScrapeResult(1, Map.of()));
-    when(rssArticleBatchJob.run(NewsSourceUrl.CHOSUN))
-        .thenReturn(new ArticleScrapeResult(2, Map.of()));
-    when(rssArticleBatchJob.run(NewsSourceUrl.YONHAP))
-        .thenReturn(new ArticleScrapeResult(3, Map.of()));
+  @DisplayName("NAVER를 제외한 모든 소스를 순서대로 실행하며, 에러 발생 시 이후 소스는 건너뛰고 결과를 병합한다")
+  void execute_runs_non_naver_sources_dynamically_until_error() {
+    // 1. Given: 전체 소스 중 NAVER를 제외한 실행 대상 리스트 준비
+    List<NewsSourceUrl> targetSources = Arrays.stream(NewsSourceUrl.values())
+        .filter(source -> source != NewsSourceUrl.NAVER) // NAVER는 RSS 배치가 아니므로 제외
+        .toList();
 
-    // When: YNA에서 에러 발생
-    when(rssArticleBatchJob.run(NewsSourceUrl.YNA))
-        .thenThrow(new RuntimeException("fatal"));
+    NewsSourceUrl errorSource = NewsSourceUrl.YNA; // 에러가 발생할 지점
+    int expectedTotalCount = 0;
+    int countPerSource = 1;
+
+    for (NewsSourceUrl source : targetSources) {
+      if (source == errorSource) {
+        // 에러 지점 모킹
+        when(rssArticleBatchJob.run(source)).thenThrow(new RuntimeException("fatal"));
+        break;
+      }
+      // 정상 지점 모킹 및 예상 결과 누적
+      expectedTotalCount += countPerSource;
+      when(rssArticleBatchJob.run(source))
+          .thenReturn(new ArticleScrapeResult(countPerSource, Map.of()));
+    }
+
+    // 2. When: Tasklet 실행 및 예외 확인
     assertThrows(RuntimeException.class, () -> tasklet.execute(contribution, chunkContext));
 
-    // Then: 실행 상태 확인 및 소스별 호출 여부 검증
-    verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.HANKYUNG);
-    verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.CHOSUN);
-    verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.YONHAP);
-    verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.YNA);
+    // 3. Then: 호출 순서 및 제외 대상 검증
+    InOrder inOrder = inOrder(rssArticleBatchJob);
 
-    // 이후 RSS 소스와 NAVER는 호출되지 않아야 함 (필터링 검증)
+    for (NewsSourceUrl source : targetSources) {
+      inOrder.verify(rssArticleBatchJob).run(source);
+      if (source == errorSource) {
+        break; // 에러 지점까지만 호출 확인
+      }
+    }
+
+    // [중요] NAVER는 아예 호출되지 않았음을 보장
+    verify(rssArticleBatchJob, never()).run(NewsSourceUrl.NAVER);
+
+    // 에러 발생 이후의 소스들이 호출되지 않았음을 보장
     verifyNoMoreInteractions(rssArticleBatchJob);
 
-    // Context Manager에 최종 합계(1+2+3=6)가 전달되었는지 확인
+    // Context Manager에 에러 발생 전까지의 합산 결과(expectedTotalCount)가 잘 전달되었는지 확인
     ArgumentCaptor<ArticleScrapeResult> captor = ArgumentCaptor.forClass(ArticleScrapeResult.class);
-    verify(contextManager, times(1)).merge(any(ChunkContext.class), captor.capture());
-    assertEquals(6, captor.getValue().totalSavedCount());
+    verify(contextManager).merge(any(ChunkContext.class), captor.capture());
+    assertEquals(expectedTotalCount, captor.getValue().totalSavedCount());
   }
 
   @Test

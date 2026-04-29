@@ -31,7 +31,7 @@ public class OpenAiLlmSummarizer implements LlmSummarizer {
   @Override
   public String summarize(String bodyText) {
     if (!StringUtils.hasText(bodyText)) {
-      throw new ExternalLlmInvalidInputException("openai", "bodyText", bodyText);
+      throw new ExternalLlmInvalidInputException("openai", "bodyText");
     }
 
     try {

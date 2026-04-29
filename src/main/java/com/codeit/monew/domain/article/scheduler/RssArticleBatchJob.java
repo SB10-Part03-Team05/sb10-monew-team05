@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.article.scheduler;
 
+import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.global.exception.external.ExternalApiException;
 import com.codeit.monew.global.exception.external.client.ExternalClientException;
 import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RssArticleBatchJob {
 
-  private final RssSourceTxProcessor rssSourceTxProcessor;
+  private final ArticleScrapeService articleScrapeService;
   private final MeterRegistry meterRegistry;
 
   @Retryable(
@@ -41,7 +42,7 @@ public class RssArticleBatchJob {
     String sourceName = source.name(); // 예: CHOSUN, JOONGANG
 
     try {
-      ArticleScrapeResult result = rssSourceTxProcessor.processOneSource(source);
+      ArticleScrapeResult result = articleScrapeService.scrapeAndSave(source, null);
       if (result.totalSavedCount() > 0) {
         meterRegistry.counter("scheduler.article.scrape.saved.total", "source", sourceName)
             .increment(result.totalSavedCount());
@@ -93,7 +94,7 @@ public class RssArticleBatchJob {
 
   @Recover
   public ArticleScrapeResult recover(ExternalApiException e, NewsSourceUrl source) {
-    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}, statusCode={}}",
+    log.error("[RSS_BATCH] source={} 처리 실패 (재시도 소진 또는 스킵). error={}, statusCode={}",
         source, e.getMessage(), e.getStatusCode(), e);
     return ArticleScrapeResult.empty();
   }
