@@ -47,5 +47,12 @@ class UserSchedulerTest {
 
     // then
     verify(userRepository, times(1)).deleteAllInBatch(targets);
+    double deletedTotalCount = meterRegistry.counter("scheduler.user.deleted.total").count();
+    assertThat(deletedTotalCount).isEqualTo(1.0);
+    double jobSuccessCount = meterRegistry.counter("scheduler.user.job", "status", "success").count();
+    assertThat(jobSuccessCount).isEqualTo(1.0);
+    double jobSuccessTime = meterRegistry.timer("scheduler.user.job.time", "status", "success").count();
+    assertThat(jobSuccessTime).isNotEqualTo(0.0);
   }
+
 }
