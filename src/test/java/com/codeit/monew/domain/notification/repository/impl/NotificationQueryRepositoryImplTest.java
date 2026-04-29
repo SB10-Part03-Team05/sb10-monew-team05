@@ -2,13 +2,19 @@ package com.codeit.monew.domain.notification.repository.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.entity.Article;
+import com.codeit.monew.domain.comment.entity.Comment;
+import com.codeit.monew.domain.notification.entity.CommentNotification;
 import com.codeit.monew.domain.notification.entity.Notification;
 import com.codeit.monew.domain.notification.repository.impl.NotificationQueryRepositoryImpl;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
 import com.codeit.monew.global.config.JpaAuditingConfig;
 import com.codeit.monew.global.config.QueryDslConfig;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,22 +47,43 @@ class NotificationQueryRepositoryImplTest {
     return userRepository.save(user);
   }
 
-  private Notification createTestNotification(User user, String content) {
-    try {
-      Class<?> clazz = Class.forName("com.codeit.monew.domain.notification.entity.CommentNotification");
-      java.lang.reflect.Constructor<?> constructor = clazz.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      Notification notification = (Notification) constructor.newInstance();
+  private Article createTestArticle() {
+    String uniqueUrl = "https://news.com/" + UUID.randomUUID().toString();
 
-      org.springframework.test.util.ReflectionTestUtils.setField(notification, "user", user);
-      org.springframework.test.util.ReflectionTestUtils.setField(notification, "content", content);
+    ArticleSource dummySource = ArticleSource.values()[0];
 
-      org.springframework.test.util.ReflectionTestUtils.setField(notification, "resourceId", java.util.UUID.randomUUID());
+    Article article = Article.createArticle(
+        dummySource,
+        uniqueUrl,
+        "테스트 기사 제목",
+        Instant.now(),
+        "테스트 기사 요약"
+    );
+    return em.persist(article);
+  }
 
-      return em.persist(notification);
-    } catch (Exception e) {
-      throw new RuntimeException("테스트 알림 생성 실패", e);
-    }
+  private Comment createTestComment(User user) {
+    Article article = createTestArticle();
+    Comment comment = new Comment(article, user, "테스트 댓글");
+    return em.persist(comment);
+  }
+
+  private Notification createTestNotification(User user, String content, Instant createdAt) {
+    Comment comment = createTestComment(user);
+    CommentNotification notification = CommentNotification.create(user, content, comment);
+
+    em.persist(notification);
+    em.flush();
+
+    em.getEntityManager()
+        .createQuery("UPDATE Notification n SET n.createdAt = :createdAt WHERE n.id = :id")
+        .setParameter("createdAt", createdAt)
+        .setParameter("id", notification.getId())
+        .executeUpdate();
+
+    em.clear();
+
+    return em.find(CommentNotification.class, notification.getId());
   }
 
   @BeforeEach
@@ -71,8 +98,10 @@ class NotificationQueryRepositoryImplTest {
     @Test
     @DisplayName("미확인 알림 개수를 정확히 카운트한다.")
     void countUnconfirmedByUserId() {
-      createTestNotification(testUser, "알림 1");
-      createTestNotification(testUser, "알림 2");
+      Instant t1 = Instant.parse("2026-01-01T00:00:00Z");
+      Instant t2 = Instant.parse("2026-01-01T00:00:01Z");
+      Notification noti1 = createTestNotification(testUser, "알림 1", t1);
+      Notification noti2 = createTestNotification(testUser, "알림 2", t2);
 
       long count = notificationQueryRepository.countUnconfirmedByUserId(testUser.getId());
 
@@ -81,10 +110,11 @@ class NotificationQueryRepositoryImplTest {
 
     @Test
     @DisplayName("커서 기반 페이징 조회가 정상 작동한다.")
-    void findUnconfirmedByCursor() throws InterruptedException {
-      Notification noti1 = createTestNotification(testUser, "알림 1");
-      Thread.sleep(10);
-      Notification noti2 = createTestNotification(testUser, "알림 2");
+    void findUnconfirmedByCursor() {
+      Instant t1 = Instant.parse("2026-01-01T00:00:00Z");
+      Instant t2 = Instant.parse("2026-01-01T00:00:01Z");
+      Notification noti1 = createTestNotification(testUser, "알림 1", t1);
+      Notification noti2 = createTestNotification(testUser, "알림 2", t2);
 
       List<Notification> result = notificationQueryRepository.findUnconfirmedByCursor(
           testUser.getId(), null, null, 10
