@@ -83,6 +83,7 @@ class NotificationServiceTest {
       // when
       notificationService.createInterestNotifications(emptyEvent);
       notificationService.createInterestNotifications(nullEvent);
+      notificationService.createInterestNotifications(null);
 
       // then
       verify(subscriptionRepository, never()).findAllByInterestIdInWithUserAndInterest(anyList());
