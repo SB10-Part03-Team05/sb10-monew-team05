@@ -13,6 +13,8 @@ import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,8 +41,13 @@ class RssArticleBatchJobTest {
     }
 
     @Bean
-    RssArticleBatchJob rssArticleBatchJob(RssSourceTxProcessor rssSourceTxProcessor) {
-      return new RssArticleBatchJob(rssSourceTxProcessor);
+    MeterRegistry meterRegistry() {
+      return new SimpleMeterRegistry();
+    }
+
+    @Bean
+    RssArticleBatchJob rssArticleBatchJob(RssSourceTxProcessor rssSourceTxProcessor, MeterRegistry meterRegistry) {
+      return new RssArticleBatchJob(rssSourceTxProcessor, meterRegistry);
     }
   }
 

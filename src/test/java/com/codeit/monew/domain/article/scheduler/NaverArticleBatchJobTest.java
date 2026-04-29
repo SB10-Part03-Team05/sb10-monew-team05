@@ -13,6 +13,8 @@ import com.codeit.monew.global.exception.external.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.ExternalServerException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,8 +37,13 @@ class NaverArticleBatchJobTest {
     }
 
     @Bean
-    NaverArticleBatchJob naverArticleBatchJob(NaverKeywordTxProcessor naverKeywordTxProcessor) {
-      return new NaverArticleBatchJob(naverKeywordTxProcessor);
+    MeterRegistry meterRegistry() {
+      return new SimpleMeterRegistry();
+    }
+
+    @Bean
+    NaverArticleBatchJob naverArticleBatchJob(NaverKeywordTxProcessor naverKeywordTxProcessor, MeterRegistry meterRegistry) {
+      return new NaverArticleBatchJob(naverKeywordTxProcessor, meterRegistry);
     }
   }
 

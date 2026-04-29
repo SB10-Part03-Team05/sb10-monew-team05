@@ -76,8 +76,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,loggers
+        include: health,info,metrics,loggers,prometheus
   endpoint:
+    prometheus:
+      access: read-only  # 또는 unconditional (버전에 따라 다를 수 있음)
+    metrics:
+      access: read-only
     health:
       show-details: never
 
