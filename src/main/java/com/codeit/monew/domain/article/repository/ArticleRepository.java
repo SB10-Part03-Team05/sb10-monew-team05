@@ -63,7 +63,8 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, Article
   @Query(
       value = """
           INSERT INTO articles (id, source, source_url, title, publish_date, summary, created_at, updated_at) 
-                VALUES (:id, :source, :sourceUrl, :title, :publishDate, :summary, :createdAt, :updatedAt) 
+          VALUES (:id, :source, :sourceUrl, :title, :publishDate, :summary, :createdAt, :updatedAt)
+          ON CONFLICT (id) DO NOTHING;
           """,
       nativeQuery = true
   )

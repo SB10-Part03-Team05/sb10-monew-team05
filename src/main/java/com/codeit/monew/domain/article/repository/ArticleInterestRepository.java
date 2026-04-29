@@ -8,18 +8,15 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ArticleInterestRepository extends JpaRepository<ArticleInterest, ArticleInterestId> {
+public interface ArticleInterestRepository extends
+    JpaRepository<ArticleInterest, ArticleInterestId> {
 
   @Modifying
   @Query(value = """
       INSERT INTO article_interests (article_id, interest_id)
       SELECT :articleId, :interestId
       WHERE EXISTS (SELECT 1 FROM interests WHERE id = :interestId)
-            AND NOT EXISTS (
-                  SELECT 1 FROM article_interests
-                  WHERE article_id = :articleId
-                    AND interest_id = :interestId
-            )
+      ON CONFLICT (article_id, interest_id) DO NOTHING
       """,
       nativeQuery = true)
   int insertArticleInterestIfNotExists(
