@@ -62,7 +62,7 @@ public class ArticleBackupMapperTest {
   }
 
   @Test
-  @DisplayName("뉴스 기사와 매핑된 관심사가 없을 경우(null`), 빈 배열을 반환한다.")
+  @DisplayName("뉴스 기사와 매핑된 관심사가 없을 경우(null), 빈 배열을 반환한다.")
   void returns_empty_list_when_articleInterests_is_null() {
     // given
     Article article = createArticle(null, ArticleSource.NAVER, "https://naver.com", "title",
