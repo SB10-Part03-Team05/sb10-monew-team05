@@ -91,12 +91,12 @@ class XmlParserTest {
     }
 
     @Test
-    @DisplayName("XML 포맷이 잘못되면 ExternalInvalidXmlException(feed_parse_failed)")
+    @DisplayName("XML 포맷이 잘못되면 ExternalInvalidXmlException(reason : invalid_xml)")
     void throw_when_feed_parse_failed() {
       ExternalInvalidXmlException ex = assertThrows(ExternalInvalidXmlException.class,
           () -> xmlParser.parse("<not-xml>", NewsSourceUrl.CHOSUN));
 
-      assertEquals("feed_parse_failed", ex.getDetails().get("reason"));
+      assertEquals("invalid_xml", ex.getDetails().get("reason"));
     }
 
     @Test
@@ -239,27 +239,7 @@ class XmlParserTest {
     }
 
     @Test
-    @DisplayName("HANKYUNG 크롤링 텍스트가 길면 summary는 220자로 절단")
-    void truncate_crawled_body_for_summary() {
-      String xml = rssXml(item(
-          "기사",
-          "https://example.com/6",
-          "Mon, 21 Apr 2026 09:00:00 GMT",
-          null,
-          null
-      ));
-      String longBody = "가".repeat(260);
-      given(articleBodyCrawler.crawlBodyText("https://example.com/6", NewsSourceUrl.HANKYUNG))
-          .willReturn(longBody);
-
-      List<Article> result = xmlParser.parse(xml, NewsSourceUrl.HANKYUNG);
-
-      assertEquals(223, result.get(0).getSummary().length());
-      assertEquals("...", result.get(0).getSummary().substring(220));
-    }
-
-    @Test
-    @DisplayName("description과 contents 없고 비한경이면 기본 요약 문구")
+    @DisplayName("description과 contents 없고 크롤러 지원 소스가 아니면 기본 요약 문구")
     void summary_fallback_default_message() {
       String xml = rssXml(item(
           "기사",
@@ -273,7 +253,6 @@ class XmlParserTest {
 
       assertFalse(result.get(0).getSummary().isBlank());
       assertEquals("요약이 제공되지 않는 출처입니다", result.get(0).getSummary());
-      verifyNoInteractions(articleBodyCrawler);
     }
 
     @Test

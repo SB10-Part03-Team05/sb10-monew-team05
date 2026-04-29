@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
@@ -42,7 +43,8 @@ class NaverArticleBatchJobTest {
     }
 
     @Bean
-    NaverArticleBatchJob naverArticleBatchJob(NaverKeywordTxProcessor naverKeywordTxProcessor, MeterRegistry meterRegistry) {
+    NaverArticleBatchJob naverArticleBatchJob(NaverKeywordTxProcessor naverKeywordTxProcessor,
+        MeterRegistry meterRegistry) {
       return new NaverArticleBatchJob(naverKeywordTxProcessor, meterRegistry);
     }
   }
@@ -75,8 +77,11 @@ class NaverArticleBatchJobTest {
     // Then: 결과값 확인 및 호출 횟수(1회) 검증
     assertEquals(1, result.totalSavedCount());
     verify(naverKeywordTxProcessor, times(1)).processOneKeyword("삼성");
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "success", "error_type", "none").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status",
+            "success", "error_type", "none").count());
   }
 
   @Test
@@ -93,11 +98,16 @@ class NaverArticleBatchJobTest {
     // Then: 최종 성공 결과 확인 및 총 호출 횟수(2회) 검증
     assertEquals(2, result.totalSavedCount());
     verify(naverKeywordTxProcessor, times(2)).processOneKeyword("삼성");
-    assertEquals(2.0, meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
+    assertEquals(2.0,
+        meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
     // 첫 번째 시도 (실패 기록)
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "RATE_LIMIT").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "RATE_LIMIT").count());
     // 두 번째 시도 (성공 기록)
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "success", "error_type", "none").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status",
+            "success", "error_type", "none").count());
   }
 
   @Test
@@ -114,9 +124,13 @@ class NaverArticleBatchJobTest {
     );
     // 최대 시도 횟수(maxAttempts = 3)만큼 호출되었는지 검증
     verify(naverKeywordTxProcessor, times(3)).processOneKeyword("삼성");
-    assertEquals(3.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "RATE_LIMIT").count());
+    assertEquals(3.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "RATE_LIMIT").count());
     // 성공 기록은 없어야 함: 0.0
-    assertEquals(0.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "success", "error_type", "none").count());
+    assertEquals(0.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status",
+            "success", "error_type", "none").count());
   }
 
   @Test
@@ -133,7 +147,9 @@ class NaverArticleBatchJobTest {
     );
     // 재시도 대상이 아니므로 호출 횟수는 1회여야 함
     verify(naverKeywordTxProcessor, times(1)).processOneKeyword("삼성");
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "CLIENT_ERROR").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "CLIENT_ERROR").count());
   }
 
   @Test
@@ -151,11 +167,16 @@ class NaverArticleBatchJobTest {
     // Then: 최종 결과 확인 및 총 호출 횟수(3회) 검증
     assertEquals(3, result.totalSavedCount());
     verify(naverKeywordTxProcessor, times(3)).processOneKeyword("삼성");
-    assertEquals(3.0, meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
+    assertEquals(3.0,
+        meterRegistry.counter("scheduler.article.scrape.saved.total", "source", "NAVER").count());
     // 서버/네트워크 에러로 2번 실패 기록
-    assertEquals(2.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "SERVER_ERROR").count());
+    assertEquals(2.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "SERVER_ERROR").count());
     // 1번 성공 기록
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "success", "error_type", "none").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status",
+            "success", "error_type", "none").count());
   }
 
   @Test
@@ -171,7 +192,9 @@ class NaverArticleBatchJobTest {
         () -> naverArticleBatchJob.run("삼성")
     );
     verify(naverKeywordTxProcessor, times(3)).processOneKeyword("삼성");
-    assertEquals(3.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "SERVER_ERROR").count());
+    assertEquals(3.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "SERVER_ERROR").count());
   }
 
   @Test
@@ -184,24 +207,28 @@ class NaverArticleBatchJobTest {
     // When & Then: 아무런 재시도나 복구 로직 없이 즉시 예외 전파 확인
     assertThrows(RuntimeException.class, () -> naverArticleBatchJob.run("삼성"));
     verify(naverKeywordTxProcessor, times(1)).processOneKeyword("삼성");
-    assertEquals(1.0, meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail", "error_type", "UNKNOWN").count());
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "UNKNOWN").count());
   }
 
   // --- 테스트용 예외 생성 헬퍼 메서드 ---
 
   private ExternalRateLimitException rateLimit() {
     return new ExternalRateLimitException(
-        NewsSourceUrl.NAVER, "https://x", true, false, new RuntimeException("429"));
+        NewsSourceUrl.NAVER, "https://x", HttpStatus.TOO_MANY_REQUESTS,
+        new RuntimeException("429"));
   }
 
   private ExternalClientException clientError() {
     return new ExternalClientException(
-        NewsSourceUrl.NAVER, "https://x", 400, new RuntimeException("400"));
+        NewsSourceUrl.NAVER, "https://x", HttpStatus.BAD_REQUEST, new RuntimeException("400"));
   }
 
   private ExternalServerException serverError() {
     return new ExternalServerException(
-        NewsSourceUrl.NAVER, "https://x", 500, new RuntimeException("500"));
+        NewsSourceUrl.NAVER, "https://x", HttpStatus.SERVICE_UNAVAILABLE,
+        new RuntimeException("500"));
   }
 
   private ExternalNetworkException networkError() {

@@ -3,6 +3,7 @@ package com.codeit.monew.infra.external.rss;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.external.client.ExternalClientException;
 import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
 import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
@@ -130,9 +132,11 @@ class XmlClientRestSliceTest {
       ExternalRateLimitException ex = assertThrows(ExternalRateLimitException.class,
           () -> xmlClient.fetchNaverXml("네이버"));
 
-      // then: 네이버 API의 429 에러는 즉시 재시도 가능하고(isRetryable = true), 다음 배치 재시도가 아님을 검증
-      assertTrue(ex.isRetryable());
-      assertFalse(ex.isRetryNextBatch());
+      // then: 발생한 예외가 외부 API 속도 제한(RATE_LIMIT) 관련 정보들을 정확히 포함하고 있는지 검증
+      assertEquals(ErrorCode.EXTERNAL_RATE_LIMITED, ex.getErrorCode());
+      assertEquals(NewsSourceUrl.NAVER, ex.getSource());
+      assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatusCode());
+      assertTrue(ex.getUrl().contains("openapi.naver.com/v1/search/news.xml"));
     }
 
     @Test
@@ -146,9 +150,11 @@ class XmlClientRestSliceTest {
       ExternalRateLimitException ex = assertThrows(ExternalRateLimitException.class,
           () -> xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN));
 
-      // then: RSS의 429 에러는 즉시 재시도가 불가하며(isRetryable = false), 다음 배치에서 재시도해야 함을 검증
-      assertFalse(ex.isRetryable());
-      assertTrue(ex.isRetryNextBatch());
+      // then: RSS 소스에 대한 429 에러가 발생했을 때, 해당 소스 정보(CHOSUN)와 URL이 예외 객체에 잘 담겼는지 검증
+      assertEquals(ErrorCode.EXTERNAL_RATE_LIMITED, ex.getErrorCode());
+      assertEquals(NewsSourceUrl.CHOSUN, ex.getSource());
+      assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatusCode());
+      assertEquals(NewsSourceUrl.CHOSUN.resolveRssUrl(), ex.getUrl());
     }
 
     @Test

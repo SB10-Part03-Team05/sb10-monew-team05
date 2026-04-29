@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.repeat.RepeatStatus;
 
 @ExtendWith(MockitoExtension.class)
 class RssArticleScrapeTaskletTest {
@@ -41,7 +40,7 @@ class RssArticleScrapeTaskletTest {
   private ChunkContext chunkContext;
 
   @Test
-  @DisplayName("RSS 소스만 실행하고 NAVER는 건너뛰며 전체 결과를 병합한다")
+  @DisplayName("YONHAP까지 실행하고 다음 소스에서 Unknown에러가 발생해서 다른 RSS와 네이버는 건너뛰며 전체 결과를 병합한다")
   void execute_runs_non_naver_sources_and_merges() {
     // Given: 각 언론사별(RSS) 실행 결과 설정 (NAVER 제외)
     when(rssArticleBatchJob.run(NewsSourceUrl.HANKYUNG))
@@ -51,19 +50,18 @@ class RssArticleScrapeTaskletTest {
     when(rssArticleBatchJob.run(NewsSourceUrl.YONHAP))
         .thenReturn(new ArticleScrapeResult(3, Map.of()));
 
-    // When: Tasklet 실행
-    RepeatStatus status = tasklet.execute(contribution, chunkContext);
+    // When: YNA에서 에러 발생
+    when(rssArticleBatchJob.run(NewsSourceUrl.YNA))
+        .thenThrow(new RuntimeException("fatal"));
+    assertThrows(RuntimeException.class, () -> tasklet.execute(contribution, chunkContext));
 
     // Then: 실행 상태 확인 및 소스별 호출 여부 검증
-    assertEquals(RepeatStatus.FINISHED, status);
-
-    // 각 RSS 소스는 1회씩 호출되어야 함
     verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.HANKYUNG);
     verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.CHOSUN);
     verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.YONHAP);
+    verify(rssArticleBatchJob, times(1)).run(NewsSourceUrl.YNA);
 
-    // NAVER 소스는 RSS Tasklet에서 호출되지 않아야 함 (필터링 검증)
-    verify(rssArticleBatchJob, never()).run(NewsSourceUrl.NAVER);
+    // 이후 RSS 소스와 NAVER는 호출되지 않아야 함 (필터링 검증)
     verifyNoMoreInteractions(rssArticleBatchJob);
 
     // Context Manager에 최종 합계(1+2+3=6)가 전달되었는지 확인

@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,7 +13,6 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ArticleBodyCrawler {
 
   private static final Duration CACHE_TTL = Duration.ofHours(6);
@@ -26,14 +24,28 @@ public class ArticleBodyCrawler {
   private final Map<CacheKey, CacheValue> bodyTextCache = new ConcurrentHashMap<>();
 
   private final XmlClient xmlClient;
-  private final HankyungCrawler hankyungCrawler;
-  // private final MaeilCrawler maeilCrawler; // 추후 추가 예정
+  private final Map<NewsSourceUrl, CommonArticleCrawler> crawlerMap;
+
+  public ArticleBodyCrawler(XmlClient xmlClient, // 크롤링 할 소스 추가되면 생성자에 추가하면 됨
+      HankyungCrawler hankyungCrawler) {
+    this.xmlClient = xmlClient;
+    this.crawlerMap = Map.of(
+        NewsSourceUrl.HANKYUNG, hankyungCrawler
+    );
+  }
 
   /**
    * 특정 매체의 기사 URL로부터 본문 텍스트를 크롤링합니다.
    */
   public String crawlBodyText(String articleUrl, NewsSourceUrl source) {
+    // 크롤링 할 URL이 비어있으면 빈 값 반환
     if (!StringUtils.hasText(articleUrl)) {
+      return "";
+    }
+
+    // 크롤링 지원 소스가 아니면 빈 값 반환
+    CommonArticleCrawler crawler = crawlerMap.get(source);
+    if (crawler == null) {
       return "";
     }
 
@@ -54,13 +66,9 @@ public class ArticleBodyCrawler {
       // 외부 서버에서 HTML 원문 fetch
       String html = xmlClient.fetchArticleHtml(source, normalizedUrl);
 
-      // 매체별 전용 크롤러로 본문 텍스트 추출 (Strategy 패턴 방식)
-      String crawledBodyText = switch (source) {
-        case HANKYUNG -> hankyungCrawler.crawl(html);
-        // case MAEIL -> maeilCrawler.crawl(html);
-        default -> "";
-      };
-      
+      // 매체별 전용 크롤러로 본문 텍스트 추출
+      String crawledBodyText = crawler.crawl(html);
+
       // 기사 원문이 너무 길 경우 자르기
       String normalizedBodyText = limitBodyLength(crawledBodyText);
 

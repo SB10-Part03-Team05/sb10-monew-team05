@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.article.ArticleScrapeException;
 import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.infra.external.llm.LlmSummaryService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
@@ -46,6 +48,8 @@ class ArticleScrapeServiceTest {
   private ArticleRepository articleRepository;
   @Mock
   private KeywordRepository keywordRepository;
+  @Mock
+  private LlmSummaryService llmSummaryService;
 
   @InjectMocks
   private ArticleScrapeService articleScrapeService;
@@ -281,10 +285,32 @@ class ArticleScrapeServiceTest {
     }
 
     @Test
-    @DisplayName("저장 대상이 있으면 saveAll 호출")
-    void call_save_all_when_to_save_exists() {
-      // given: 정상적으로 관심사가 매핑되는 기사가 존재하는 상황
+    @DisplayName("요약이 있는 소스: 저장 대상이 있으면 saveAll 호출")
+    void call_save_all_for_chosun() {
+      // given: 조선일보처럼 이미 요약이 포함된 소스로부터 기사(카카오)가 파싱된 상황 설정
       Article a1 = article("https://a.com/1", "카카오", "톡");
+      Interest kakao = interest("카카오");
+      Keyword k = keyword(kakao, "카카오");
+
+      given(xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN)).willReturn("<xml/>");
+      given(xmlParser.parse("<xml/>", NewsSourceUrl.CHOSUN)).willReturn(List.of(a1));
+      given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
+      given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
+      given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
+
+      // when: 조선일보 소스에 대해 스크래핑 및 저장 로직 실행
+      articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+
+      // then: 이미 요약이 있으므로 LLM 요약을 호출하지 않고 바로 saveAll이 호출되는지 검증
+      verify(articleRepository).saveAll(anyList());
+      verify(llmSummaryService, never()).summarizeOrOriginal(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("요약이 없어 크롤링 후 LLM 사용 소스: 요약 후 saveAll 호출")
+    void call_save_all_for_hankyung_with_llm_summary() {
+      // given: 한국경제처럼 원문 요약이 부족해 LLM 요약이 필요한 기사(카카오) 설정
+      Article a1 = article("https://a.com/1", "카카오", "원문 요약");
       Interest kakao = interest("카카오");
       Keyword k = keyword(kakao, "카카오");
 
@@ -292,13 +318,17 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
+      given(llmSummaryService.summarizeOrOriginal("원문 요약", "https://a.com/1"))
+          .willReturn("LLM 요약");
       given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
-      // when: 스크래핑 로직 실행
+      // when: 한국경제 소스에 대해 스크래핑 및 저장 로직 실행
       articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
 
-      // then: 저장해야 할 엔티티들이 리스트 형태로 한 번에 saveAll 메서드를 통해 호출되는지 검증
+      // then: LLM 요약 서비스가 호출되었는지 확인하고, 기사 객체에 요약문이 업데이트되었는지 검증
+      verify(llmSummaryService).summarizeOrOriginal("원문 요약", "https://a.com/1");
       verify(articleRepository).saveAll(anyList());
+      assertEquals("LLM 요약", a1.getSummary());
     }
   }
 

@@ -44,8 +44,10 @@ public class ArticleScrapeService {
   private final KeywordRepository keywordRepository;
   private final LlmSummaryService llmSummaryService;
 
-  private static final Set<NewsSourceUrl> LLM_SUMMARY_SOURCES =
-      EnumSet.of(NewsSourceUrl.HANKYUNG); // 나중에 크롤링 할 소스 추가
+  private static final Set<NewsSourceUrl> LLM_SUMMARY_SOURCES = EnumSet.of(
+      NewsSourceUrl.HANKYUNG
+      // NewsSourceUrl.MAEIL, // 나중에 크롤링 할 소스 추가
+  );
 
   public ArticleScrapeResult scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
