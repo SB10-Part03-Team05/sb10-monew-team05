@@ -8,23 +8,33 @@ import static org.mockito.BDDMockito.given;
 import com.codeit.monew.domain.article.dto.request.ArticleSearchRequest;
 import com.codeit.monew.domain.article.dto.response.ArticleDto;
 import com.codeit.monew.domain.article.ArticleSource;
+import com.codeit.monew.domain.article.dto.response.ArticleRestoreResultDto;
 import com.codeit.monew.domain.article.dto.response.ArticleViewDto;
 import com.codeit.monew.domain.article.dto.response.CursorPageResponseArticleDto;
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.entity.ArticleViewHistory;
 import com.codeit.monew.domain.article.entity.type.ArticleDirection;
 import com.codeit.monew.domain.article.entity.type.ArticleOrderBy;
+import com.codeit.monew.domain.article.service.ArticleRestoreService;
 import com.codeit.monew.domain.article.service.ArticleService;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.global.exception.ErrorCode;
 import com.codeit.monew.global.exception.GlobalExceptionHandler;
+import com.codeit.monew.global.exception.article.ArticleFileReadFailedException;
 import com.codeit.monew.global.exception.article.ArticleNotFoundException;
 import com.codeit.monew.global.exception.Interest.InterestNotFoundException;
+import com.codeit.monew.global.exception.aws.AwsServerConnectFailedException;
+import com.codeit.monew.global.exception.common.InvalidParameterException;
+import com.codeit.monew.global.exception.common.JsonParserFailedException;
 import com.codeit.monew.global.exception.user.UserNotFoundException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,6 +46,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 
 import static org.mockito.BDDMockito.willDoNothing;
@@ -52,11 +64,11 @@ class ArticleControllerTest {
   @Autowired
   private MockMvc mockMvc;
 
-  @Autowired
-  ObjectMapper om;
-
   @MockitoBean
   private ArticleService articleService;
+
+  @MockitoBean
+  private ArticleRestoreService articleRestoreService;
 
   private User createUser(UUID userId, String email, String nickname, String password) {
     User user = new User(email, nickname, password);
@@ -489,6 +501,146 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(
               jsonPath("$.exceptionType").value(ArticleNotFoundException.class.getSimpleName()));
+    }
+  }
+
+  @Nested
+  @DisplayName("유실된 뉴스 기사 복원 API 테스트")
+  class restore {
+
+    ZoneId KST;
+    LocalDateTime from;
+    LocalDateTime to;
+    LocalDate fromDate;
+    LocalDate toDate;
+
+    @BeforeEach
+    void backupSetup() {
+      KST = ZoneId.of("Asia/Seoul");
+      from = LocalDateTime.of(2026, Month.APRIL, 1, 0, 0, 0);
+      to = LocalDateTime.of(2026, Month.APRIL, 2, 23, 59, 59);
+      fromDate = from.atZone(KST).toLocalDate();
+      toDate = to.atZone(KST).toLocalDate();
+
+    }
+
+    @Test
+    @DisplayName("요청한 날짜 범위의 유실된 뉴스 기사를 복원하면 200 상태코드와 뉴스 기사 복원 정보가 반환된다.")
+    void success_restore_article() throws Exception {
+      // given
+      UUID articleId1 = UUID.randomUUID();
+      UUID articleId2 = UUID.randomUUID();
+
+      ArticleRestoreResultDto articleRestoreResultDto1 = new ArticleRestoreResultDto(
+          fromDate.atStartOfDay(KST).toInstant(),
+          List.of(articleId1),
+          1L
+      );
+      ArticleRestoreResultDto articleRestoreResultDto2 = new ArticleRestoreResultDto(
+          toDate.atStartOfDay(KST).toInstant(),
+          List.of(articleId2),
+          1L
+      );
+
+      given(articleRestoreService.restore(from, to))
+          .willReturn(List.of(
+              articleRestoreResultDto1,
+              articleRestoreResultDto2
+          ));
+
+      // when, then
+      mockMvc.perform(get("/api/articles/restore")
+              .param("from", from.toString())
+              .param("to", to.toString()))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.length()").value(2))
+          .andExpect(jsonPath("$[0].restoredArticleIds[0]").value(articleId1.toString()))
+          .andExpect(jsonPath("$[1].restoredArticleIds[0]").value(articleId2.toString()));
+    }
+
+    @Test
+    @DisplayName("날짜 시작일은 날짜 종료일보다 이후라면 400 상태코드와 InvalidParameterException 예외가 발생된다.")
+    void fail_restore_article_when_from_is_after_to() throws Exception {
+      // given
+      from = LocalDateTime.of(2026, Month.APRIL, 2, 23, 59, 59);
+      to = LocalDateTime.of(2026, Month.APRIL, 1, 0, 0, 0);
+
+      // when, then
+      mockMvc.perform(get("/api/articles/restore")
+              .param("from", from.toString())
+              .param("to", to.toString()))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_PARAMETER_INPUT.toString()))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(
+              jsonPath("$.exceptionType").value(InvalidParameterException.class.getSimpleName()));
+    }
+
+    @Test
+    @DisplayName("날짜에 해당하는 S3 백업 JSON 파일 형식이 잘못되면 500 상태코드와 JsonParserFailedException 예외가 발생한다.")
+    void fail_restore_article_when_json_processing_failed() throws Exception {
+      // given
+      given(articleRestoreService.restore(from, to))
+          .willThrow(new JsonParserFailedException(
+              new RuntimeException("json parser failed")
+          ));
+
+      // when, then
+      mockMvc.perform(get("/api/articles/restore")
+              .param("from", from.toString())
+              .param("to", to.toString()))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value(ErrorCode.JSON_PARSER_FAILED.toString()))
+          .andExpect(jsonPath("$.status").value(500))
+          .andExpect(
+              jsonPath("$.exceptionType").value(
+                  JsonParserFailedException.class.getSimpleName()));
+    }
+
+    @Test
+    @DisplayName("날짜에 해당하는 S3 백업 JSON 파일 읽기 실패 시 503 상태코드와 ArticleFileReadFailedException 예외가 발생한다.")
+    void fail_restore_article_when_json_read_failed() throws Exception {
+      // given
+      given(articleRestoreService.restore(from, to))
+          .willThrow(new ArticleFileReadFailedException(
+              S3Exception.builder()
+                  .message("s3 failed")
+                  .build()
+          ));
+
+      // when, then
+      mockMvc.perform(get("/api/articles/restore")
+              .param("from", from.toString())
+              .param("to", to.toString()))
+          .andExpect(status().isServiceUnavailable())
+          .andExpect(jsonPath("$.code").value(ErrorCode.ARTICLE_FILE_READ_FAILED.toString()))
+          .andExpect(jsonPath("$.status").value(503))
+          .andExpect(
+              jsonPath("$.exceptionType").value(
+                  ArticleFileReadFailedException.class.getSimpleName()));
+    }
+
+    @Test
+    @DisplayName("AWS SDK 클라이언트 오류 시 503 상태코드와 AwsServerConnectFailedException 예외가 발생한다.")
+    void fail_restore_article_when_aws_sdk_client_exception() throws Exception {
+      // given
+      given(articleRestoreService.restore(from, to))
+          .willThrow(new AwsServerConnectFailedException(
+              SdkClientException.builder()
+                  .message("aws client failed")
+                  .build()
+          ));
+
+      // when, then
+      mockMvc.perform(get("/api/articles/restore")
+              .param("from", from.toString())
+              .param("to", to.toString()))
+          .andExpect(status().isServiceUnavailable())
+          .andExpect(jsonPath("$.code").value(ErrorCode.AWS_SERVER_CONNECT_FAILED.toString()))
+          .andExpect(jsonPath("$.status").value(503))
+          .andExpect(
+              jsonPath("$.exceptionType").value(
+                  AwsServerConnectFailedException.class.getSimpleName()));
     }
   }
 }

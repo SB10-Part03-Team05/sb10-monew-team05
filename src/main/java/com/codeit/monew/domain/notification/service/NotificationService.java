@@ -49,7 +49,7 @@ public class NotificationService {
   // 기사 등록 알림
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void createInterestNotifications(BulkArticleRegisteredEvent event) {
-    if (event.interestCounts() == null || event.interestCounts().isEmpty()) return;
+    if (event == null || event.interestCounts() == null || event.interestCounts().isEmpty()) return;
 
     // 이벤트 페이로드에 중복된 관심사 ID가 있더라도 개수를 합산하여 멱등성 보장
     Map<UUID, BulkArticleRegisteredEvent.InterestArticleCount> mergedCountsMap = event.interestCounts().stream()
@@ -207,10 +207,11 @@ public class NotificationService {
 
   // 확인한 알림 중 7일이 경과된 알림 삭제
   @Transactional
-  public void cleanUpOldNotifications() {
+  public int cleanUpOldNotifications() {
     Instant targetTime = Instant.now().minus(7, ChronoUnit.DAYS);
 
     int deletedCount = notificationRepository.deleteOldConfirmedNotifications(targetTime);
     log.info("[NOTIFICATION_DELETE] 7일 경과된 읽은 알림 삭제 완료: {}건", deletedCount);
+    return deletedCount;
   }
 }
