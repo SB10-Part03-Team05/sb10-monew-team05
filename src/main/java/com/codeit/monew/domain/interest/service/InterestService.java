@@ -156,7 +156,7 @@ public class InterestService {
     Subscription subscription;
     try {
       subscription = Subscription.create(user, interest);
-      subscriptionRepository.save(subscription);
+      subscriptionRepository.saveAndFlush(subscription);
     } catch (DataIntegrityViolationException e) {
       if (isDuplicateConstraintViolation(e)) {
         throw new AlreadySubscribedException(userId, interestId);
