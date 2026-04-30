@@ -317,14 +317,14 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(llmSummaryService.summarizeOrOriginal("원문 요약", "https://a.com/1"))
+      given(llmSummaryService.summarizeOrOriginal("크롤링된 본문 텍스트", "https://a.com/1"))
           .willReturn("LLM 요약");
 
       // when: 한국경제 소스에 대해 스크래핑 및 저장 로직 실행
       articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
 
       // then: LLM 요약 서비스가 호출되었는지 확인하고, 기사 객체에 요약문이 업데이트되었는지 검증
-      verify(llmSummaryService).summarizeOrOriginal("원문 요약", "https://a.com/1");
+      verify(llmSummaryService).summarizeOrOriginal("크롤링된 본문 텍스트", "https://a.com/1");
       verify(articleScrapePersistenceService).saveAll(anyMap());
       assertEquals("LLM 요약", a1.getSummary());
     }
