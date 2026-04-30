@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
 import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.client.ExternalServerException;
+import com.codeit.monew.global.exception.external.parser.ExternalInvalidXmlException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -154,6 +156,52 @@ class NaverArticleBatchJobTest {
   }
 
   @Test
+  @DisplayName("실패(INVALID_XML): 재시도 없이 ExternalInvalidXmlException을 던진다")
+  void invalid_xml_no_retry_and_throws() {
+    // given: 네이버 뉴스 수집 시 유효하지 않은 XML 예외가 발생하도록 설정
+    String keyword = "삼성";
+    when(articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, keyword))
+        .thenThrow(invalidXml());
+
+    // when & then: 배치 실행 시 예외가 발생해야 하며, 재시도 없이 1회만 호출되었는지 검증
+    assertThrows(
+        ExternalInvalidXmlException.class,
+        () -> naverArticleBatchJob.run(keyword)
+    );
+
+    // 재시도 로직이 작동하지 않았음을 확인 (호출 횟수 1회)
+    verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.NAVER, keyword);
+
+    // 메트릭Registry에 INVALID_XML 에러 타입으로 실패 카운트가 기록되었는지 검증
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "INVALID_XML").count());
+  }
+
+  @Test
+  @DisplayName("실패(EMPTY_XML): 재시도 없이 ExternalEmptyResponseException을 던진다")
+  void empty_xml_no_retry_and_throws() {
+    // given: 네이버 뉴스 수집 시 응답이 비어있는 예외가 발생하도록 설정
+    String keyword = "삼성";
+    when(articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, keyword))
+        .thenThrow(emptyResponse());
+
+    // when & then: 배치 실행 시 예외가 발생해야 하며, 재시도 없이 1회만 호출되었는지 검증
+    assertThrows(
+        ExternalEmptyResponseException.class,
+        () -> naverArticleBatchJob.run(keyword)
+    );
+
+    // 재시도 로직이 작동하지 않았음을 확인 (호출 횟수 1회)
+    verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.NAVER, keyword);
+
+    // 메트릭Registry에 EMPTY_XML 에러 타입으로 실패 카운트가 기록되었는지 검증
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", "NAVER", "status", "fail",
+            "error_type", "EMPTY_XML").count());
+  }
+
+  @Test
   @DisplayName("실패(server/network): 재시도 후 성공하면 결과를 반환한다")
   void transient_retry_then_success() {
     // Given: 서버 에러와 네트워크 에러가 번갈아 발생하다 마지막(3회째)에 성공하는 시나리오
@@ -235,5 +283,14 @@ class NaverArticleBatchJobTest {
   private ExternalNetworkException networkError() {
     return new ExternalNetworkException(
         NewsSourceUrl.NAVER, "https://x", new RuntimeException("network"));
+  }
+
+  private ExternalInvalidXmlException invalidXml() {
+    return new ExternalInvalidXmlException(
+        NewsSourceUrl.NAVER, new RuntimeException("invalid xml"));
+  }
+
+  private ExternalEmptyResponseException emptyResponse() {
+    return new ExternalEmptyResponseException(NewsSourceUrl.NAVER, "https://x");
   }
 }

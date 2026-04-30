@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
 import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
 import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
 import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
 import com.codeit.monew.global.exception.external.client.ExternalServerException;
+import com.codeit.monew.global.exception.external.parser.ExternalInvalidXmlException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -123,6 +125,50 @@ class RssArticleBatchJobTest {
   }
 
   @Test
+  @DisplayName("실패(INVALID_XML): 재시도 없이 ExternalInvalidXmlException을 던진다")
+  void invalid_xml_no_retry_and_throws() {
+    // given: RSS(조선일보) 수집 시 유효하지 않은 XML 응답 예외가 발생하도록 설정
+    when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
+        .thenThrow(invalidXml());
+
+    // when & then: 배치 실행 시 즉시 예외가 발생해야 함을 검증
+    assertThrows(
+        ExternalInvalidXmlException.class,
+        () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN)
+    );
+
+    // then: 재시도 로직이 작동하지 않고 1회만 호출되었는지 확인
+    verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+
+    // then: 메트릭에 에러 타입(INVALID_XML)과 출처(CHOSUN)가 정확히 기록되었는지 검증
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(),
+            "status", "fail", "error_type", "INVALID_XML").count());
+  }
+
+  @Test
+  @DisplayName("실패(EMPTY_XML): 재시도 없이 ExternalEmptyResponseException을 던진다")
+  void empty_xml_no_retry_and_throws() {
+    // given: RSS(조선일보) 수집 시 빈 응답 예외가 발생하도록 설정
+    when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
+        .thenThrow(emptyResponse());
+
+    // when & then: 배치 실행 시 즉시 예외가 발생해야 함을 검증
+    assertThrows(
+        ExternalEmptyResponseException.class,
+        () -> rssArticleBatchJob.run(NewsSourceUrl.CHOSUN)
+    );
+
+    // then: 재시도 로직이 작동하지 않고 1회만 호출되었는지 확인
+    verify(articleScrapeService, times(1)).scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+
+    // then: 메트릭에 에러 타입(EMPTY_XML)과 출처(CHOSUN)가 정확히 기록되었는지 검증
+    assertEquals(1.0,
+        meterRegistry.counter("scheduler.article.scrape.job", "source", NewsSourceUrl.CHOSUN.name(),
+            "status", "fail", "error_type", "EMPTY_XML").count());
+  }
+
+  @Test
   @DisplayName("실패(server/network): 일시적 장애 발생 시 재시도 후 성공하면 결과를 반환한다")
   void transient_retry_then_success() {
     // Given: 두 번의 일시적 장애 후 세 번째 시도에서 성공하는 시나리오
@@ -201,5 +247,14 @@ class RssArticleBatchJobTest {
   private ExternalNetworkException networkError() {
     return new ExternalNetworkException(
         NewsSourceUrl.CHOSUN, "https://x", new RuntimeException("network"));
+  }
+
+  private ExternalInvalidXmlException invalidXml() {
+    return new ExternalInvalidXmlException(
+        NewsSourceUrl.CHOSUN, new RuntimeException("invalid xml"));
+  }
+
+  private ExternalEmptyResponseException emptyResponse() {
+    return new ExternalEmptyResponseException(NewsSourceUrl.CHOSUN, "https://x");
   }
 }
