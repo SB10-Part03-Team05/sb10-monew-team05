@@ -4,6 +4,7 @@ import com.codeit.monew.domain.article.dto.response.ArticleScrapeBatchRunRespons
 import com.codeit.monew.domain.article.scheduler.backup.ArticleBackupBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeBatchRunner;
 import com.codeit.monew.domain.article.service.ArticleScrapeService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,7 +27,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Hidden
 @Slf4j
+@Profile({"local", "dev"})
 @RestController
 @RequestMapping("/api/admin/articles")
 @RequiredArgsConstructor

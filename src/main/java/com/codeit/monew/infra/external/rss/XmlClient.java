@@ -1,13 +1,14 @@
 package com.codeit.monew.infra.external.rss;
 
-import com.codeit.monew.global.exception.external.ExternalClientException;
-import com.codeit.monew.global.exception.external.ExternalEmptyResponseException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
-import com.codeit.monew.global.exception.external.ExternalRateLimitException;
-import com.codeit.monew.global.exception.external.ExternalServerException;
+import com.codeit.monew.global.exception.external.client.ExternalClientException;
+import com.codeit.monew.global.exception.external.client.ExternalEmptyResponseException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalRateLimitException;
+import com.codeit.monew.global.exception.external.client.ExternalServerException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -37,9 +38,13 @@ public class XmlClient {
     return request(NewsSourceUrl.NAVER, url);
   }
 
+  public String fetchArticleHtml(NewsSourceUrl source, String articleUrl) {
+    return request(source, articleUrl);
+  }
+
   private String request(NewsSourceUrl source, String url) {
     try {
-      String xml = restClient.get()
+      ResponseEntity<byte[]> response = restClient.get()
           .uri(url)
           .headers(headers -> {
             headers.set("User-Agent", "Mozilla/5.0");
@@ -49,25 +54,25 @@ public class XmlClient {
             }
           })
           .retrieve()
-          .body(String.class);
+          .toEntity(byte[].class);
 
-      if (xml == null || xml.isBlank()) {
+      byte[] body = response.getBody();
+      if (body == null || body.length == 0) {
         throw new ExternalEmptyResponseException(source, url);
       }
-      return xml;
+
+      String decoded = ResponseBodyDecoder.decode(body, response.getHeaders());
+      if (decoded.isBlank()) {
+        throw new ExternalEmptyResponseException(source, url);
+      }
+      return decoded;
 
     } catch (HttpClientErrorException.TooManyRequests e) {
-      throw new ExternalRateLimitException(
-          source,
-          url,
-          source == NewsSourceUrl.NAVER,   // NAVER는 같은 배치 재시도
-          source != NewsSourceUrl.NAVER,   // RSS는 다음 배치로
-          e
-      );
+      throw new ExternalRateLimitException(source, url, e.getStatusCode(), e);
     } catch (HttpClientErrorException e) {
-      throw new ExternalClientException(source, url, e.getStatusCode().value(), e);
+      throw new ExternalClientException(source, url, e.getStatusCode(), e);
     } catch (HttpServerErrorException e) {
-      throw new ExternalServerException(source, url, e.getStatusCode().value(), e);
+      throw new ExternalServerException(source, url, e.getStatusCode(), e);
     } catch (RestClientException e) {
       throw new ExternalNetworkException(source, url, e);
     }
