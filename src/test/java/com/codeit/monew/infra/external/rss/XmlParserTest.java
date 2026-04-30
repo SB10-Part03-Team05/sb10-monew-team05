@@ -1,5 +1,6 @@
 package com.codeit.monew.infra.external.rss;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -235,7 +236,7 @@ class XmlParserTest {
 
       List<Article> result = xmlParser.parse(xml, NewsSourceUrl.HANKYUNG);
 
-      assertEquals("요약이 제공되지 않는 출처입니다", result.get(0).getSummary());
+      assertEquals(DEFAULT_SUMMARY, result.get(0).getSummary());
     }
 
     @Test
@@ -252,7 +253,7 @@ class XmlParserTest {
       List<Article> result = xmlParser.parse(xml, NewsSourceUrl.CHOSUN);
 
       assertFalse(result.get(0).getSummary().isBlank());
-      assertEquals("요약이 제공되지 않는 출처입니다", result.get(0).getSummary());
+      assertEquals(DEFAULT_SUMMARY, result.get(0).getSummary());
     }
 
     @Test

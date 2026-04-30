@@ -1,5 +1,6 @@
 package com.codeit.monew.domain.article.service;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -327,6 +328,28 @@ class ArticleScrapeServiceTest {
       verify(llmSummaryService).summarizeOrOriginal("크롤링된 본문 텍스트", "https://a.com/1");
       verify(articleScrapePersistenceService).saveAll(anyMap());
       assertEquals("LLM 요약", a1.getSummary());
+    }
+
+    @Test
+    @DisplayName("LLM 사용 소스라도 기본 문구 요약이면 LLM 호출을 건너뛴다")
+    void skip_llm_when_summary_is_default_message() {
+      // given: 한국경제 소스 기사지만 summary가 공통 기본 문구인 상황
+      Article a1 = article("https://a.com/2", "카카오", DEFAULT_SUMMARY);
+      Interest kakao = interest("카카오");
+      Keyword k = keyword(kakao, "카카오");
+
+      given(xmlClient.fetchRssXml(NewsSourceUrl.HANKYUNG)).willReturn("<xml/>");
+      given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of(a1));
+      given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
+      given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
+
+      // when
+      articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
+
+      // then: LLM 호출 없이 저장 수행, summary는 기본 문구 유지
+      verify(llmSummaryService, never()).summarizeOrOriginal(anyString(), anyString());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
+      assertEquals(DEFAULT_SUMMARY, a1.getSummary());
     }
   }
 
