@@ -272,7 +272,7 @@ class InterestServiceTest {
 
       given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
-      given(subscriptionRepository.save(any())).willAnswer(i -> i.getArgument(0));
+      given(subscriptionRepository.saveAndFlush(any())).willAnswer(i -> i.getArgument(0));
 
       // when
       SubscriptionDto result = interestService.subscribe(interestId, userId);
@@ -280,7 +280,7 @@ class InterestServiceTest {
       // then
       assertNotNull(result);
       assertEquals(interestId, result.interestId());
-      verify(subscriptionRepository).save(any());
+      verify(subscriptionRepository).saveAndFlush(any());
       verify(interestRepository).incrementSubscriberCount(interestId);
       verify(eventPublisher).publishEvent(any(InterestSubscribedEvent.class));
     }
@@ -298,7 +298,7 @@ class InterestServiceTest {
       assertThrows(InterestNotFoundException.class,
           () -> interestService.subscribe(interestId, userId));
 
-      verify(subscriptionRepository, never()).save(any());
+      verify(subscriptionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -318,7 +318,7 @@ class InterestServiceTest {
       SQLException sqlException = new SQLException("중복 구독", "23505");
       DataIntegrityViolationException exception =
           new DataIntegrityViolationException("중복", sqlException);
-      given(subscriptionRepository.save(any())).willThrow(exception);
+      given(subscriptionRepository.saveAndFlush(any())).willThrow(exception);
 
       // when, then
       assertThrows(AlreadySubscribedException.class,
