@@ -21,14 +21,14 @@ export default function () {
   // 헤더 설정 (로그인한 사용자 ID)
   const params = {
     headers: {
-      'Monew-Request-User-ID': 'a9dd4279-a753-45ee-95d7-b1c8cb4fafb1',
+      'Monew-Request-User-ID': '67021fee-8222-4303-863f-0ace849e8d10',
       // 하드코딩 되어 있으므로 다른 컴퓨터에서 실행할 때는 유저를 새로 만들고 바꿔주어야 함
     },
   };
 
   // API 요청
   const res = http.get(
-      'http://localhost:8080/api/articles/restore?from=2026-04-24T00:00:00Z&to=2026-04-24T23:59:59Z', // 하드코딩
+      'http://localhost:8080/api/articles/restore?from=2026-04-29T00:00:00&to=2026-04-29T23:59:59', // 하드코딩
       params
   );
 
