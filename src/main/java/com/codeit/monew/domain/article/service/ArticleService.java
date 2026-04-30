@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -78,6 +79,7 @@ public class ArticleService {
   }
 
   // 뉴스 기사 목록 조회(커서 페이지네이션)
+  @Cacheable(value = "articleList", key = "#request.orderBy + '_' + #request.direction + '_' + #request.cursor + '_' + #requestUserId")
   @Transactional(readOnly = true)
   public CursorPageResponseArticleDto search(ArticleSearchRequest request, UUID requestUserId) {
     log.debug(
