@@ -2,7 +2,6 @@ package com.codeit.monew.global.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -19,7 +18,7 @@ public class CacheConfig {
         .maximumSize(1000)
         .expireAfterWrite(Duration.ofMinutes(10))
     );
-    cacheManager.setCacheNames(List.of("userActivity"));
+    cacheManager.setCacheNames(List.of("userActivity", "articleList"));
     return cacheManager;
   }
 }
