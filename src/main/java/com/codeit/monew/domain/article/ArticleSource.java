@@ -4,5 +4,13 @@ public enum ArticleSource {
   NAVER,
   HANKYUNG,
   CHOSUN,
-  YONHAP
+  YONHAP,
+  YNA,
+  JTBC,
+  KHAN,
+  DONGA,
+  MK,
+  SBS
+
+
 }

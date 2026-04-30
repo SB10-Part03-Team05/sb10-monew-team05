@@ -185,7 +185,56 @@ class ArticleEntityIntegrityTest {
   }
 
   @Nested
-  @DisplayName("연관관계 및 컬렉션 무결성 (Collection Integrity)")
+  @DisplayName("수정 무결성 검증 (Update Integrity)")
+  class UpdateIntegrity {
+
+    @Test
+    @DisplayName("유효한 요약 내용으로 수정 성공")
+    void update_summary_success() {
+      // given: 기사 생성 후 수정할 요약 준비
+      Article article = validArticle();
+      String updatedSummary = "수정된 요약 내용";
+
+      // when: 요약 수정 실행
+      article.updateSummary(updatedSummary);
+
+      // then: 수정된 내용이 반영되었는지 확인
+      assertEquals(updatedSummary, article.getSummary());
+    }
+
+    @Test
+    @DisplayName("요약 수정 시 null이면 예외")
+    void throw_when_update_summary_null() {
+      // given: 기사 객체 생성
+      Article article = validArticle();
+
+      // when & then: 요약을 null로 수정 시도 시 예외 발생 검증
+      InvalidArticleEntityException ex = assertThrows(
+          InvalidArticleEntityException.class,
+          () -> article.updateSummary(null)
+      );
+      assertEquals("summary", ex.getDetails().get("field"));
+      assertEquals("null", ex.getDetails().get("reason"));
+    }
+
+    @Test
+    @DisplayName("요약 수정 시 공백이면 예외")
+    void throw_when_update_summary_blank() {
+      // given: 기사 객체 생성
+      Article article = validArticle();
+
+      // when & then: 요약을 공백으로 수정 시도 시 예외 발생 검증
+      InvalidArticleEntityException ex = assertThrows(
+          InvalidArticleEntityException.class,
+          () -> article.updateSummary(" \n ")
+      );
+      assertEquals("summary", ex.getDetails().get("field"));
+      assertEquals("blank", ex.getDetails().get("reason"));
+    }
+  }
+
+  @Nested
+  @DisplayName("컬렉션 무결성 검증 (Collection Integrity)")
   class CollectionIntegrity {
 
     @Test
