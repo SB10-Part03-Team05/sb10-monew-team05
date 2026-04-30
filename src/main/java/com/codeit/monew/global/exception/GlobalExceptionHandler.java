@@ -198,7 +198,7 @@ public class GlobalExceptionHandler {
         e.getClass().getSimpleName(),
         HttpStatus.INTERNAL_SERVER_ERROR.value()
     );
-it s
+
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
   }
 }
