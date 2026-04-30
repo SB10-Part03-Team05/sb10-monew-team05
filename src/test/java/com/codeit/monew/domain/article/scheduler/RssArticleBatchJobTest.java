@@ -93,7 +93,7 @@ class RssArticleBatchJobTest {
 
   @Test
   @DisplayName("실패(429): 재시도 대상이 아니므로 예외를 던진다")
-  void rate_limit_no_retry_and_recover_empty() {
+  void rate_limit_no_retry_and_throws() {
     // Given: Rate Limit(429) 예외가 발생하는 상황 설정
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(rateLimit());
@@ -110,7 +110,7 @@ class RssArticleBatchJobTest {
 
   @Test
   @DisplayName("실패(4xx): 클라이언트 에러 발생 시 재시도 없이 예외를 던진다")
-  void client_error_no_retry_and_recover_empty() {
+  void client_error_no_retry_and_throws() {
     // Given: 클라이언트 에러(4xx) 발생 설정
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(clientError());
@@ -196,7 +196,7 @@ class RssArticleBatchJobTest {
 
   @Test
   @DisplayName("실패(server/network) 재시도 소진: 모든 재시도 실패 시 최종 예외를 던지며 종료한다")
-  void transient_retry_exhausted_returns_empty() {
+  void transient_retry_exhausted_throws() {
     // Given: 재시도 횟수를 모두 채울 때까지 계속 에러가 발생하는 상황
     when(articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null))
         .thenThrow(serverError());

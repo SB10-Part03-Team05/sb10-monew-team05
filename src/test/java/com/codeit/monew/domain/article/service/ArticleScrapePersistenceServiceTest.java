@@ -160,7 +160,7 @@ class ArticleScrapePersistenceServiceTest {
     }
 
     @Test
-    @DisplayName("관심사가 비어 있어도 article saveAll은 호출")
+    @DisplayName("관심사가 비어 있으면 article saveAll은 미호출")
     void return_without_save_when_interests_empty() {
       // given
       Article a1 = article("https://a.com/1", "a1");

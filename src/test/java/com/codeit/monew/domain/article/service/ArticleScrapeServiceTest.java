@@ -305,10 +305,11 @@ class ArticleScrapeServiceTest {
     }
 
     @Test
-    @DisplayName("요약이 없어 크롤링 된 본문이 있으면서 LLM 사용 소스: 요약 후 saveAll 호출")
+    @DisplayName("요약이 없어 크롤링 된 본문이 있는 LLM 사용 소스: 요약 후 saveAll 호출")
     void call_save_all_for_hankyung_with_llm_summary() {
-      // given: 한국경제처럼 원문 요약이 없어서 LLM 요약이 필요한 기사(카카오) 설정
-      Article a1 = article("https://a.com/1", "카카오", "원문 요약");
+      // given: 한국경제처럼 RSS에서 요약 대신 크롤링된 본문이 제공되어 LLM 요약이 필요한 기사 설정
+      String crawledBodyText = "크롤링된 본문 텍스트";
+      Article a1 = article("https://a.com/1", "카카오", crawledBodyText);
       Interest kakao = interest("카카오");
       Keyword k = keyword(kakao, "카카오");
 

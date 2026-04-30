@@ -101,13 +101,13 @@ public class LlmSummaryService {
       return summary.trim();
     } catch (ExternalLlmException e) {
       // 외부 API 호출 실패 시에도 전체 기사 수집 프로세스가 중단되지 않도록 예외를 흡수(Graceful Degradation)
-      log.info("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
+      log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
           provider, sourceUrl, e.getClass().getSimpleName(), e.getMessage(), e);
       return "";
     } catch (RuntimeException e) {
       ExternalLlmProviderException wrapped = new ExternalLlmProviderException(provider, sourceUrl,
           e);
-      log.info("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
+      log.warn("[LLM] provider={} summary failed. url={}, errorType={}, message={}",
           provider, sourceUrl, wrapped.getClass().getSimpleName(), wrapped.getMessage(), e);
       return "";
     }
