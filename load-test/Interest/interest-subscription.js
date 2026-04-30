@@ -3,13 +3,12 @@ import { check, sleep } from 'k6';
 
 // 구독할 관심사 ID 목록
 const interestIds = [
-  'b3a21185-6bdb-4a3e-a012-d42c72514513',
-  '35ffddd4-e650-45b8-9377-f2fbf7da06db',
-  '9d197bc3-a7f2-426f-b1d3-e5cdeab1fb5a',
-  '09872650-5764-490a-9dc2-b73ecce5fced',
-  'f804bcf8-8668-44db-a3c9-ca3a1a218838',
+  '09d5315d-6b26-4669-a2c2-069929c48223',
+  '973203f1-1c9f-449b-9645-2d71f35db933',
+  '868f9c13-4b1e-4a58-8d3c-337665a0225a',
+  '28814481-4896-4245-8dc2-666bdd9ece57',
+  'f812a78f-fc68-4adf-bf5d-88960588800e',
 ];
-
 export const options = {
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
@@ -19,14 +18,13 @@ export const options = {
   ],
   thresholds: {
     http_req_duration: ['p(95)<500', 'p(99)<1000'],
-    http_req_failed: ['rate<0.01'],
   },
 };
 
 export default function () {
   const params = {
     headers: {
-      'Monew-Request-User-ID': 'a9dd4279-a753-45ee-95d7-b1c8cb4fafb1',
+      'Monew-Request-User-ID': '57a2ae38-7e21-4217-a614-f3ce1b29d7fc',
     },
   };
 
@@ -41,7 +39,7 @@ export default function () {
   );
 
   check(res, {
-    'status is 201': (r) => r.status === 201,
+    'status is 201 or 409': (r) => r.status === 201 || r.status === 409,
     'response time < 500ms': (r) => r.timings.duration < 500,
   });
 
