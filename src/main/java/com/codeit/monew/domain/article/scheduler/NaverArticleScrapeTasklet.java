@@ -68,7 +68,7 @@ public class NaverArticleScrapeTasklet implements Tasklet {
       circuitBreaker.recordFailure();
 
       log.warn("[NAVER_BATCH] keyword='{}' failed. consecutiveFailures={}, message={}",
-          keyword, circuitBreaker.getConsecutiveFailures(), e.getMessage(), e);
+          keyword, circuitBreaker.getConsecutiveFailures(), e.getMessage());
 
       return ArticleScrapeResult.empty();
     }
