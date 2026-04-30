@@ -36,8 +36,8 @@ logging:
 decorator:
   datasource:
     p6spy:
-      enable-logging: false
-      multiline: false
+      enable-logging: true
+      multiline: true
       logging: slf4j
 
 # Actuator 설정, 로컬에선 환경변수 보이게 설정
