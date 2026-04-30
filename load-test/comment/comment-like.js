@@ -43,7 +43,7 @@ export default function () {
 
   // 응답 검증
   check(res, {
-    'status is 201': (r) => r.status === 201,
+    'status is 200': (r) => r.status === 200,
     'response time < 500ms': (r) => r.timings.duration < 500,
   });
 

@@ -1,7 +1,9 @@
 package com.codeit.monew.infra.logging;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import java.time.LocalDate;
 
+@Hidden
 public record LogUploadResult(
     Status status,
     LocalDate targetDate,

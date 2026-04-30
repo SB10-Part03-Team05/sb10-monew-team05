@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import java.util.List;
 import java.util.Map;

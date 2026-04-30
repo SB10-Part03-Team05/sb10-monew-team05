@@ -1,9 +1,11 @@
 package com.codeit.monew.domain.article.dto.response;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Hidden
 public record ArticleScrapeBatchRunResponse(
     @Schema(description = "Batch Job Execution ID")
     Long jobExecutionId,
