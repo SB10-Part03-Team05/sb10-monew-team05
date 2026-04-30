@@ -17,7 +17,7 @@ public class ArticleBackupScheduler {
 
   private final ArticleBackupBatchRunner articleBackupBatchRunner;
 
-  @Scheduled(cron = "0 2 0 * * *", zone = "Asia/Seoul")
+  @Scheduled(cron = "0 2 1 * * *", zone = "Asia/Seoul")
   public void backupYesterdayArticles() {
     LocalDate backupDate = LocalDate.now(KST).minusDays(1); // ex: 2026-04-26
 
