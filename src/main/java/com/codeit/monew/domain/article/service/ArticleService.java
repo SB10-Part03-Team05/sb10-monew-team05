@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -79,7 +80,7 @@ public class ArticleService {
   }
 
   // 뉴스 기사 목록 조회(커서 페이지네이션)
-  @Cacheable(value = "articleList", key = "#request.orderBy + '_' + #request.direction + '_' + #request.cursor + '_' + #requestUserId")
+  @Cacheable(value = "articleList", key = "#request.orderBy + '_' + #request.direction + '_' + #request.cursor + '_' + #request.after + '_' + #request.keyword + '_' + #request.sourceIn + '_' + #request.publishDateFrom + '_' + #request.publishDateTo + '_' + #request.limit + '_' + #request.interestId + '_' + #requestUserId")
   @Transactional(readOnly = true)
   public CursorPageResponseArticleDto search(ArticleSearchRequest request, UUID requestUserId) {
     log.debug(
@@ -111,6 +112,7 @@ public class ArticleService {
   }
 
   // 뉴스 기사 view 등록
+  @CacheEvict(value = "articleList", allEntries = true)
   public ArticleViewDto view(UUID articleId, UUID requestUserId) {
     log.debug("[ARTICLE_VIEW_POST] 뉴스 기사 조회 처리 시작: articleId={}", articleId);
 
@@ -172,6 +174,7 @@ public class ArticleService {
   }
 
   // 뉴스 기사 논리 삭제
+  @CacheEvict(value = "articleList", allEntries = true)
   public void delete(UUID articleId) {
     log.debug("[ARTICLE_SOFT_DELETE] 뉴스 기사 논리 삭제 시작: articleId={}", articleId);
 
@@ -186,6 +189,7 @@ public class ArticleService {
   }
 
   // 뉴스 기사 물리 삭제
+  @CacheEvict(value = "articleList", allEntries = true)
   public void hardDelete(UUID articleId) {
     log.debug("[ARTICLE_HARD_DELETE] 뉴스 기사 물리 삭제 시작: articleId={}", articleId);
 
