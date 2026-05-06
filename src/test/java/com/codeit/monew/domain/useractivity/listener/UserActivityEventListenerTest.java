@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.codeit.monew.domain.article.ArticleSource;
@@ -14,6 +15,7 @@ import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedCancelEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestDeletedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
@@ -156,6 +158,44 @@ class UserActivityEventListenerTest {
 
     assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
     assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
+  }
+
+  @Test
+  @DisplayName("관심사 삭제 이벤트 수신 시 대상 유저 조회, 전역 업데이트 및 다중 캐시 삭제가 정확히 수행되어야 한다.")
+  void should_update_multi_and_evict_multiple_caches_when_interest_deleted() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    InterestDeletedEvent event = new InterestDeletedEvent(interestId);
+
+    // 캐시 삭제 대상 유저 2명 설정
+    UUID user1Id = UUID.randomUUID();
+    UUID user2Id = UUID.randomUUID();
+
+    UserActivity user1 = new UserActivity();
+    user1.setId(user1Id.toString());
+    UserActivity user2 = new UserActivity();
+    user2.setId(user2Id.toString());
+
+    Query expectedQuery = new Query(Criteria.where("subscriptions.interestId").is(interestId.toString()));
+    expectedQuery.fields().include("_id");
+    Update expectedUpdate = new Update().pull("subscriptions", new Document("interestId", interestId.toString()));
+
+    given(mongoTemplate.find(any(Query.class), eq(UserActivity.class))).willReturn(List.of(user1, user2));
+    given(cacheManager.getCache("userActivity")).willReturn(cache);
+
+    // when
+    userActivityEventListener.handleInterestDeletedEvent(event);
+
+    // then
+    verify(mongoTemplate).find(queryCaptor.capture(), eq(UserActivity.class));
+    verify(mongoTemplate).updateMulti(any(Query.class), updateCaptor.capture(), eq(UserActivity.class));
+
+    assertThat(queryCaptor.getValue()).isEqualTo(expectedQuery);
+    assertThat(updateCaptor.getValue()).isEqualTo(expectedUpdate);
+
+    verify(cache).evict(user1Id);
+    verify(cache).evict(user2Id);
+    verify(cache, times(2)).evict(any(UUID.class));
   }
 
   @Test
