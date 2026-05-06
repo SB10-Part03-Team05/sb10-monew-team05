@@ -42,6 +42,7 @@
 ![Git](https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white)
 ![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)
 ![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white)
+![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)
 
 ### 코드 품질
 ![CodeRabbit](https://img.shields.io/badge/CodeRabbit-FF6B35?style=flat-square)
@@ -121,7 +122,10 @@
 
 
 ---
-## 📁 디렉토리 구조
+## 📁  디렉토리 구조
+<details>
+<summary> 클릭해서 열기</summary>
+
 ```text
 .
 ├── Dockerfile
@@ -1188,6 +1192,8 @@
         │   └── application-test.yaml
         └── test.iml
 ```
+</details>
 
+---
 ## 🔗 링크
 - 서비스: [모뉴 바로가기](http://3.35.157.92/)
