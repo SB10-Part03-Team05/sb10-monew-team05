@@ -1,5 +1,7 @@
 package com.codeit.monew.infra.external.llm;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
+
 import com.codeit.monew.global.exception.external.llm.ExternalLlmException;
 import com.codeit.monew.global.exception.external.llm.ExternalLlmProviderException;
 import com.codeit.monew.infra.external.llm.gemini.GeminiLlmSummarizer;
@@ -21,8 +23,6 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class LlmSummaryService {
 
-  private static final String DEFAULT_SUMMARY = "요약이 제공되지 않는 출처입니다";
-
   /**
    * 의존성 주입 시 빈(Bean)이 존재하지 않아도 애플리케이션 컨텍스트 로딩이 실패하지 않도록 {@link ObjectProvider}를 사용하여 런타임에 빈을
    * 조회합니다.
@@ -40,6 +40,9 @@ public class LlmSummaryService {
   public String summarizeOrOriginal(String bodyText, String sourceUrl) {
     // 본문이 없으면 요약할 대상이 없으므로 즉시 반환
     if (!StringUtils.hasText(bodyText)) {
+      return DEFAULT_SUMMARY;
+    }
+    if (DEFAULT_SUMMARY.equals(bodyText.trim())) {
       return DEFAULT_SUMMARY;
     }
 

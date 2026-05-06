@@ -1,5 +1,7 @@
 package com.codeit.monew.infra.external.rss;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
+
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.global.exception.article.InvalidArticleEntityException;
 import com.codeit.monew.global.exception.external.parser.EmptyXmlInputException;
@@ -21,8 +23,6 @@ import org.springframework.util.StringUtils;
 @Component
 @RequiredArgsConstructor
 public class XmlParser {
-
-  private static final String DEFAULT_SUMMARY = "요약이 제공되지 않는 출처입니다";
 
   private final ArticleBodyCrawler articleBodyCrawler;
 
