@@ -45,6 +45,10 @@ jobs: # 실행할 작업
       # 1-5) 애플리케이션 build (`JAR` 파일 생성)
       - name: build JAR
         run: ./gradlew clean bootJar
+        env:
+          # LLM API KEY 설정
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       # 1-6) AWS CLI 설정
       - name: Configure AWS Credentials

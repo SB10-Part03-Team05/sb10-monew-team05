@@ -1,10 +1,13 @@
 package com.codeit.monew.domain.article.service;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -12,18 +15,21 @@ import static org.mockito.Mockito.verify;
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
+import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
 import com.codeit.monew.domain.interest.entity.Interest;
 import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.article.ArticleScrapeException;
-import com.codeit.monew.global.exception.external.ExternalNetworkException;
+import com.codeit.monew.global.exception.external.client.ExternalNetworkException;
+import com.codeit.monew.infra.external.llm.LlmSummaryService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
-import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,6 +52,10 @@ class ArticleScrapeServiceTest {
   private ArticleRepository articleRepository;
   @Mock
   private KeywordRepository keywordRepository;
+  @Mock
+  private LlmSummaryService llmSummaryService;
+  @Mock
+  private ArticleScrapePersistenceService articleScrapePersistenceService;
 
   @InjectMocks
   private ArticleScrapeService articleScrapeService;
@@ -86,17 +96,14 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.CHOSUN)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of()); // 중복 URL 없음
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k)); // 키워드 매칭 가능
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 조선일보 RSS 소스에 대한 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 1건이 성공적으로 저장되고, 기사에 '삼성' 관심사가 매핑되었는지 검증
       assertEquals(1, result.totalSavedCount());
-      assertEquals(1, a1.getArticleInterests().size());
-      assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
       verify(xmlClient).fetchRssXml(NewsSourceUrl.CHOSUN);
-      verify(articleRepository).saveAll(anyList());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
     }
 
     @Test
@@ -111,7 +118,6 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.NAVER)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 검색어 "네이버"를 이용하여 네이버 API 소스 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.NAVER, "네이버");
@@ -150,17 +156,17 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.YONHAP)).willReturn(List.of(first, duplicate));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(first));
 
       // when: 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.YONHAP, null);
 
       // then: URL 기준으로 중복을 제거하여 1건만 저장요청되며, 첫 번째 기사만 살아남았는지 검증
       assertEquals(1, result.totalSavedCount());
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
-      verify(articleRepository).saveAll(captor.capture());
-      assertEquals("https://dup.com/1", captor.getValue().get(0).getSourceUrl());
-      assertEquals("first", captor.getValue().get(0).getTitle());
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
+      verify(articleScrapePersistenceService).saveAll(captor.capture());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://dup.com/1", saved.getSourceUrl());
+      assertEquals("first", saved.getTitle());
     }
 
     @Test
@@ -180,7 +186,7 @@ class ArticleScrapeServiceTest {
       // then: 저장 대상 기사가 없으므로 0건 저장되며, 관심사 매핑 및 저장 로직이 수행되지 않음을 검증
       assertEquals(0, result.totalSavedCount());
       verify(keywordRepository, never()).findAllWithInterest();
-      verify(articleRepository, never()).saveAll(anyList());
+      verify(articleScrapePersistenceService, never()).saveAll(anyMap());
     }
 
     @Test
@@ -197,7 +203,6 @@ class ArticleScrapeServiceTest {
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(
           List.of("https://exists.com/1"));
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(keyword));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(fresh));
 
       // when: 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
@@ -205,10 +210,11 @@ class ArticleScrapeServiceTest {
       // then: 기존 기사는 필터링되고, 1건(새 기사)만 최종적으로 DB에 저장되는지 검증
       assertEquals(1, result.totalSavedCount());
 
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
-      verify(articleRepository).saveAll(captor.capture());
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
+      verify(articleScrapePersistenceService).saveAll(captor.capture());
       assertEquals(1, captor.getValue().size());
-      assertEquals("https://new.com/2", captor.getValue().get(0).getSourceUrl());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://new.com/2", saved.getSourceUrl());
     }
 
     @Test
@@ -227,7 +233,7 @@ class ArticleScrapeServiceTest {
 
       // then: 어떤 관심사에도 매핑되지 않은 기사는 저장 대상에서 제외되어 0건이 저장됨을 검증
       assertEquals(0, result.totalSavedCount());
-      verify(articleRepository, never()).saveAll(anyList());
+      verify(articleScrapePersistenceService, never()).saveAll(anyMap());
     }
 
     @Test
@@ -242,15 +248,13 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.CHOSUN)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
 
       // when: 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 매칭이 올바르게 이루어져 1건이 저장되고, 해당 기사에 삼성 관심사가 연관관계로 묶였는지 검증
       assertEquals(1, result.totalSavedCount());
-      assertEquals(1, a1.getArticleInterests().size());
-      assertSame(samsung, a1.getArticleInterests().get(0).getInterest());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
     }
 
     @Test
@@ -267,24 +271,46 @@ class ArticleScrapeServiceTest {
           List.of(matched, unmatched));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(matched));
 
       // when: 스크래핑 및 저장 로직 실행
       ArticleScrapeResult result = articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
 
       // then: 관심사가 매핑되지 않은 테슬라 기사는 버려지고, 애플 기사 1건만 최종 저장되는지 검증
       assertEquals(1, result.totalSavedCount());
-      ArgumentCaptor<List<Article>> captor = ArgumentCaptor.forClass(List.class);
-      verify(articleRepository).saveAll(captor.capture());
+      ArgumentCaptor<Map<Article, Set<Interest>>> captor = ArgumentCaptor.forClass(Map.class);
+      verify(articleScrapePersistenceService).saveAll(captor.capture());
       assertEquals(1, captor.getValue().size());
-      assertEquals("https://a.com/1", captor.getValue().get(0).getSourceUrl());
+      Article saved = captor.getValue().keySet().iterator().next();
+      assertEquals("https://a.com/1", saved.getSourceUrl());
     }
 
     @Test
-    @DisplayName("저장 대상이 있으면 saveAll 호출")
-    void call_save_all_when_to_save_exists() {
-      // given: 정상적으로 관심사가 매핑되는 기사가 존재하는 상황
+    @DisplayName("요약이 있는 소스: 저장 대상이 있으면 saveAll 호출")
+    void call_save_all_for_chosun() {
+      // given: 조선일보처럼 이미 요약이 포함된 소스로부터 기사(카카오)가 파싱된 상황 설정
       Article a1 = article("https://a.com/1", "카카오", "톡");
+      Interest kakao = interest("카카오");
+      Keyword k = keyword(kakao, "카카오");
+
+      given(xmlClient.fetchRssXml(NewsSourceUrl.CHOSUN)).willReturn("<xml/>");
+      given(xmlParser.parse("<xml/>", NewsSourceUrl.CHOSUN)).willReturn(List.of(a1));
+      given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
+      given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
+
+      // when: 조선일보 소스에 대해 스크래핑 및 저장 로직 실행
+      articleScrapeService.scrapeAndSave(NewsSourceUrl.CHOSUN, null);
+
+      // then: 이미 요약이 있으므로 LLM 요약을 호출하지 않고 바로 saveAll이 호출되는지 검증
+      verify(articleScrapePersistenceService).saveAll(anyMap());
+      verify(llmSummaryService, never()).summarizeOrOriginal(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("요약이 없어 크롤링 된 본문이 있는 LLM 사용 소스: 요약 후 saveAll 호출")
+    void call_save_all_for_hankyung_with_llm_summary() {
+      // given: 한국경제처럼 RSS에서 요약 대신 크롤링된 본문이 제공되어 LLM 요약이 필요한 기사 설정
+      String crawledBodyText = "크롤링된 본문 텍스트";
+      Article a1 = article("https://a.com/1", "카카오", crawledBodyText);
       Interest kakao = interest("카카오");
       Keyword k = keyword(kakao, "카카오");
 
@@ -292,13 +318,38 @@ class ArticleScrapeServiceTest {
       given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of(a1));
       given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
       given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
-      given(articleRepository.saveAll(anyList())).willReturn(List.of(a1));
+      given(llmSummaryService.summarizeOrOriginal("크롤링된 본문 텍스트", "https://a.com/1"))
+          .willReturn("LLM 요약");
 
-      // when: 스크래핑 로직 실행
+      // when: 한국경제 소스에 대해 스크래핑 및 저장 로직 실행
       articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
 
-      // then: 저장해야 할 엔티티들이 리스트 형태로 한 번에 saveAll 메서드를 통해 호출되는지 검증
-      verify(articleRepository).saveAll(anyList());
+      // then: LLM 요약 서비스가 호출되었는지 확인하고, 기사 객체에 요약문이 업데이트되었는지 검증
+      verify(llmSummaryService).summarizeOrOriginal("크롤링된 본문 텍스트", "https://a.com/1");
+      verify(articleScrapePersistenceService).saveAll(anyMap());
+      assertEquals("LLM 요약", a1.getSummary());
+    }
+
+    @Test
+    @DisplayName("LLM 사용 소스라도 기본 문구 요약이면 LLM 호출을 건너뛴다")
+    void skip_llm_when_summary_is_default_message() {
+      // given: 한국경제 소스 기사지만 summary가 공통 기본 문구인 상황
+      Article a1 = article("https://a.com/2", "카카오", DEFAULT_SUMMARY);
+      Interest kakao = interest("카카오");
+      Keyword k = keyword(kakao, "카카오");
+
+      given(xmlClient.fetchRssXml(NewsSourceUrl.HANKYUNG)).willReturn("<xml/>");
+      given(xmlParser.parse("<xml/>", NewsSourceUrl.HANKYUNG)).willReturn(List.of(a1));
+      given(articleRepository.findAllExistingUrlsIn(anyList())).willReturn(List.of());
+      given(keywordRepository.findAllWithInterest()).willReturn(List.of(k));
+
+      // when
+      articleScrapeService.scrapeAndSave(NewsSourceUrl.HANKYUNG, null);
+
+      // then: LLM 호출 없이 저장 수행, summary는 기본 문구 유지
+      verify(llmSummaryService, never()).summarizeOrOriginal(anyString(), anyString());
+      verify(articleScrapePersistenceService).saveAll(anyMap());
+      assertEquals(DEFAULT_SUMMARY, a1.getSummary());
     }
   }
 

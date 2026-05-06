@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,7 @@ public class CommentService {
   private final ApplicationEventPublisher eventPublisher;
 
   // 댓글 등록
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional
   public CommentDto registerComment(UUID articleId, UUID userId, String content) {
     log.debug("[COMMENT_CREATE] 댓글 등록 요청: articleId={}, userId={}", articleId, userId);
@@ -105,6 +107,7 @@ public class CommentService {
   }
 
   // 댓글 논리 삭제 (삭제 기본값)
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional
   public void deleteComment(UUID commentId) {
     log.debug("[COMMENT_DELETE] 댓글 논리 삭제 요청: commentId={}", commentId);
@@ -118,6 +121,7 @@ public class CommentService {
   }
 
   // 댓글 물리 삭제
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional
   public void hardDeleteComment(UUID commentId) {
     log.debug("[COMMENT_DELETE] 댓글 물리 삭제 요청: commentId={}", commentId);

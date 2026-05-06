@@ -16,4 +16,9 @@ public abstract class CommonException extends MonewException {
     addDetail(field1, value1);
     addDetail(field2, value2);
   }
+
+  protected CommonException(ErrorCode errorCode, String field, Object value, Throwable cause) {
+    super(errorCode, cause);
+    addDetail(field, value);
+  }
 }

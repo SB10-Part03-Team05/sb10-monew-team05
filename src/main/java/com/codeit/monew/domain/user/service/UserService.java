@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,7 @@ public class UserService {
     return userMapper.toDto(user);
   }
 
+  @CacheEvict(value = "articleList", allEntries = true)
   public void softDelete(UUID userId) {
     log.debug("[USER_DELETE] 유저 논리 삭제 요청: userId={}", userId);
 
@@ -74,6 +76,7 @@ public class UserService {
     log.info("[USER_DELETE] 유저 논리 삭제 완료: userId={}", user.getId());
   }
 
+  @CacheEvict(value = "articleList", allEntries = true)
   public void hardDelete(UUID userId) {
     log.debug("[USER_DELETE] 유저 물리 삭제 요청: userId={}", userId);
 

@@ -2,6 +2,7 @@ package com.codeit.monew.domain.article.repository;
 
 import com.codeit.monew.domain.article.ArticleSource;
 import com.codeit.monew.domain.article.entity.Article;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -34,4 +35,47 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, Article
       nativeQuery = true
   )
   Collection<String> findAllExistingUrlsIn(List<String> chunk);
+
+  @Query(value = """
+      SELECT DISTINCT a 
+      FROM Article AS a 
+      LEFT JOIN FETCH a.articleInterests ai 
+      LEFT JOIN FETCH ai.interest 
+      WHERE a.publishDate >= :from
+            AND a.publishDate < :to
+            AND a.deletedAt IS NULL
+      """)
+  List<Article> findAllWithInterests(
+      @Param("from") Instant from,
+      @Param("to") Instant to
+  );
+
+  @Query(
+      value = "SELECT id FROM articles WHERE publish_date >= :from AND publish_date < :to ",
+      nativeQuery = true
+  )
+  List<UUID> findIdsByPublishDateBetween(
+      @Param("from") Instant from,
+      @Param("to") Instant to
+  );
+
+  @Modifying
+  @Query(
+      value = """
+          INSERT INTO articles (id, source, source_url, title, publish_date, summary, created_at, updated_at) 
+          VALUES (:id, :source, :sourceUrl, :title, :publishDate, :summary, :createdAt, :updatedAt)
+          ON CONFLICT (id) DO NOTHING;
+          """,
+      nativeQuery = true
+  )
+  int insertRestoredArticle(
+      @Param("id") UUID id,
+      @Param("source") String source,
+      @Param("sourceUrl") String sourceUrl,
+      @Param("title") String title,
+      @Param("publishDate") Instant publishDate,
+      @Param("summary") String summary,
+      @Param("createdAt") Instant createdAt,
+      @Param("updatedAt") Instant updatedAt
+  );
 }

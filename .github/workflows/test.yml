@@ -36,6 +36,8 @@ jobs: # 실행할 작업(job)들을 정의
         env:
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: ./gradlew clean test jacocoTestReport
 
       # 5) Codecov로 JaCoCo report 파일 업로드

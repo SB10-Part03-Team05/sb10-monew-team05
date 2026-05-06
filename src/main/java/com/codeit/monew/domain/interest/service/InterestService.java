@@ -13,6 +13,7 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.domain.useractivity.event.InterestDeletedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
@@ -23,6 +24,7 @@ import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -108,6 +110,7 @@ public class InterestService {
   }
 
   // 3. 관심사 삭제
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional
   public void delete(UUID interestId) {
     log.debug("[INTEREST_DELETE] 관심사 삭제 요청: interestId={}", interestId);
@@ -117,6 +120,11 @@ public class InterestService {
         .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
+
+    // 활동 내역 업데이트를 위한 관심사 삭제 이벤트 발행
+    eventPublisher.publishEvent(new InterestDeletedEvent(
+        interestId
+    ));
 
     interestRepository.delete(interest);
     log.info("[INTEREST_DELETE] 관심사 삭제 완료: interestId={}", interestId);
@@ -156,7 +164,7 @@ public class InterestService {
     Subscription subscription;
     try {
       subscription = Subscription.create(user, interest);
-      subscriptionRepository.save(subscription);
+      subscriptionRepository.saveAndFlush(subscription);
     } catch (DataIntegrityViolationException e) {
       if (isDuplicateConstraintViolation(e)) {
         throw new AlreadySubscribedException(userId, interestId);

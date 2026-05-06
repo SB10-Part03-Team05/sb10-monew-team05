@@ -1,5 +1,7 @@
 package com.codeit.monew.domain.article.service;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
+
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
@@ -9,10 +11,12 @@ import com.codeit.monew.domain.interest.entity.Keyword;
 import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.global.exception.MonewException;
 import com.codeit.monew.global.exception.article.ArticleScrapeException;
+import com.codeit.monew.infra.external.llm.LlmSummaryService;
 import com.codeit.monew.infra.external.rss.NewsSourceUrl;
 import com.codeit.monew.infra.external.rss.XmlClient;
 import com.codeit.monew.infra.external.rss.XmlParser;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -27,20 +31,24 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ArticleScrapeService {
 
   private final XmlClient xmlClient;
   private final XmlParser xmlParser;
   private final ArticleRepository articleRepository;
   private final KeywordRepository keywordRepository;
-  // TODO: NotificationService notificationService;
+  private final LlmSummaryService llmSummaryService;
+  private final ArticleScrapePersistenceService articleScrapePersistenceService;
+
+  private static final Set<NewsSourceUrl> LLM_SUMMARY_SOURCES = EnumSet.of(
+      NewsSourceUrl.HANKYUNG
+      // NewsSourceUrl.MAEIL, // 나중에 크롤링 할 소스 추가
+  );
 
   public ArticleScrapeResult scrapeAndSave(NewsSourceUrl source, String query) {
     // 외부 소스(RSS/Naver)로부터 XML 데이터를 가져와서 Article 객체 리스트로 변환.
@@ -112,7 +120,6 @@ public class ArticleScrapeService {
     for (Article article : newArticles) {
       Set<Interest> matchedInterests = findMatchedInterests(article, keywords);
       if (!matchedInterests.isEmpty()) {
-        matchedInterests.forEach(article::addInterest); // 양방향 연관관계 편의 메서드
         map.put(article, matchedInterests);
       }
     }
@@ -135,14 +142,19 @@ public class ArticleScrapeService {
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
-  private ArticleScrapeResult saveAndNotify(Map<Article, Set<Interest>> articleInterestMap, NewsSourceUrl source) {
+  private ArticleScrapeResult saveAndNotify(Map<Article, Set<Interest>> articleInterestMap,
+      NewsSourceUrl source) {
     List<Article> toSave = new ArrayList<>(articleInterestMap.keySet());
 
     if (toSave.isEmpty()) {
       return ArticleScrapeResult.empty();
     }
 
-    articleRepository.saveAll(toSave);
+    if (LLM_SUMMARY_SOURCES.contains(source)) {
+      applyLlmSummaryForCrawledArticles(toSave);
+    }
+
+    articleScrapePersistenceService.saveAll(articleInterestMap);
 
     // 관심사별 기사 개수 집계
     Map<UUID, InterestInfo> interestResults = new HashMap<>();
@@ -159,6 +171,18 @@ public class ArticleScrapeService {
     log.info("[{}] {}건의 새로운 기사가 저장되었습니다.", source, toSave.size());
 
     return new ArticleScrapeResult(toSave.size(), interestResults);
+  }
+
+  private void applyLlmSummaryForCrawledArticles(List<Article> articles) {
+    for (Article article : articles) {
+      String originalBody = article.getSummary();
+      if (!StringUtils.hasText(originalBody) || DEFAULT_SUMMARY.equals(originalBody.trim())) {
+        continue;
+      }
+      String summarized = llmSummaryService.summarizeOrOriginal(originalBody,
+          article.getSourceUrl());
+      article.updateSummary(summarized);
+    }
   }
 
   private String fetchXml(NewsSourceUrl source, String query) {

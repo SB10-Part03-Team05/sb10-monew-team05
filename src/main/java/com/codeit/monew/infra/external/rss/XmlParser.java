@@ -1,9 +1,11 @@
 package com.codeit.monew.infra.external.rss;
 
-import com.codeit.monew.domain.article.ArticleSource;
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
+
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.global.exception.article.InvalidArticleEntityException;
-import com.codeit.monew.global.exception.external.ExternalInvalidXmlException;
+import com.codeit.monew.global.exception.external.parser.EmptyXmlInputException;
+import com.codeit.monew.global.exception.external.parser.ExternalInvalidXmlException;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
@@ -11,6 +13,7 @@ import com.rometools.rome.io.SyndFeedInput;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
@@ -18,21 +21,22 @@ import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class XmlParser {
+
+  private final ArticleBodyCrawler articleBodyCrawler;
 
   public List<Article> parse(String xml, NewsSourceUrl source) {
     // xml이 비어있다면 예외 발생
     if (xml == null || xml.isBlank()) {
-      throw new ExternalInvalidXmlException(
-          source,
-          "empty_or_blank_xml",
-          xml == null ? null : xml.length()
-      );
+      throw new EmptyXmlInputException(source);
     }
 
     // XML 문법에 어긋나는 요소들을 정규표현식으로 미리 제거 (전처리)
     String sanitizedXml = xml
-        .replaceAll("<!DOCTYPE[^>]*>", "");
+        .replaceAll("<!DOCTYPE[^>]*>", "")
+        // MK 등 일부 RSS의 pubDate 오프셋(+09:00)을 ROME 호환(+0900)으로 정규화
+        .replaceAll("(?i)(<pubDate>\\s*[^<]*[+-]\\d{2}):(\\d{2}\\s*</pubDate>)", "$1$2");
 
     try {
       // ROME 라이브러리를 사용하여 문자열 XML을 SyndFeed(RSS 표준 객체)로 변환
@@ -44,14 +48,18 @@ public class XmlParser {
       // 피드 안의 개별 기사 항목(SyndEntry)을 하나씩 순회
       for (SyndEntry entry : feed.getEntries()) {
         try {
-          articles.add(Article.createArticle(
-              mapArticleSource(source),
-              extractLink(entry, source),
+          String link = extractLink(entry, source);
+          Article article = Article.createArticle(
+              source.getArticleSource(),
+              link,
               entry.getTitle() == null ? null : Jsoup.parse(entry.getTitle()).text().trim(),
-              entry.getPublishedDate() == null ? null
-                  : entry.getPublishedDate().toInstant(),
-              extractSummary(entry)
-          ));
+              entry.getPublishedDate() == null ? null : entry.getPublishedDate().toInstant(),
+              extractSummary(entry, source, link)
+          );
+          articles.add(article);
+          log.debug("Article Source: {}, URL: {}, Title: {}, Published Date: {}, Summary: {}",
+              article.getSource(), article.getSourceUrl(), article.getTitle(),
+              article.getPublishDate(), article.getSummary());
         } catch (InvalidArticleEntityException e) { // 특정 엔트리의 엔티티 무결성이 잘못된 경우 해당 엔트리 스킵
           skippedInvalid++;
           log.warn("[{}] entry parse skipped(invalid): title={}, link={}, details={}",
@@ -69,7 +77,7 @@ public class XmlParser {
           source, feed.getEntries().size(), articles.size(), skippedInvalid, skippedUnexpected);
       return articles;
     } catch (FeedException e) {
-      throw new ExternalInvalidXmlException(source, "feed_parse_failed", e);
+      throw new ExternalInvalidXmlException(source, e);
     }
   }
 
@@ -84,7 +92,7 @@ public class XmlParser {
     return entry.getLink();
   }
 
-  private String extractSummary(SyndEntry entry) {
+  private String extractSummary(SyndEntry entry, NewsSourceUrl source, String sourceUrl) {
     // Description이 있는 경우 -> 네이버, 연합뉴스
     if (entry.getDescription() != null) {
       String desc = Jsoup.parse(entry.getDescription().getValue()).text();
@@ -101,17 +109,10 @@ public class XmlParser {
       }
     }
 
-    // Description이 없고, Content도 없는 경우 -> 한국경제
-    // todo: 심화) 나중에 원문 링크 접속해서 body 크롤링해서 Gemini API로 요약 제공
-    return "요약이 제공되지 않는 출처입니다";
-  }
-
-  private ArticleSource mapArticleSource(NewsSourceUrl source) {
-    return switch (source) {
-      case NAVER -> ArticleSource.NAVER;
-      case HANKYUNG -> ArticleSource.HANKYUNG;
-      case CHOSUN -> ArticleSource.CHOSUN;
-      case YONHAP -> ArticleSource.YONHAP;
-    };
+    // 3. RSS에 데이터가 전혀 없다면 크롤러에게 위임
+    String crawledBodyText = articleBodyCrawler.crawlBodyText(sourceUrl, source);
+    return StringUtils.hasText(crawledBodyText)
+        ? crawledBodyText
+        : DEFAULT_SUMMARY; // 크롤링 된 값이 없다면(또는 크롤링에 실패했다면) 기본 문구 반환
   }
 }

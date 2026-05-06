@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(MonewException.class)
   public ResponseEntity<ErrorResponse> handleMonewException(MonewException e) {
-    HttpStatus status = determineHttpStatus(e);
+    HttpStatus status = e.getErrorCode().getStatus();
 
     if (status == HttpStatus.INTERNAL_SERVER_ERROR) {
       log.error("[Exception] 커스텀 예외: timestamp={}, code={}, message={}, details={}",
@@ -85,9 +85,10 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
-    log.warn("[EXCEPTION] Constraint Violation 예외: code={}, message={}", e.getClass().getSimpleName(),
-        e.getMessage(), e);
+  public ResponseEntity<ErrorResponse> handleConstraintViolationException(
+      ConstraintViolationException e) {
+    log.warn("[EXCEPTION] Constraint Violation 예외: code={}, message={}",
+        e.getClass().getSimpleName(), e.getMessage(), e);
     Map<String, Object> details = new HashMap<>();
     e.getConstraintViolations().forEach(violation -> {
       String propertyPath = violation.getPropertyPath().toString();
@@ -199,25 +200,5 @@ public class GlobalExceptionHandler {
     );
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-  }
-
-  private HttpStatus determineHttpStatus(MonewException exception) {
-    ErrorCode errorCode = exception.getErrorCode();
-    return switch (errorCode) {
-      case USER_NOT_FOUND, ARTICLE_NOT_FOUND, COMMENT_NOT_FOUND, INTEREST_NOT_FOUND,
-           SUBSCRIPTION_NOT_FOUND, COMMENT_LIKE_NOT_FOUND, NOTIFICATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
-      case PASSWORD_MISMATCH -> HttpStatus.UNAUTHORIZED;
-      case DUPLICATE_EMAIL, DUPLICATE_INTEREST, ALREADY_SUBSCRIBED, COMMENT_LIKE_ALREADY_EXISTS ->
-          HttpStatus.CONFLICT;
-      case USER_ACCESS_DENIED, COMMENT_UPDATE_FORBIDDEN, NOTIFICATION_ACCESS_DENIED, NOTIFICATION_RECEIVER_MISMATCH -> HttpStatus.FORBIDDEN;
-      case INVALID_PARAMETER_INPUT, COMMENT_CONTENT_BLANK, COMMENT_CONTENT_TOO_LONG, INVALID_ARTICLE_ENTITY ->
-          HttpStatus.BAD_REQUEST;
-      case EXTERNAL_RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS; // 429
-      case EXTERNAL_CLIENT_ERROR -> HttpStatus.BAD_GATEWAY;      // 502
-      case EXTERNAL_SERVER_ERROR, EXTERNAL_EMPTY_RESPONSE, EXTERNAL_NETWORK_ERROR,
-           EXTERNAL_INVALID_XML -> HttpStatus.SERVICE_UNAVAILABLE; // 503
-      case ARTICLE_SCRAPE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
-      default -> HttpStatus.INTERNAL_SERVER_ERROR; // 500, 알수 없는 에러
-    };
   }
 }
