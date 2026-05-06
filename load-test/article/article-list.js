@@ -21,7 +21,7 @@ export default function () {
   // 헤더 설정 (로그인한 사용자 ID)
   const params = {
     headers: {
-      'Monew-Request-User-ID': 'a9dd4279-a753-45ee-95d7-b1c8cb4fafb1',
+      'Monew-Request-User-ID': '57a2ae38-7e21-4217-a614-f3ce1b29d7fc',
       // 하드코딩 되어 있으므로 다른 컴퓨터에서 실행할 때는 유저를 새로 만들고 바꿔주어야 함
     },
   };

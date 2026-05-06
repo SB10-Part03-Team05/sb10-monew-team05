@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class ArticleScrapePersistenceService {
    *
    * @param articleInterestMap 기사 엔티티와 관심사 세트의 매핑 정보
    */
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void saveAll(Map<Article, Set<Interest>> articleInterestMap) {
     if (articleInterestMap == null || articleInterestMap.isEmpty()) {
