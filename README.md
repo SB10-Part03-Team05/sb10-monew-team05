@@ -130,624 +130,6 @@
 .
 ├── Dockerfile
 ├── README.md
-├── build
-│   ├── classes
-│   │   └── java
-│   │       ├── main
-│   │       │   └── com
-│   │       │       └── codeit
-│   │       │           └── monew
-│   │       │               ├── MonewApplication.class
-│   │       │               ├── domain
-│   │       │               │   ├── article
-│   │       │               │   │   ├── ArticleSource.class
-│   │       │               │   │   ├── controller
-│   │       │               │   │   ├── dto
-│   │       │               │   │   ├── entity
-│   │       │               │   │   ├── mapper
-│   │       │               │   │   ├── repository
-│   │       │               │   │   ├── scheduler
-│   │       │               │   │   └── service
-│   │       │               │   ├── comment
-│   │       │               │   │   ├── controller
-│   │       │               │   │   ├── dto
-│   │       │               │   │   ├── entity
-│   │       │               │   │   ├── mapper
-│   │       │               │   │   ├── repository
-│   │       │               │   │   └── service
-│   │       │               │   ├── interest
-│   │       │               │   │   ├── controller
-│   │       │               │   │   ├── dto
-│   │       │               │   │   ├── entity
-│   │       │               │   │   ├── repository
-│   │       │               │   │   └── service
-│   │       │               │   ├── notification
-│   │       │               │   │   ├── controller
-│   │       │               │   │   ├── dto
-│   │       │               │   │   ├── entity
-│   │       │               │   │   ├── event
-│   │       │               │   │   ├── listener
-│   │       │               │   │   ├── mapper
-│   │       │               │   │   ├── repository
-│   │       │               │   │   ├── scheduler
-│   │       │               │   │   └── service
-│   │       │               │   ├── user
-│   │       │               │   │   ├── controller
-│   │       │               │   │   ├── dto
-│   │       │               │   │   ├── entity
-│   │       │               │   │   ├── mapper
-│   │       │               │   │   ├── repository
-│   │       │               │   │   ├── scheduler
-│   │       │               │   │   └── service
-│   │       │               │   └── useractivity
-│   │       │               │       ├── controller
-│   │       │               │       ├── dto
-│   │       │               │       ├── entity
-│   │       │               │       ├── event
-│   │       │               │       ├── listener
-│   │       │               │       ├── mapper
-│   │       │               │       ├── repository
-│   │       │               │       └── service
-│   │       │               ├── global
-│   │       │               │   ├── common
-│   │       │               │   │   ├── base
-│   │       │               │   │   └── constant
-│   │       │               │   ├── config
-│   │       │               │   │   ├── AsyncConfig.class
-│   │       │               │   │   ├── AwsProperties.class
-│   │       │               │   │   ├── CacheConfig.class
-│   │       │               │   │   ├── JpaAuditingConfig.class
-│   │       │               │   │   ├── LlmClientTimeoutConfig.class
-│   │       │               │   │   ├── MDCLoggingInterceptor.class
-│   │       │               │   │   ├── QueryDslConfig.class
-│   │       │               │   │   ├── RestClientConfig.class
-│   │       │               │   │   ├── SwaggerConfig.class
-│   │       │               │   │   └── WebMvcConfig.class
-│   │       │               │   ├── exception
-│   │       │               │   │   ├── ErrorCode.class
-│   │       │               │   │   ├── ErrorResponse.class
-│   │       │               │   │   ├── GlobalExceptionHandler.class
-│   │       │               │   │   ├── Interest
-│   │       │               │   │   ├── MonewException.class
-│   │       │               │   │   ├── article
-│   │       │               │   │   ├── aws
-│   │       │               │   │   ├── comment
-│   │       │               │   │   ├── common
-│   │       │               │   │   ├── external
-│   │       │               │   │   ├── notification
-│   │       │               │   │   └── user
-│   │       │               │   └── logging
-│   │       │               │       ├── ClientIpResolver.class
-│   │       │               │       ├── MaskingMessageConverter$MaskingRule.class
-│   │       │               │       └── MaskingMessageConverter.class
-│   │       │               └── infra
-│   │       │                   ├── aws
-│   │       │                   │   └── S3Config.class
-│   │       │                   ├── external
-│   │       │                   │   ├── llm
-│   │       │                   │   └── rss
-│   │       │                   ├── logging
-│   │       │                   │   ├── LogUploadController.class
-│   │       │                   │   ├── LogUploadProperties.class
-│   │       │                   │   ├── LogUploadResult$Status.class
-│   │       │                   │   ├── LogUploadResult.class
-│   │       │                   │   ├── LogUploadScheduler$1.class
-│   │       │                   │   ├── LogUploadScheduler.class
-│   │       │                   │   └── LogUploadService.class
-│   │       │                   └── storage
-│   │       │                       └── s3
-│   │       └── test
-│   │           └── com
-│   │               └── codeit
-│   │                   └── monew
-│   │                       ├── MonewApplicationTests.class
-│   │                       ├── domain
-│   │                       │   ├── article
-│   │                       │   │   ├── controller
-│   │                       │   │   ├── entity
-│   │                       │   │   ├── mapper
-│   │                       │   │   ├── repository
-│   │                       │   │   ├── scheduler
-│   │                       │   │   └── service
-│   │                       │   ├── comment
-│   │                       │   │   ├── controller
-│   │                       │   │   ├── repository
-│   │                       │   │   └── service
-│   │                       │   ├── interest
-│   │                       │   │   ├── controller
-│   │                       │   │   ├── repository
-│   │                       │   │   └── service
-│   │                       │   ├── notification
-│   │                       │   │   ├── controller
-│   │                       │   │   ├── event
-│   │                       │   │   ├── listener
-│   │                       │   │   ├── repository
-│   │                       │   │   ├── scheduler
-│   │                       │   │   └── service
-│   │                       │   ├── user
-│   │                       │   │   ├── controller
-│   │                       │   │   ├── scheduler
-│   │                       │   │   └── service
-│   │                       │   └── useractivity
-│   │                       │       ├── controller
-│   │                       │       ├── listener
-│   │                       │       └── service
-│   │                       └── infra
-│   │                           ├── external
-│   │                           │   └── rss
-│   │                           ├── logging
-│   │                           │   └── LogUploadServiceTest.class
-│   │                           └── storage
-│   │                               └── s3
-│   ├── generated
-│   │   ├── querydsl
-│   │   │   └── com
-│   │   │       └── codeit
-│   │   │           └── monew
-│   │   │               ├── domain
-│   │   │               │   ├── article
-│   │   │               │   │   ├── entity
-│   │   │               │   │   │   ├── QArticle.java
-│   │   │               │   │   │   ├── QArticleInterest.java
-│   │   │               │   │   │   └── QArticleViewHistory.java
-│   │   │               │   │   └── mapper
-│   │   │               │   │       ├── ArticleBackupMapperImpl.java
-│   │   │               │   │       ├── ArticleMapperImpl.java
-│   │   │               │   │       └── ArticleViewMapperImpl.java
-│   │   │               │   ├── comment
-│   │   │               │   │   ├── entity
-│   │   │               │   │   │   ├── QComment.java
-│   │   │               │   │   │   └── QCommentLike.java
-│   │   │               │   │   └── mapper
-│   │   │               │   │       └── CommentMapperImpl.java
-│   │   │               │   ├── interest
-│   │   │               │   │   └── entity
-│   │   │               │   │       ├── QInterest.java
-│   │   │               │   │       ├── QKeyword.java
-│   │   │               │   │       └── QSubscription.java
-│   │   │               │   ├── notification
-│   │   │               │   │   ├── entity
-│   │   │               │   │   │   ├── QCommentNotification.java
-│   │   │               │   │   │   ├── QInterestNotification.java
-│   │   │               │   │   │   └── QNotification.java
-│   │   │               │   │   └── mapper
-│   │   │               │   │       └── NotificationMapperImpl.java
-│   │   │               │   ├── user
-│   │   │               │   │   ├── entity
-│   │   │               │   │   │   └── QUser.java
-│   │   │               │   │   └── mapper
-│   │   │               │   │       └── UserMapperImpl.java
-│   │   │               │   └── useractivity
-│   │   │               │       └── mapper
-│   │   │               │           └── UserActivityMapperImpl.java
-│   │   │               └── global
-│   │   │                   └── common
-│   │   │                       └── base
-│   │   │                           ├── QBaseEntity.java
-│   │   │                           └── QBaseUpdatableEntity.java
-│   │   └── sources
-│   │       └── headers
-│   │           └── java
-│   │               ├── main
-│   │               └── test
-│   ├── jacoco
-│   │   └── test.exec
-│   ├── reports
-│   │   ├── jacoco
-│   │   │   └── test
-│   │   │       ├── html
-│   │   │       │   ├── com.codeit.monew.domain.article
-│   │   │       │   │   ├── ArticleSource.html
-│   │   │       │   │   ├── ArticleSource.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.controller
-│   │   │       │   │   ├── AdminArticleController.html
-│   │   │       │   │   ├── AdminArticleController.java.html
-│   │   │       │   │   ├── ArticleController.html
-│   │   │       │   │   ├── ArticleController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.entity
-│   │   │       │   │   ├── Article.html
-│   │   │       │   │   ├── Article.java.html
-│   │   │       │   │   ├── ArticleInterest.html
-│   │   │       │   │   ├── ArticleInterest.java.html
-│   │   │       │   │   ├── ArticleViewHistory.html
-│   │   │       │   │   ├── ArticleViewHistory.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.entity.type
-│   │   │       │   │   ├── ArticleDirection.html
-│   │   │       │   │   ├── ArticleDirection.java.html
-│   │   │       │   │   ├── ArticleOrderBy.html
-│   │   │       │   │   ├── ArticleOrderBy.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.mapper
-│   │   │       │   │   ├── ArticleBackupMapper.html
-│   │   │       │   │   ├── ArticleBackupMapper.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.repository.impl
-│   │   │       │   │   ├── ArticleQueryRepositoryImpl$CountCursor.html
-│   │   │       │   │   ├── ArticleQueryRepositoryImpl$PublishDateCursor.html
-│   │   │       │   │   ├── ArticleQueryRepositoryImpl.html
-│   │   │       │   │   ├── ArticleQueryRepositoryImpl.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.scheduler
-│   │   │       │   │   ├── ArticleScrapeBatchNotificationPublisher.html
-│   │   │       │   │   ├── ArticleScrapeBatchNotificationPublisher.java.html
-│   │   │       │   │   ├── ArticleScrapeNotificationTasklet.html
-│   │   │       │   │   ├── ArticleScrapeNotificationTasklet.java.html
-│   │   │       │   │   ├── ArticleScrapeResult$InterestInfo.html
-│   │   │       │   │   ├── ArticleScrapeResult.html
-│   │   │       │   │   ├── ArticleScrapeResult.java.html
-│   │   │       │   │   ├── ArticleScrapeResultExecutionContextManager.html
-│   │   │       │   │   ├── ArticleScrapeResultExecutionContextManager.java.html
-│   │   │       │   │   ├── ArticleScrapeScheduler.html
-│   │   │       │   │   ├── ArticleScrapeScheduler.java.html
-│   │   │       │   │   ├── BatchCircuitBreaker.html
-│   │   │       │   │   ├── BatchCircuitBreaker.java.html
-│   │   │       │   │   ├── NaverArticleBatchJob.html
-│   │   │       │   │   ├── NaverArticleBatchJob.java.html
-│   │   │       │   │   ├── NaverArticleScrapeTasklet.html
-│   │   │       │   │   ├── NaverArticleScrapeTasklet.java.html
-│   │   │       │   │   ├── NaverKeywordTxProcessor.html
-│   │   │       │   │   ├── NaverKeywordTxProcessor.java.html
-│   │   │       │   │   ├── RssArticleBatchJob.html
-│   │   │       │   │   ├── RssArticleBatchJob.java.html
-│   │   │       │   │   ├── RssArticleScrapeTasklet.html
-│   │   │       │   │   ├── RssArticleScrapeTasklet.java.html
-│   │   │       │   │   ├── RssSourceTxProcessor.html
-│   │   │       │   │   ├── RssSourceTxProcessor.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.scheduler.backup
-│   │   │       │   │   ├── ArticleBackupBatchRunner.html
-│   │   │       │   │   ├── ArticleBackupBatchRunner.java.html
-│   │   │       │   │   ├── ArticleBackupJob.html
-│   │   │       │   │   ├── ArticleBackupJob.java.html
-│   │   │       │   │   ├── ArticleBackupScheduler.html
-│   │   │       │   │   ├── ArticleBackupScheduler.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.article.service
-│   │   │       │   │   ├── ArticleBackupService.html
-│   │   │       │   │   ├── ArticleBackupService.java.html
-│   │   │       │   │   ├── ArticleRestoreService.html
-│   │   │       │   │   ├── ArticleRestoreService.java.html
-│   │   │       │   │   ├── ArticleScrapeBatchRunner.html
-│   │   │       │   │   ├── ArticleScrapeBatchRunner.java.html
-│   │   │       │   │   ├── ArticleScrapeService.html
-│   │   │       │   │   ├── ArticleScrapeService.java.html
-│   │   │       │   │   ├── ArticleService.html
-│   │   │       │   │   ├── ArticleService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.comment.controller
-│   │   │       │   │   ├── CommentController.html
-│   │   │       │   │   ├── CommentController.java.html
-│   │   │       │   │   ├── CommentLikeController.html
-│   │   │       │   │   ├── CommentLikeController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.comment.entity
-│   │   │       │   │   ├── Comment.html
-│   │   │       │   │   ├── Comment.java.html
-│   │   │       │   │   ├── CommentLike.html
-│   │   │       │   │   ├── CommentLike.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.comment.repository.impl
-│   │   │       │   │   ├── CommentQueryRepositoryImpl.html
-│   │   │       │   │   ├── CommentQueryRepositoryImpl.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.comment.service
-│   │   │       │   │   ├── CommentLikeService.html
-│   │   │       │   │   ├── CommentLikeService.java.html
-│   │   │       │   │   ├── CommentService.html
-│   │   │       │   │   ├── CommentService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.interest.controller
-│   │   │       │   │   ├── InterestController.html
-│   │   │       │   │   ├── InterestController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.interest.entity
-│   │   │       │   │   ├── Interest.html
-│   │   │       │   │   ├── Interest.java.html
-│   │   │       │   │   ├── Keyword.html
-│   │   │       │   │   ├── Keyword.java.html
-│   │   │       │   │   ├── Subscription.html
-│   │   │       │   │   ├── Subscription.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.interest.repository
-│   │   │       │   │   ├── InterestRepositoryImpl.html
-│   │   │       │   │   ├── InterestRepositoryImpl.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.interest.service
-│   │   │       │   │   ├── InterestService.html
-│   │   │       │   │   ├── InterestService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.controller
-│   │   │       │   │   ├── NotificationController.html
-│   │   │       │   │   ├── NotificationController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.entity
-│   │   │       │   │   ├── CommentNotification.html
-│   │   │       │   │   ├── CommentNotification.java.html
-│   │   │       │   │   ├── InterestNotification.html
-│   │   │       │   │   ├── InterestNotification.java.html
-│   │   │       │   │   ├── Notification.html
-│   │   │       │   │   ├── Notification.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.event
-│   │   │       │   │   ├── BulkArticleRegisteredEvent$InterestArticleCount.html
-│   │   │       │   │   ├── BulkArticleRegisteredEvent.html
-│   │   │       │   │   ├── BulkArticleRegisteredEvent.java.html
-│   │   │       │   │   ├── CommentLikedEvent.html
-│   │   │       │   │   ├── CommentLikedEvent.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.listener
-│   │   │       │   │   ├── NotificationListener.html
-│   │   │       │   │   ├── NotificationListener.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.mapper
-│   │   │       │   │   ├── NotificationMapper.html
-│   │   │       │   │   ├── NotificationMapper.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.repository.impl
-│   │   │       │   │   ├── NotificationQueryRepositoryImpl.html
-│   │   │       │   │   ├── NotificationQueryRepositoryImpl.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.scheduler
-│   │   │       │   │   ├── NotificationScheduler.html
-│   │   │       │   │   ├── NotificationScheduler.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.notification.service
-│   │   │       │   │   ├── NotificationService.html
-│   │   │       │   │   ├── NotificationService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.user.controller
-│   │   │       │   │   ├── UserController.html
-│   │   │       │   │   ├── UserController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.user.entity
-│   │   │       │   │   ├── User.html
-│   │   │       │   │   ├── User.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.user.scheduler
-│   │   │       │   │   ├── UserScheduler.html
-│   │   │       │   │   ├── UserScheduler.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.user.service
-│   │   │       │   │   ├── UserService.html
-│   │   │       │   │   ├── UserService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.useractivity.controller
-│   │   │       │   │   ├── UserActivityController.html
-│   │   │       │   │   ├── UserActivityController.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.useractivity.entity
-│   │   │       │   │   ├── UserActivity$ArticleViewInfo.html
-│   │   │       │   │   ├── UserActivity$CommentInfo.html
-│   │   │       │   │   ├── UserActivity$CommentLikeInfo.html
-│   │   │       │   │   ├── UserActivity$SubscriptionInfo.html
-│   │   │       │   │   ├── UserActivity.html
-│   │   │       │   │   ├── UserActivity.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.useractivity.event
-│   │   │       │   │   ├── ArticleViewedEvent.html
-│   │   │       │   │   ├── ArticleViewedEvent.java.html
-│   │   │       │   │   ├── CommentCreatedEvent.html
-│   │   │       │   │   ├── CommentCreatedEvent.java.html
-│   │   │       │   │   ├── CommentLikedCancelEvent.html
-│   │   │       │   │   ├── CommentLikedCancelEvent.java.html
-│   │   │       │   │   ├── CommentLikedEvent.html
-│   │   │       │   │   ├── CommentLikedEvent.java.html
-│   │   │       │   │   ├── CommentUpdatedEvent.html
-│   │   │       │   │   ├── CommentUpdatedEvent.java.html
-│   │   │       │   │   ├── InterestSubscribedEvent.html
-│   │   │       │   │   ├── InterestSubscribedEvent.java.html
-│   │   │       │   │   ├── InterestUnSubscribedEvent.html
-│   │   │       │   │   ├── InterestUnSubscribedEvent.java.html
-│   │   │       │   │   ├── UserRegisteredEvent.html
-│   │   │       │   │   ├── UserRegisteredEvent.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.useractivity.listener
-│   │   │       │   │   ├── UserActivityEventListener.html
-│   │   │       │   │   ├── UserActivityEventListener.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.domain.useractivity.service
-│   │   │       │   │   ├── UserActivityService.html
-│   │   │       │   │   ├── UserActivityService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.global.config
-│   │   │       │   │   ├── AwsProperties.html
-│   │   │       │   │   ├── AwsProperties.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.global.exception
-│   │   │       │   │   ├── ErrorCode.html
-│   │   │       │   │   ├── ErrorCode.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.global.exception.article
-│   │   │       │   │   ├── ArticleBackupBatchRunFailed.html
-│   │   │       │   │   ├── ArticleBackupBatchRunFailed.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.global.logging
-│   │   │       │   │   ├── ClientIpResolver.html
-│   │   │       │   │   ├── ClientIpResolver.java.html
-│   │   │       │   │   ├── MaskingMessageConverter$MaskingRule.html
-│   │   │       │   │   ├── MaskingMessageConverter.html
-│   │   │       │   │   ├── MaskingMessageConverter.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.infra.external.rss
-│   │   │       │   │   ├── NewsSourceUrl.html
-│   │   │       │   │   ├── NewsSourceUrl.java.html
-│   │   │       │   │   ├── XmlClient.html
-│   │   │       │   │   ├── XmlClient.java.html
-│   │   │       │   │   ├── XmlParser.html
-│   │   │       │   │   ├── XmlParser.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.infra.logging
-│   │   │       │   │   ├── LogUploadController.html
-│   │   │       │   │   ├── LogUploadController.java.html
-│   │   │       │   │   ├── LogUploadProperties.html
-│   │   │       │   │   ├── LogUploadProperties.java.html
-│   │   │       │   │   ├── LogUploadResult$Status.html
-│   │   │       │   │   ├── LogUploadResult.html
-│   │   │       │   │   ├── LogUploadResult.java.html
-│   │   │       │   │   ├── LogUploadScheduler.html
-│   │   │       │   │   ├── LogUploadScheduler.java.html
-│   │   │       │   │   ├── LogUploadService.html
-│   │   │       │   │   ├── LogUploadService.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── com.codeit.monew.infra.storage.s3
-│   │   │       │   │   ├── S3ArticleBackupFileStorage$1.html
-│   │   │       │   │   ├── S3ArticleBackupFileStorage.html
-│   │   │       │   │   ├── S3ArticleBackupFileStorage.java.html
-│   │   │       │   │   ├── index.html
-│   │   │       │   │   └── index.source.html
-│   │   │       │   ├── index.html
-│   │   │       │   ├── jacoco-resources
-│   │   │       │   │   ├── branchfc.gif
-│   │   │       │   │   ├── branchnc.gif
-│   │   │       │   │   ├── branchpc.gif
-│   │   │       │   │   ├── bundle.gif
-│   │   │       │   │   ├── class.gif
-│   │   │       │   │   ├── down.gif
-│   │   │       │   │   ├── greenbar.gif
-│   │   │       │   │   ├── group.gif
-│   │   │       │   │   ├── method.gif
-│   │   │       │   │   ├── package.gif
-│   │   │       │   │   ├── prettify.css
-│   │   │       │   │   ├── prettify.js
-│   │   │       │   │   ├── redbar.gif
-│   │   │       │   │   ├── report.css
-│   │   │       │   │   ├── report.gif
-│   │   │       │   │   ├── session.gif
-│   │   │       │   │   ├── sort.gif
-│   │   │       │   │   ├── sort.js
-│   │   │       │   │   ├── source.gif
-│   │   │       │   │   └── up.gif
-│   │   │       │   └── jacoco-sessions.html
-│   │   │       └── jacocoTestReport.xml
-│   │   ├── problems
-│   │   │   └── problems-report.html
-│   │   └── tests
-│   │       └── test
-│   │           ├── classes
-│   │           │   └── com.codeit.monew.domain.interest.service.InterestServiceTest$subscribe.html
-│   │           ├── css
-│   │           │   ├── base-style.css
-│   │           │   └── style.css
-│   │           ├── index.html
-│   │           ├── js
-│   │           │   └── report.js
-│   │           └── packages
-│   │               └── com.codeit.monew.domain.interest.service.html
-│   ├── resources
-│   │   ├── main
-│   │   │   ├── application-dev.yaml
-│   │   │   ├── application-local.yaml
-│   │   │   ├── application-prod.yaml
-│   │   │   ├── application.yaml
-│   │   │   ├── logback-spring.xml
-│   │   │   ├── schema-h2.sql
-│   │   │   ├── schema-postgre.sql
-│   │   │   ├── schema.sql
-│   │   │   └── static
-│   │   │       ├── assets
-│   │   │       │   ├── index-BBLciFoK.js
-│   │   │       │   ├── index-CHX_5t7G.css
-│   │   │       │   ├── landing_comments-BoMt6RvV.svg
-│   │   │       │   ├── landing_interests-CBQzCgwG.svg
-│   │   │       │   └── landing_notifications-BkwzqdfE.svg
-│   │   │       ├── favicon.ico
-│   │   │       ├── fonts
-│   │   │       │   └── pretendard
-│   │   │       │       ├── LICENSE.txt
-│   │   │       │       ├── Pretendard-Bold.woff2
-│   │   │       │       ├── Pretendard-Regular.woff2
-│   │   │       │       └── PretendardVariable.woff2
-│   │   │       └── index.html
-│   │   └── test
-│   │       └── application-test.yaml
-│   ├── test-results
-│   │   └── test
-│   │       ├── TEST-com.codeit.monew.domain.interest.service.InterestServiceTest$subscribe.xml
-│   │       └── binary
-│   │           ├── output.bin
-│   │           ├── output.bin.idx
-│   │           └── results.bin
-│   └── tmp
-│       ├── compileJava
-│       │   ├── compileTransaction
-│       │   │   ├── backup-dir
-│       │   │   └── stash-dir
-│       │   │       ├── ArticleBackupMapperImpl.class.uniqueId2
-│       │   │       ├── ArticleBackupMapperImpl.java.uniqueId9
-│       │   │       ├── ArticleController.class.uniqueId18
-│       │   │       ├── ArticleMapperImpl.class.uniqueId8
-│       │   │       ├── ArticleMapperImpl.java.uniqueId0
-│       │   │       ├── ArticleService.class.uniqueId10
-│       │   │       ├── ArticleViewMapperImpl.class.uniqueId6
-│       │   │       ├── ArticleViewMapperImpl.java.uniqueId5
-│       │   │       ├── CommentMapperImpl.class.uniqueId1
-│       │   │       ├── CommentMapperImpl.java.uniqueId13
-│       │   │       ├── InterestController.class.uniqueId16
-│       │   │       ├── InterestService.class.uniqueId7
-│       │   │       ├── NotificationMapperImpl.class.uniqueId11
-│       │   │       ├── NotificationMapperImpl.java.uniqueId15
-│       │   │       ├── UserActivityEventListener.class.uniqueId3
-│       │   │       ├── UserActivityMapperImpl.class.uniqueId14
-│       │   │       ├── UserActivityMapperImpl.java.uniqueId4
-│       │   │       ├── UserMapperImpl.class.uniqueId12
-│       │   │       └── UserMapperImpl.java.uniqueId17
-│       │   └── previous-compilation-data.bin
-│       ├── compileTestJava
-│       │   ├── compileTransaction
-│       │   │   ├── backup-dir
-│       │   │   └── stash-dir
-│       │   │       ├── InterestServiceTest$delete.class.uniqueId3
-│       │   │       ├── InterestServiceTest$getList.class.uniqueId0
-│       │   │       ├── InterestServiceTest$register.class.uniqueId2
-│       │   │       ├── InterestServiceTest$subscribe.class.uniqueId5
-│       │   │       ├── InterestServiceTest$unsubscribe.class.uniqueId6
-│       │   │       ├── InterestServiceTest$update.class.uniqueId4
-│       │   │       └── InterestServiceTest.class.uniqueId1
-│       │   └── previous-compilation-data.bin
-│       └── test
 ├── build.gradle
 ├── docker-compose.yaml
 ├── gradle
@@ -827,14 +209,23 @@
     │   │               │   │   │   └── ArticleController.java
     │   │               │   │   ├── dto
     │   │               │   │   │   ├── backup
+    │   │               │   │   │   │   └── ArticleBackupDto.java
     │   │               │   │   │   ├── request
+    │   │               │   │   │   │   └── ArticleSearchRequest.java
     │   │               │   │   │   └── response
+    │   │               │   │   │       ├── ArticleDto.java
+    │   │               │   │   │       ├── ArticleRestoreResultDto.java
+    │   │               │   │   │       ├── ArticleScrapeBatchRunResponse.java
+    │   │               │   │   │       ├── ArticleViewDto.java
+    │   │               │   │   │       └── CursorPageResponseArticleDto.java
     │   │               │   │   ├── entity
     │   │               │   │   │   ├── Article.java
     │   │               │   │   │   ├── ArticleInterest.java
     │   │               │   │   │   ├── ArticleInterestId.java
     │   │               │   │   │   ├── ArticleViewHistory.java
     │   │               │   │   │   └── type
+    │   │               │   │   │       ├── ArticleDirection.java
+    │   │               │   │   │       └── ArticleOrderBy.java
     │   │               │   │   ├── mapper
     │   │               │   │   │   ├── ArticleBackupMapper.java
     │   │               │   │   │   ├── ArticleMapper.java
@@ -845,6 +236,7 @@
     │   │               │   │   │   ├── ArticleRepository.java
     │   │               │   │   │   ├── ArticleViewHistoryRepository.java
     │   │               │   │   │   └── impl
+    │   │               │   │   │       └── ArticleQueryRepositoryImpl.java
     │   │               │   │   ├── scheduler
     │   │               │   │   │   ├── ArticleScrapeBatchConfig.java
     │   │               │   │   │   ├── ArticleScrapeBatchNotificationPublisher.java
@@ -858,6 +250,10 @@
     │   │               │   │   │   ├── RssArticleBatchJob.java
     │   │               │   │   │   ├── RssArticleScrapeTasklet.java
     │   │               │   │   │   └── backup
+    │   │               │   │   │       ├── ArticleBackupBatchConfig.java
+    │   │               │   │   │       ├── ArticleBackupBatchRunner.java
+    │   │               │   │   │       ├── ArticleBackupJob.java
+    │   │               │   │   │       └── ArticleBackupScheduler.java
     │   │               │   │   └── service
     │   │               │   │       ├── ArticleBackupService.java
     │   │               │   │       ├── ArticleRestoreService.java
@@ -886,6 +282,7 @@
     │   │               │   │   │   ├── CommentQueryRepository.java
     │   │               │   │   │   ├── CommentRepository.java
     │   │               │   │   │   └── impl
+    │   │               │   │   │       └── CommentQueryRepositoryImpl.java
     │   │               │   │   └── service
     │   │               │   │       ├── CommentLikeService.java
     │   │               │   │       └── CommentService.java
@@ -894,7 +291,12 @@
     │   │               │   │   │   └── InterestController.java
     │   │               │   │   ├── dto
     │   │               │   │   │   ├── request
+    │   │               │   │   │   │   ├── InterestRegisterRequest.java
+    │   │               │   │   │   │   └── InterestUpdateRequest.java
     │   │               │   │   │   └── response
+    │   │               │   │   │       ├── CursorPageResponseInterestDto.java
+    │   │               │   │   │       ├── InterestDto.java
+    │   │               │   │   │       └── SubscriptionDto.java
     │   │               │   │   ├── entity
     │   │               │   │   │   ├── Interest.java
     │   │               │   │   │   ├── Keyword.java
@@ -928,6 +330,7 @@
     │   │               │   │   │   ├── NotificationQueryRepository.java
     │   │               │   │   │   ├── NotificationRepository.java
     │   │               │   │   │   └── impl
+    │   │               │   │   │       └── NotificationQueryRepositoryImpl.java
     │   │               │   │   ├── scheduler
     │   │               │   │   │   └── NotificationScheduler.java
     │   │               │   │   └── service
@@ -1028,9 +431,20 @@
     │   │               │   │   ├── external
     │   │               │   │   │   ├── ExternalApiException.java
     │   │               │   │   │   ├── client
+    │   │               │   │   │   │   ├── ExternalClientException.java
+    │   │               │   │   │   │   ├── ExternalEmptyResponseException.java
+    │   │               │   │   │   │   ├── ExternalNetworkException.java
+    │   │               │   │   │   │   ├── ExternalRateLimitException.java
+    │   │               │   │   │   │   └── ExternalServerException.java
     │   │               │   │   │   ├── crawl
+    │   │               │   │   │   │   └── ExternalArticleCrawlException.java
     │   │               │   │   │   ├── llm
+    │   │               │   │   │   │   ├── ExternalLlmException.java
+    │   │               │   │   │   │   ├── ExternalLlmInvalidInputException.java
+    │   │               │   │   │   │   └── ExternalLlmProviderException.java
     │   │               │   │   │   └── parser
+    │   │               │   │   │       ├── EmptyXmlInputException.java
+    │   │               │   │   │       └── ExternalInvalidXmlException.java
     │   │               │   │   ├── notification
     │   │               │   │   │   ├── NotificationAccessDeniedException.java
     │   │               │   │   │   ├── NotificationNotFoundException.java
@@ -1052,7 +466,9 @@
     │   │                   │   │   ├── LlmSummarizer.java
     │   │                   │   │   ├── LlmSummaryService.java
     │   │                   │   │   ├── gemini
+    │   │                   │   │   │   └── GeminiLlmSummarizer.java
     │   │                   │   │   └── openai
+    │   │                   │   │       └── OpenAiLlmSummarizer.java
     │   │                   │   └── rss
     │   │                   │       ├── ArticleBodyCrawler.java
     │   │                   │       ├── CommonArticleCrawler.java
@@ -1112,6 +528,7 @@
         │               │   │   ├── repository
         │               │   │   │   ├── ArticleRepositoryTest.java
         │               │   │   │   └── impl
+        │               │   │   │       └── ArticleQueryRepositoryImplTest.java
         │               │   │   ├── scheduler
         │               │   │   │   ├── ArticleScrapeBatchConfigTest.java
         │               │   │   │   ├── ArticleScrapeBatchNotificationPublisherTest.java
@@ -1121,6 +538,10 @@
         │               │   │   │   ├── RssArticleBatchJobTest.java
         │               │   │   │   ├── RssArticleScrapeTaskletTest.java
         │               │   │   │   └── backup
+        │               │   │   │       ├── ArticleBackupBatchConfigTest.java
+        │               │   │   │       ├── ArticleBackupBatchRunnerTest.java
+        │               │   │   │       ├── ArticleBackupJobTest.java
+        │               │   │   │       └── ArticleBackupSchedulerTest.java
         │               │   │   └── service
         │               │   │       ├── ArticleBackupServiceTest.java
         │               │   │       ├── ArticleRestoreServiceTest.java
@@ -1136,6 +557,7 @@
         │               │   │   │   ├── CommentLikeRepositoryTest.java
         │               │   │   │   ├── CommentRepositoryTest.java
         │               │   │   │   └── impl
+        │               │   │   │       └── CommentQueryRepositoryImplTest.java
         │               │   │   └── service
         │               │   │       ├── CommentLikeServiceTest.java
         │               │   │       └── CommentServiceTest.java
@@ -1156,6 +578,7 @@
         │               │   │   ├── repository
         │               │   │   │   ├── NotificationRepositoryTest.java
         │               │   │   │   └── impl
+        │               │   │   │       └── NotificationQueryRepositoryImplTest.java
         │               │   │   ├── scheduler
         │               │   │   │   └── NotificationSchedulerTest.java
         │               │   │   └── service
