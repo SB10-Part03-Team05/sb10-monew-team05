@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class ArticleRestoreService {
 
   private final S3ArticleBackupFileStorage s3ArticleBackupFileStorage;
 
+  @CacheEvict(value = "articleList", allEntries = true)
   public List<ArticleRestoreResultDto> restore(LocalDateTime from, LocalDateTime to) {
     log.info("[ARTICLE_RESTORE] 뉴스 기사 복원 시작: from={}, to={}", from, to);
 

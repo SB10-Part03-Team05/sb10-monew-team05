@@ -23,6 +23,7 @@ import com.codeit.monew.global.exception.user.UserNotFoundException;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -108,6 +109,7 @@ public class InterestService {
   }
 
   // 3. 관심사 삭제
+  @CacheEvict(value = "articleList", allEntries = true)
   @Transactional
   public void delete(UUID interestId) {
     log.debug("[INTEREST_DELETE] 관심사 삭제 요청: interestId={}", interestId);
