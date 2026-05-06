@@ -10,6 +10,7 @@ import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedCancelEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestDeletedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
@@ -50,7 +51,7 @@ public class UserActivityEventListener {
     log.debug("[USER_ACTIVITY_CACHE] 캐시 안전 삭제 완료: userId={}", userId);
   }
 
-  // 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
+  // 댓글 수정 시 연관된 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
   private void queryForLikedUsers(UUID commentId) {
     Query query = new Query(Criteria.where("commentLikes.commentId").is(commentId.toString()));
     query.fields().include("_id");
@@ -123,6 +124,33 @@ public class UserActivityEventListener {
 
     evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 관심사 구독 취소 완료");
+  }
+
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleInterestDeletedEvent(InterestDeletedEvent event) {
+    log.debug("[USER_ACTIVITY] 관심사 전역 삭제 반영 시작: interestId={}", event.interestId().toString());
+
+    // DB에서 제거하기 전 해당 관심사를 가진 유저들을 검색
+    Query findQuery = new Query(Criteria.where("subscriptions.interestId").is(
+        event.interestId().toString()));
+    findQuery.fields().include("_id");
+    List<UserActivity> usersToEvict = mongoTemplate.find(findQuery, UserActivity.class);
+
+    // 모든 유저의 subscriptions 배열에서 해당 관심사 제거
+    Update pullUpdate = new Update().pull("subscriptions", new Document("interestId",
+        event.interestId().toString()));
+    mongoTemplate.updateMulti(findQuery, pullUpdate, UserActivity.class);
+
+    // 미리 확보한 유저 리스트를 바탕으로 캐시 무효화 진행
+    for (UserActivity user : usersToEvict) {
+      try {
+        evictUserActivityCache(UUID.fromString(user.getId()));
+      } catch (Exception e) {
+        log.warn("[USER_ACTIVITY_CACHE] 전역 삭제에 따른 캐시 무효화 실패: userId={}", user.getId());
+      }
+    }
+    log.info("[USER_ACTIVITY] 전역 관심사 삭제 반영 완료");
   }
 
   @Async
