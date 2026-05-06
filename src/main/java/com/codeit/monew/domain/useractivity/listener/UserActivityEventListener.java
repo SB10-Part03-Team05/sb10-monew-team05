@@ -131,25 +131,18 @@ public class UserActivityEventListener {
   public void handleInterestDeletedEvent(InterestDeletedEvent event) {
     log.debug("[USER_ACTIVITY] 관심사 전역 삭제 반영 시작: interestId={}", event.interestId().toString());
 
-    // DB에서 제거하기 전 해당 관심사를 가진 유저들을 검색
-    Query findQuery = new Query(Criteria.where("subscriptions.interestId").is(
-        event.interestId().toString()));
-    findQuery.fields().include("_id");
-    List<UserActivity> usersToEvict = mongoTemplate.find(findQuery, UserActivity.class);
+    // 모든 유저의 활동내역에서 관심사 제거
+    Query updateQuery = new Query(Criteria.where("subscriptions.interestId").is(event.interestId().toString()));
+    Update pullUpdate = new Update().pull("subscriptions", new Document("interestId", event.interestId().toString()));
+    mongoTemplate.updateMulti(updateQuery, pullUpdate, UserActivity.class);
 
-    // 모든 유저의 subscriptions 배열에서 해당 관심사 제거
-    Update pullUpdate = new Update().pull("subscriptions", new Document("interestId",
-        event.interestId().toString()));
-    mongoTemplate.updateMulti(findQuery, pullUpdate, UserActivity.class);
-
-    // 미리 확보한 유저 리스트를 바탕으로 캐시 무효화 진행
-    for (UserActivity user : usersToEvict) {
-      try {
-        evictUserActivityCache(UUID.fromString(user.getId()));
-      } catch (Exception e) {
-        log.warn("[USER_ACTIVITY_CACHE] 전역 삭제에 따른 캐시 무효화 실패: userId={}", user.getId());
-      }
+    Cache userActivityCache = cacheManager.getCache("userActivity");
+    if (userActivityCache == null) {
+      log.warn("[USER_ACTIVITY_CACHE] 캐시를 찾지 못해 삭제 실패");
+      return;
     }
+    userActivityCache.clear();
+
     log.info("[USER_ACTIVITY] 전역 관심사 삭제 반영 완료");
   }
 
