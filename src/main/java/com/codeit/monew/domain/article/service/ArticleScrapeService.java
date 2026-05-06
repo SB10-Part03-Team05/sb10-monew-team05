@@ -1,5 +1,7 @@
 package com.codeit.monew.domain.article.service;
 
+import static com.codeit.monew.global.common.constant.ArticleSummaryConstants.DEFAULT_SUMMARY;
+
 import com.codeit.monew.domain.article.entity.Article;
 import com.codeit.monew.domain.article.repository.ArticleRepository;
 import com.codeit.monew.domain.article.scheduler.ArticleScrapeResult;
@@ -174,6 +176,9 @@ public class ArticleScrapeService {
   private void applyLlmSummaryForCrawledArticles(List<Article> articles) {
     for (Article article : articles) {
       String originalBody = article.getSummary();
+      if (!StringUtils.hasText(originalBody) || DEFAULT_SUMMARY.equals(originalBody.trim())) {
+        continue;
+      }
       String summarized = llmSummaryService.summarizeOrOriginal(originalBody,
           article.getSourceUrl());
       article.updateSummary(summarized);

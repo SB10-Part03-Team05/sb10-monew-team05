@@ -19,7 +19,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Hidden
 @Slf4j
-@Profile({"local", "dev"})
+//@Profile({"local", "dev"})
 @RestController
 @RequestMapping("/api/admin/articles")
 @RequiredArgsConstructor
