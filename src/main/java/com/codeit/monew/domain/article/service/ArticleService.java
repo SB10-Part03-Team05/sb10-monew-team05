@@ -112,7 +112,6 @@ public class ArticleService {
   }
 
   // 뉴스 기사 view 등록
-  @CacheEvict(value = "articleList", allEntries = true)
   public ArticleViewDto view(UUID articleId, UUID requestUserId) {
     log.debug("[ARTICLE_VIEW_POST] 뉴스 기사 조회 처리 시작: articleId={}", articleId);
 
