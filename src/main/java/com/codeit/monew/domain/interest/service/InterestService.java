@@ -13,6 +13,7 @@ import com.codeit.monew.domain.interest.repository.KeywordRepository;
 import com.codeit.monew.domain.interest.repository.SubscriptionRepository;
 import com.codeit.monew.domain.user.entity.User;
 import com.codeit.monew.domain.user.repository.UserRepository;
+import com.codeit.monew.domain.useractivity.event.InterestDeletedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.global.exception.Interest.AlreadySubscribedException;
@@ -119,6 +120,11 @@ public class InterestService {
         .orElseThrow(() -> new InterestNotFoundException(interestId));
 
     // 물리 삭제 (CASCADE로 keyword, subscription 자동 삭제)
+
+    // 활동 내역 업데이트를 위한 관심사 삭제 이벤트 발행
+    eventPublisher.publishEvent(new InterestDeletedEvent(
+        interestId
+    ));
 
     interestRepository.delete(interest);
     log.info("[INTEREST_DELETE] 관심사 삭제 완료: interestId={}", interestId);

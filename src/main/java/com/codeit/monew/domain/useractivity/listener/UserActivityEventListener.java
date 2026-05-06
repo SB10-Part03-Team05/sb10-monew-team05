@@ -10,6 +10,7 @@ import com.codeit.monew.domain.useractivity.event.CommentCreatedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedCancelEvent;
 import com.codeit.monew.domain.useractivity.event.CommentLikedEvent;
 import com.codeit.monew.domain.useractivity.event.CommentUpdatedEvent;
+import com.codeit.monew.domain.useractivity.event.InterestDeletedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.InterestUnSubscribedEvent;
 import com.codeit.monew.domain.useractivity.event.UserRegisteredEvent;
@@ -50,7 +51,7 @@ public class UserActivityEventListener {
     log.debug("[USER_ACTIVITY_CACHE] 캐시 안전 삭제 완료: userId={}", userId);
   }
 
-  // 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
+  // 댓글 수정 시 연관된 타인들의 ID를 찾아서 캐시를 지우는 헬퍼 메서드
   private void queryForLikedUsers(UUID commentId) {
     Query query = new Query(Criteria.where("commentLikes.commentId").is(commentId.toString()));
     query.fields().include("_id");
@@ -123,6 +124,26 @@ public class UserActivityEventListener {
 
     evictUserActivityCache(event.userId());
     log.info("[USER_ACTIVITY] 관심사 구독 취소 완료");
+  }
+
+  @Async
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleInterestDeletedEvent(InterestDeletedEvent event) {
+    log.debug("[USER_ACTIVITY] 관심사 전역 삭제 반영 시작: interestId={}", event.interestId().toString());
+
+    // 모든 유저의 활동내역에서 관심사 제거
+    Query updateQuery = new Query(Criteria.where("subscriptions.interestId").is(event.interestId().toString()));
+    Update pullUpdate = new Update().pull("subscriptions", new Document("interestId", event.interestId().toString()));
+    mongoTemplate.updateMulti(updateQuery, pullUpdate, UserActivity.class);
+
+    Cache userActivityCache = cacheManager.getCache("userActivity");
+    if (userActivityCache == null) {
+      log.warn("[USER_ACTIVITY_CACHE] 캐시를 찾지 못해 삭제 실패");
+      return;
+    }
+    userActivityCache.clear();
+
+    log.info("[USER_ACTIVITY] 전역 관심사 삭제 반영 완료");
   }
 
   @Async
