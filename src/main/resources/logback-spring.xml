@@ -8,10 +8,10 @@
 
   <!-- MDC 값을 포함한 로그 패턴 설정 -->
   <property name="LOG_PATTERN"
-    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId} | %X{clientIp} | %X{requestMethod} | %X{requestUri}] - %msg%n"/>
+    value="%d{yy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId} | %X{clientIp} | %X{requestMethod} | %X{requestUri}] - %msg%n"/>
   <springProfile name="prod">
     <property name="LOG_PATTERN"
-      value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId} | %X{clientIp} | %X{requestMethod} | %X{requestUri}] - %maskedMsg%n"/>
+      value="%d{yy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId} | %X{clientIp} | %X{requestMethod} | %X{requestUri}] - %maskedMsg%n"/>
   </springProfile>
   <property name="LOG_FILE_PATH" value=".logs"/>
   <property name="LOG_FILE_NAME" value="application"/>
@@ -30,7 +30,8 @@
       <pattern>${LOG_PATTERN}</pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_FILE_PATH}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <fileNamePattern>${LOG_FILE_PATH}/${LOG_FILE_NAME}.%d{yyyy-MM-dd,Asia/Seoul}.log
+      </fileNamePattern>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
   </appender>
